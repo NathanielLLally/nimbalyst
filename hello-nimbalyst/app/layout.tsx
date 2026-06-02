@@ -16,7 +16,7 @@ const dmMono = DM_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Hello Nimbalyst",
+  title: "Happy Tails Paw Care",
   description: "A Next.js + Tailwind + shadcn starter, ready for Nimbalyst",
 };
 

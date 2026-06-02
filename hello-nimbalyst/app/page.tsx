@@ -2,6 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Zap, Code2, Layers, ArrowRight, Github } from "lucide-react";
+import TextBlurReveal from "@/components/aicanvas/text-blur-reveal";
 
 const stack = [
   {
@@ -23,6 +24,8 @@ const stack = [
 
 export default function Home() {
   return (
+    <>
+    <TextBlurReveal />
     <main className="min-h-screen flex flex-col items-center justify-center px-4 py-20 relative overflow-hidden">
       {/* Background glow blobs */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[400px] rounded-full bg-primary/10 blur-[120px] pointer-events-none" />
@@ -99,5 +102,6 @@ export default function Home() {
         Deploy to Vercel · Open in Nimbalyst · Ship fast
       </p>
     </main>
+    </>
   );
 }
