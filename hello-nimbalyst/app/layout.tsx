@@ -17,7 +17,7 @@ const dmMono = DM_Mono({
 
 export const metadata: Metadata = {
   title: "Happy Tails Paw Care",
-  description: "A Next.js + Tailwind + shadcn starter, ready for Nimbalyst",
+  description: "A pet services growth agency",
 };
 
 export default function RootLayout({

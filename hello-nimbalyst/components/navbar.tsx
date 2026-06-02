@@ -1,7 +1,13 @@
 'use client'
-import { useState } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import { Menu, X } from 'lucide-react'
+import {
+  Menu, X,
+  Target, Database, TrendingUp, Monitor,
+  Mail, FileText, BarChart2,
+  HelpCircle, MessageSquare, BookOpen,
+  type LucideIcon,
+} from 'lucide-react'
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -12,118 +18,142 @@ import {
 } from '@/components/ui/navigation-menu'
 
 const simpleLinks = [
-  { label: 'About',       href: '/about' },
-  { label: 'Resources',   href: '/resources' },
-  { label: 'Blog',        href: '/blog' },
   { label: 'Performance', href: '/performance' },
-  { label: 'Leads',       href: '/leads' },
+  { label: 'Lead Gen',    href: '/lead_gen' },
 ]
 
-const services = [
+type ServiceItem = { title: string; desc: string; href: string; icon: LucideIcon }
+type ServiceSection = { category: string; items: ServiceItem[] }
+
+const services: ServiceSection[] = [
   {
     category: 'WEB SOLUTIONS',
     items: [
-      { title: 'Lead Generation',  desc: "We don't chase leads — we attract the right ones and convert them.", href: '/services/lead-generation' },
-      { title: 'CRM Integration',  desc: 'Your CRM, automated',                                               href: '/services/crm-integration' },
-      { title: 'SEO Optimization', desc: 'Rank higher. Spend less.',                                          href: '/services/seo' },
-      { title: 'Website Design',   desc: 'Effective presentation makes an impact',                            href: '/services/website-design' },
+      { title: 'Lead Generation',  icon: Target,     desc: "We don't chase leads — we attract the right ones and convert them.", href: '/services/lead-generation' },
+      { title: 'CRM Integration',  icon: Database,   desc: 'Your CRM, automated',                                               href: '/services/crm-integration' },
+      { title: 'SEO Optimization', icon: TrendingUp, desc: 'Rank higher. Spend less.',                                          href: '/services/seo' },
+      { title: 'Website Design',   icon: Monitor,    desc: 'Effective presentation makes an impact',                            href: '/services/website-design' },
     ],
   },
   {
     category: 'MARKETING TOOLS',
     items: [
-      { title: 'Email Outreach',   desc: "Reaching strangers is an art. We've mastered it.", href: '/services/email-outreach' },
-      { title: 'Content Strategy', desc: 'Effective messaging for growth',                  href: '/services/content-strategy' },
-      { title: 'Analytics',        desc: 'Track results and insights',                      href: '/services/analytics' },
+      { title: 'Email Outreach',   icon: Mail,      desc: "Reaching strangers is an art. We've mastered it.", href: '/services/email-outreach' },
+      { title: 'Content Strategy', icon: FileText,  desc: 'Effective messaging for growth',                  href: '/services/content-strategy' },
+      { title: 'Analytics',        icon: BarChart2, desc: 'Track results and insights',                      href: '/services/analytics' },
     ],
   },
   {
     category: 'SUPPORT',
     items: [
-      { title: 'FAQs',      desc: 'Answers to common questions',    href: '/faqs' },
-      { title: 'Contact',   desc: 'Reach our expert team',          href: '/contact' },
-      { title: 'Resources', desc: 'Guides for pet care businesses',  href: '/resources' },
+      { title: 'FAQs',      icon: HelpCircle,    desc: 'Answers to common questions',         href: '/faqs' },
+      { title: 'Contact',   icon: MessageSquare, desc: 'Reach our expert team',               href: '/contact' },
+      { title: 'Resources', icon: BookOpen,      desc: 'Guides for pet care businesses',       href: '/resources' },
+      { title: 'Blog',      icon: BookOpen,      desc: 'Think less. Know more. Read the blog.', href: '/blog' },
     ],
   },
 ]
 
 export function Navbar() {
   const [open, setOpen] = useState(false)
+  const navRef = useRef<HTMLElement>(null)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const [vpLeft, setVpLeft] = useState(0)
+
+  const updateVpLeft = useCallback(() => {
+    if (triggerRef.current && navRef.current) {
+      const tr = triggerRef.current.getBoundingClientRect()
+      const nr = navRef.current.getBoundingClientRect()
+      setVpLeft(tr.left - nr.left)
+    }
+  }, [])
+
+  useEffect(() => {
+    updateVpLeft()
+    window.addEventListener('resize', updateVpLeft)
+    return () => window.removeEventListener('resize', updateVpLeft)
+  }, [updateVpLeft])
 
   return (
     <header className="fixed top-0 inset-x-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 md:px-6">
-        {/* Brand */}
-        <Link href="/" className="text-sm font-bold tracking-widest uppercase text-foreground shrink-0">
-          Acme
-        </Link>
+      <div className="mx-auto max-w-6xl px-4 md:px-6">
+        <NavigationMenu
+            ref={navRef}
+            className="w-full max-w-none justify-between h-16"
+            style={{ '--nav-viewport-left': `${vpLeft}px` } as React.CSSProperties}
+          >
+          {/* Brand */}
+          <Link href="/" className="text-sm font-bold tracking-widest uppercase text-foreground shrink-0">
+            Acme
+          </Link>
 
-        {/* Desktop nav */}
-        <div className="hidden md:flex items-center">
-          <NavigationMenu>
-            <NavigationMenuList>
-              {/* Services dropdown */}
-              <NavigationMenuItem>
-                <NavigationMenuTrigger className="bg-transparent text-sm text-muted-foreground hover:text-foreground data-[state=open]:text-foreground">
-                  Services
-                </NavigationMenuTrigger>
-                <NavigationMenuContent>
-                  <div className="grid grid-cols-3 gap-6 p-6 w-[700px]">
-                    {services.map((section) => (
-                      <div key={section.category}>
-                        <p className="mb-3 text-[10px] font-semibold tracking-widest uppercase text-muted-foreground/70">
-                          {section.category}
-                        </p>
-                        <ul className="flex flex-col gap-1">
-                          {section.items.map((item) => (
-                            <li key={item.title}>
-                              <NavigationMenuLink asChild>
-                                <Link
-                                  href={item.href}
-                                  className="block rounded-md p-2.5 hover:bg-accent transition-colors group"
-                                >
+          {/* Desktop links */}
+          <NavigationMenuList className="hidden md:flex">
+            <NavigationMenuItem>
+              <NavigationMenuTrigger
+                ref={triggerRef}
+                className="bg-transparent text-sm text-muted-foreground hover:text-foreground data-[state=open]:text-foreground"
+              >
+                Services
+              </NavigationMenuTrigger>
+              <NavigationMenuContent>
+                <div className="grid grid-cols-3 gap-6 p-6 w-[700px]">
+                  {services.map((section) => (
+                    <div key={section.category}>
+                      <p className="mb-3 text-[10px] font-semibold tracking-widest uppercase text-muted-foreground/70">
+                        {section.category}
+                      </p>
+                      <ul className="flex flex-col gap-1">
+                        {section.items.map((item) => (
+                          <li key={item.title}>
+                            <NavigationMenuLink asChild>
+                              <Link
+                                href={item.href}
+                                className="flex gap-3 rounded-md p-2.5 hover:bg-accent transition-colors group"
+                              >
+                                <item.icon className="w-4 h-4 mt-0.5 shrink-0 text-primary" />
+                                <div>
                                   <p className="text-sm font-medium text-foreground leading-none mb-1">
                                     {item.title}
                                   </p>
                                   <p className="text-xs text-muted-foreground leading-relaxed">
                                     {item.desc}
                                   </p>
-                                </Link>
-                              </NavigationMenuLink>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    ))}
-                  </div>
-                </NavigationMenuContent>
+                                </div>
+                              </Link>
+                            </NavigationMenuLink>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              </NavigationMenuContent>
+            </NavigationMenuItem>
+
+            {simpleLinks.map(({ label, href }) => (
+              <NavigationMenuItem key={href}>
+                <NavigationMenuLink asChild>
+                  <Link
+                    href={href}
+                    className="inline-flex h-10 items-center px-4 text-sm text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-accent/50"
+                  >
+                    {label}
+                  </Link>
+                </NavigationMenuLink>
               </NavigationMenuItem>
+            ))}
+          </NavigationMenuList>
 
-              {/* Simple links */}
-              {simpleLinks.map(({ label, href }) => (
-                <NavigationMenuItem key={href}>
-                  <NavigationMenuLink asChild>
-                    <Link
-                      href={href}
-                      className="inline-flex h-10 items-center px-4 text-sm text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-accent/50"
-                    >
-                      {label}
-                    </Link>
-                  </NavigationMenuLink>
-                </NavigationMenuItem>
-              ))}
-            </NavigationMenuList>
-          </NavigationMenu>
-        </div>
-
-        {/* Mobile toggle */}
-        <button
-          className="md:hidden text-muted-foreground hover:text-foreground"
-          onClick={() => setOpen(v => !v)}
-          aria-label="Toggle menu"
-        >
-          {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-        </button>
+          {/* Mobile toggle */}
+          <button
+            className="md:hidden text-muted-foreground hover:text-foreground"
+            onClick={() => setOpen(v => !v)}
+            aria-label="Toggle menu"
+          >
+            {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
+        </NavigationMenu>
       </div>
 
       {/* Mobile menu */}
@@ -141,9 +171,10 @@ export function Navbar() {
                 <Link
                   key={item.title}
                   href={item.href}
-                  className="block px-2 py-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-accent/40"
+                  className="flex items-center gap-2 px-2 py-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-accent/40"
                   onClick={() => setOpen(false)}
                 >
+                  <item.icon className="w-3.5 h-3.5 shrink-0 text-primary" />
                   {item.title}
                 </Link>
               ))}
