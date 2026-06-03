@@ -30,7 +30,7 @@ const services: ServiceSection[] = [
   {
     category: 'WEB SOLUTIONS',
     items: [
-      { title: 'Lead Generation',  icon: Target,     desc: "We don't chase leads — we attract the right ones and convert them.", href: '/services/lead-generation' },
+      { title: 'Lead Generation',  icon: Target,     desc: "Qualified leads, zero hustle", href: '/services/lead-generation' },
       { title: 'CRM Integration',  icon: Database,   desc: 'Your CRM, automated',                                               href: '/services/crm-integration' },
       { title: 'SEO Optimization', icon: TrendingUp, desc: 'Rank higher. Spend less.',                                          href: '/services/seo' },
       { title: 'Website Design',   icon: Monitor,    desc: 'Effective presentation makes an impact',                            href: '/services/website-design' },
