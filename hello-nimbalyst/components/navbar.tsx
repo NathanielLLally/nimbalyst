@@ -61,10 +61,12 @@ export function Navbar() {
   return (
     <header className="fixed top-0 inset-x-0 z-50 border-b border-border/40 bg-background/45 backdrop-blur-xl">
       <div className="mx-auto max-w-6xl items-center justify-between px-4 md:px-6">
-        <NavigationMenu className="w-full max-w-none justify-between h-[74px]">
+        <NavigationMenu className="w-full max-w-none justify-between h-[85px]">
           {/* Brand */}
-          <Link href="/" className="shrink-0">
-            <Image src="/logo.png" alt="Happy Tails Paw Care" width={184} height={46} className="h-[46px] w-auto" />
+          <Link href="/" className="shrink-0 -m-[10px]">
+          {/*            <Image src="/logo.png" alt="Happy Tails Paw Care" width={212} height={53} className="h-[53px] w-auto" />
+*/}
+            <Image src="/logo.png" alt="Happy Tails Paw Care" width={456} height={158} className="h-[85px] w-auto" />
           </Link>
 
           {/* Desktop links */}
