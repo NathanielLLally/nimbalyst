@@ -1,5 +1,4 @@
-import TextBlurReveal from "@/components/aicanvas/text-blur-reveal";
-import GridLines from "@/components/aicanvas/grid-lines";
+import GridTextBlur from "@/components/aicanvas/grid-text-blur";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -53,11 +52,8 @@ export default function Home() {
     <>
       {/* Hero — GridLines as interactive background */}
       <section className="relative min-h-screen overflow-hidden dark">
-        <div className="absolute inset-0 z-0">
-          <GridLines />
-        </div>
         <div className="relative z-10">
-          <TextBlurReveal />
+          <GridTextBlur />
         </div>
       </section>
 

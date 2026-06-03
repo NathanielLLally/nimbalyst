@@ -1,35 +1,40 @@
 'use client'
 
-import { useLayoutEffect, useEffect, useRef, useState } from 'react'
-const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect
+import { useState, useEffect, useLayoutEffect, useRef } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 
+const WORDS = ['We', 'Fetch', 'the', 'Clients', 'You', 'Handle', 'the', 'Pets']
+const ACCENTED = new Set([1, 7])
 
-// ─── Config ───────────────────────────────────────────────────────────────────
-const SPACING = 20     // px between dot/node centres
-const RADIUS_FRAC = 0.30   // hover influence radius — fraction of max(cw, ch)
-const LENS_FRAC = 0.06   // lens push strength — fraction of R
-const BASE_A = 0.13   // resting dot opacity
-const PEAK_A = 0.95   // fully-lit opacity
-const LINE_A_DARK = 0.07   // resting line opacity (dark theme)
-const LINE_A_LIGHT = 0.12   // resting line opacity (light theme)
-const MOUSE_LERP = 0.14   // smoothed mouse movement
+const STAGGER = 100
+const DURATION = 650
+const LAST_WORD_END = (WORDS.length - 1) * STAGGER + DURATION
+const SHOW_BUTTON_AT = LAST_WORD_END + 150
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-// b  = brightness (0..1, smoothed)
-// l  = lens influence (0..1, smoothed) — bell curve over distance from cursor
-// px/py = current displaced position (recomputed each frame)
+// Grid-lines config
+const SPACING = 20
+const RADIUS_FRAC = 0.30
+const LENS_FRAC = 0.06
+const BASE_A = 0.13
+const PEAK_A = 0.95
+const LINE_A_DARK = 0.07
+const LINE_A_LIGHT = 0.12
+const MOUSE_LERP = 0.14
+
 type Dot = { x: number; y: number; b: number; l: number; px: number; py: number }
 type Segment = { a: Dot; b: Dot }
 
-// ─── Component ────────────────────────────────────────────────────────────────
-export default function GridLines() {
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect
+
+export default function GridTextBlur() {
+  const [showCTA, setShowCTA] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const mouseRef = useRef<{ x: number; y: number } | null>(null)
   const isDarkRef = useRef(typeof window !== 'undefined' ? document.documentElement.classList.contains('dark') : false)
   const [isDark, setIsDark] = useState(() => typeof window !== 'undefined' ? document.documentElement.classList.contains('light') : true)
 
-  // ── Theme detection ──────────────────────────────────────────────────────────
+  // Theme detection
   useIsomorphicLayoutEffect(() => {
     const el = containerRef.current
     if (!el) return
@@ -49,7 +54,13 @@ export default function GridLines() {
     return () => observer.disconnect()
   }, [])
 
-  // ── Canvas render loop ───────────────────────────────────────────────────────
+  // Text reveal timer
+  useEffect(() => {
+    const t = setTimeout(() => setShowCTA(true), SHOW_BUTTON_AT)
+    return () => clearTimeout(t)
+  }, [])
+
+  // Canvas render loop
   useEffect(() => {
     const canvas: HTMLCanvasElement = canvasRef.current!
     const ctx = canvas.getContext('2d')!
@@ -79,13 +90,11 @@ export default function GridLines() {
       const ox = (cw % SPACING) / 2
       const oy = (ch % SPACING) / 2
 
-      // Map existing dots by position to persist state during resize
       const prev = new Map<string, Dot>()
       for (const d of dots) {
         prev.set(`${d.x.toFixed(0)},${d.y.toFixed(0)}`, d)
       }
 
-      // Build dot grid as 2D array for easy neighbour lookup
       const grid: Dot[][] = []
       dots = []
       for (let r = 0; r < rows; r++) {
@@ -101,7 +110,6 @@ export default function GridLines() {
         }
       }
 
-      // Build segments — horizontal and vertical only
       hSegs = []
       vSegs = []
       for (let r = 0; r < rows; r++) {
@@ -135,28 +143,20 @@ export default function GridLines() {
       const baseA = isDarkRef.current ? BASE_A : 0.22
       const lineRestA = isDarkRef.current ? LINE_A_DARK : LINE_A_LIGHT
 
-      // ── 1. Per-dot update: brightness, lens influence, displaced position ──
-      // Brightness uses a Gaussian halo (soft blend into the background).
-      // Lens uses a sin(πt) bell curve so dots at mid-distance get the
-      // strongest outward push, dots at the cursor and at the edge of R
-      // stay put — the grid bulges around the cursor like a lens.
       for (const d of dots) {
         const dx = d.x - mx
         const dy = d.y - my
         const dist2 = dx * dx + dy * dy
         const dist = Math.sqrt(dist2)
 
-        // Brightness — Gaussian
         const tgtB = dist2 < r2 ? Math.exp(-dist2 / (r2 * 0.45)) : 0
         d.b += (tgtB > d.b ? 0.16 : 0.07) * (tgtB - d.b)
         if (d.b < 0.004) d.b = 0
 
-        // Lens influence — bell curve, peaks at mid-distance
         const tgtL = dist < R ? Math.sin(Math.PI * (dist / R)) : 0
         d.l += (tgtL > d.l ? 0.18 : 0.08) * (tgtL - d.l)
         if (d.l < 0.004) d.l = 0
 
-        // Displaced position — push outward along the cursor→dot ray
         if (dist > 0.5 && d.l > 0.004) {
           const push = lensPush * d.l
           const ux = dx / dist
@@ -169,9 +169,6 @@ export default function GridLines() {
         }
       }
 
-      // ── 2. Draw lines through displaced dot positions ──────────────────────
-      // Because both endpoints move, lines bend as they cross the lens area,
-      // making the grid visibly warp.
       const allSegs = [...hSegs, ...vSegs]
       for (const seg of allSegs) {
         const segB = (seg.a.b + seg.b.b) / 2
@@ -184,7 +181,6 @@ export default function GridLines() {
         ctx.stroke()
       }
 
-      // ── 3. Draw dots on top, at displaced positions ────────────────────────
       for (const d of dots) {
         const alpha = baseA + (PEAK_A - baseA) * d.b
         const sz = 1 + d.b * 2.2
@@ -215,8 +211,6 @@ export default function GridLines() {
   }
 
   const bg = isDark ? '#110F0C' : '#F5F1EA'
-  const labelColor = isDark ? 'rgba(255,255,255,0.45)' : 'rgba(28,25,22,0.45)'
-  const hintColor = isDark ? 'rgba(255,255,255,0.18)' : 'rgba(28,25,22,0.22)'
 
   return (
     <div
@@ -228,12 +222,78 @@ export default function GridLines() {
       onTouchMove={(e) => { const t = e.touches[0]; if (t) updateMouse(t.clientX, t.clientY) }}
       onTouchEnd={() => { mouseRef.current = null }}
     >
+      {/* Grid lines background */}
       <canvas
         ref={canvasRef}
         className="absolute inset-0"
         style={{ width: '100%', height: '100%' }}
       />
-      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2">
+
+      {/* Text reveal foreground */}
+      <div className="pointer-events-none relative flex min-h-screen w-full flex-col items-center justify-center gap-5">
+
+        {/* Glow */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="h-40 w-80 rounded-full bg-primary/10 blur-3xl" />
+        </div>
+
+        {/* Animated words */}
+        <div className="relative flex flex-wrap justify-center gap-x-[0.4em] gap-y-1">
+          {WORDS.map((word, i) => (
+            <motion.span
+              key={i}
+              initial={{ opacity: 0, y: 22, filter: 'blur(14px)' }}
+              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+              transition={{
+                duration: DURATION / 1000,
+                delay: (i * STAGGER) / 1000,
+                ease: [0.21, 0.47, 0.32, 0.98],
+              }}
+              className={
+                ACCENTED.has(i)
+                  ? 'bg-gradient-to-r from-violet-400 to-indigo-400 bg-clip-text text-4xl tracking-tight text-transparent'
+                  : 'text-4xl tracking-tight text-white'
+              }
+              style={{ fontFamily: 'var(--font-syne)' }}
+            >
+              {word}
+            </motion.span>
+          ))}
+        </div>
+
+        {/* Subtext */}
+        <motion.p
+          key="sub"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{
+            duration: 0.55,
+            delay: ((WORDS.length - 1) * STAGGER + 200) / 1000,
+            ease: 'easeOut',
+          }}
+          className="relative text-base text-zinc-400"
+        >
+        Fill Your Schedule. Not Your To-Do List.
+        </motion.p>
+
+        {/* CTA button */}
+        <div className="flex h-10 items-center justify-center">
+          <AnimatePresence>
+            {showCTA && (
+              <motion.button
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 6 }}
+                transition={{ duration: 0.35, ease: 'easeOut' }}
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.97 }}
+                className="pointer-events-auto relative rounded-full bg-gradient-to-r from-violet-500 to-indigo-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 transition-opacity hover:opacity-90"
+              >
+                Get Started
+              </motion.button>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
     </div>
   )
