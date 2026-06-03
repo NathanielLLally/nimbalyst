@@ -2,7 +2,6 @@
 title: Navbar with six nav items
 status: planned
 ---
-
 ## Context
 
 The site (`hello-nimbalyst`) has no navigation header. The user wants a navbar with six links: Services, About, Resources, Blog, Performance, Leads. The site uses Next.js 15 App Router, Tailwind CSS, shadcn/ui, and a dark violet-primary theme.
@@ -27,7 +26,7 @@ Create a `components/navbar.tsx` Client Component and mount it in `app/layout.ts
 ## Files to Create / Modify
 
 | File | Action |
-|------|--------|
+| --- | --- |
 | `components/navbar.tsx` | **Create** — new Client Component |
 | `app/layout.tsx` | **Edit** — import `<Navbar />`, insert above `{children}` inside `<body>` |
 
@@ -119,6 +118,14 @@ Add `import { Navbar } from '@/components/navbar'` and render `<Navbar />` as th
 ```
 
 > `page.tsx`'s `<main>` already has `py-20`, so the only adjustment needed is ensuring the fixed bar doesn't overlap — the existing top padding handles it.
+
+## Pending: Service popup background
+
+**File:** `hello-nimbalyst/components/ui/navigation-menu.tsx` — `NavigationMenuViewport` className
+
+**Change:** Replace `bg-popover` with `bg-popover/20 backdrop-blur-[4px]`
+
+This sets the dropdown card to 20% background opacity with a 4px backdrop blur.
 
 ## Verification
 

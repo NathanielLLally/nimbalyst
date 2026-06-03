@@ -26,18 +26,9 @@ export default function TextBlurReveal() {
   return (
     <div className="relative flex min-h-screen w-full flex-col items-center justify-center gap-5 overflow-hidden">
 
-      {/* Dot grid */}
-      <div
-        className="pointer-events-none absolute inset-0"
-        style={{
-          backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px)',
-          backgroundSize: '24px 24px',
-        }}
-      />
-
-      {/* Indigo glow */}
+      {/* Glow */}
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-        <div className="h-40 w-80 rounded-full bg-indigo-600/20 blur-3xl" />
+        <div className="h-40 w-80 rounded-full bg-primary/10 blur-3xl" />
       </div>
 
       {/* Animated words */}
@@ -92,7 +83,7 @@ export default function TextBlurReveal() {
             whileTap={{ scale: 0.97 }}
             className="relative rounded-full bg-gradient-to-r from-violet-500 to-indigo-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 transition-opacity hover:opacity-90"
           >
-            Start building
+            Get Started
           </motion.button>
         )}
       </AnimatePresence>

@@ -27,7 +27,7 @@ export default function GridLines() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const mouseRef = useRef<{ x: number; y: number } | null>(null)
   const isDarkRef = useRef(typeof window !== 'undefined' ? document.documentElement.classList.contains('dark') : false)
-  const [isDark, setIsDark] = useState(() => typeof window !== 'undefined' ? document.documentElement.classList.contains('dark') : false)
+  const [isDark, setIsDark] = useState(() => typeof window !== 'undefined' ? document.documentElement.classList.contains('light') : true)
 
   // ── Theme detection ──────────────────────────────────────────────────────────
   useIsomorphicLayoutEffect(() => {

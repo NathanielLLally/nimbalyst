@@ -1,6 +1,7 @@
 'use client'
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import {
   Menu, X,
   Target, Database, TrendingUp, Monitor,
@@ -56,48 +57,24 @@ const services: ServiceSection[] = [
 
 export function Navbar() {
   const [open, setOpen] = useState(false)
-  const navRef = useRef<HTMLElement>(null)
-  const triggerRef = useRef<HTMLButtonElement>(null)
-  const [vpLeft, setVpLeft] = useState(0)
-
-  const updateVpLeft = useCallback(() => {
-    if (triggerRef.current && navRef.current) {
-      const tr = triggerRef.current.getBoundingClientRect()
-      const nr = navRef.current.getBoundingClientRect()
-      setVpLeft(tr.left - nr.left)
-    }
-  }, [])
-
-  useEffect(() => {
-    updateVpLeft()
-    window.addEventListener('resize', updateVpLeft)
-    return () => window.removeEventListener('resize', updateVpLeft)
-  }, [updateVpLeft])
 
   return (
-    <header className="fixed top-0 inset-x-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-md">
-      <div className="mx-auto max-w-6xl px-4 md:px-6">
-        <NavigationMenu
-            ref={navRef}
-            className="w-full max-w-none justify-between h-16"
-            style={{ '--nav-viewport-left': `${vpLeft}px` } as React.CSSProperties}
-          >
+    <header className="fixed top-0 inset-x-0 z-50 border-b border-border/40 bg-background/45 backdrop-blur-xl">
+      <div className="mx-auto max-w-6xl items-center justify-between px-4 md:px-6">
+        <NavigationMenu className="w-full max-w-none justify-between h-16">
           {/* Brand */}
-          <Link href="/" className="text-sm font-bold tracking-widest uppercase text-foreground shrink-0">
-            Acme
+          <Link href="/" className="shrink-0">
+            <Image src="/logo.png" alt="Happy Tails Paw Care" width={160} height={40} className="h-10 w-auto" />
           </Link>
 
           {/* Desktop links */}
           <NavigationMenuList className="hidden md:flex">
             <NavigationMenuItem>
-              <NavigationMenuTrigger
-                ref={triggerRef}
-                className="bg-transparent text-sm text-muted-foreground hover:text-foreground data-[state=open]:text-foreground"
-              >
+              <NavigationMenuTrigger className="bg-transparent text-sm text-muted-foreground hover:text-foreground data-[state=open]:text-foreground">
                 Services
               </NavigationMenuTrigger>
               <NavigationMenuContent>
-                <div className="grid grid-cols-3 gap-6 p-6 w-[700px]">
+                <div className="grid grid-cols-3 gap-6 p-6 w-[700px] top-0 inset-x-0 z-50 border-b border-border/90 bg-background/95 backdrop-blur-xl">
                   {services.map((section) => (
                     <div key={section.category}>
                       <p className="mb-3 text-[10px] font-semibold tracking-widest uppercase text-muted-foreground/70">
