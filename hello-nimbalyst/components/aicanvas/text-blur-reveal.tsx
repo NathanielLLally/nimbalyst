@@ -48,7 +48,7 @@ export default function TextBlurReveal() {
                 ? 'bg-gradient-to-r from-violet-400 to-indigo-400 bg-clip-text text-4xl tracking-tight text-transparent'
                 : 'text-4xl tracking-tight text-white'
             }
-            style={{ fontFamily: 'var(--font-syne)' }}
+            style={{ fontFamily: 'var(--font-playfair)' }}
           >
             {word}
           </motion.span>

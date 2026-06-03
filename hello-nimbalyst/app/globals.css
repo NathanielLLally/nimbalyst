@@ -2,6 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
+html {
+  font-size: 115%; /* scale all rem-based sizes up 15% */
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-playfair);
+}
+
 @layer base {
   :root {
     /* Dark navy from logo text; golden amber from the animals */

@@ -1,18 +1,18 @@
 import type { Metadata } from "next";
-import { Syne, DM_Mono } from "next/font/google";
+import { Playfair_Display, Inter } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "@/components/navbar";
 
-const syne = Syne({
+const playfair = Playfair_Display({
   subsets: ["latin"],
-  variable: "--font-syne",
+  variable: "--font-playfair",
   weight: ["400", "500", "600", "700", "800"],
 });
 
-const dmMono = DM_Mono({
+const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-mono",
-  weight: ["300", "400", "500"],
+  variable: "--font-inter",
+  weight: ["300", "400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -26,8 +26,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${syne.variable} ${dmMono.variable}`}>
-      <body className="font-[family-name:var(--font-syne)] antialiased">
+    <html lang="en" className={`dark ${playfair.variable} ${inter.variable}`}>
+      <body className="font-[family-name:var(--font-inter)] antialiased">
         <Navbar />
         {children}
       </body>

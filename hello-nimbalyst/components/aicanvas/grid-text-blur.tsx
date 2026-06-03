@@ -216,7 +216,7 @@ export default function GridTextBlur() {
     <div
       ref={containerRef}
       className="relative min-h-screen w-full overflow-hidden"
-      style={{ background: bg }}
+//      style={{ background: bg }}
       onMouseMove={(e) => updateMouse(e.clientX, e.clientY)}
       onMouseLeave={() => { mouseRef.current = null }}
       onTouchMove={(e) => { const t = e.touches[0]; if (t) updateMouse(t.clientX, t.clientY) }}
