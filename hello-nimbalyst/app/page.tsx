@@ -1,9 +1,10 @@
 import GridTextBlur from "@/components/aicanvas/grid-text-blur";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { Services } from "@/components/Services";
+import { ParallaxHero } from "@/components/ParallaxHero";
 import {
-  Target, TrendingUp, Monitor, Mail, FileText, BarChart2,
   ArrowRight, Star,
 } from "lucide-react";
 
@@ -14,14 +15,6 @@ const stats = [
   { value: "4.9★", label: "Average Rating" },
 ];
 
-const services = [
-  { icon: Target,    title: "Lead Generation",  desc: "We attract pet owners who are ready to book — not just browse." },
-  { icon: TrendingUp,title: "SEO Optimization",  desc: "Rank higher in local search so clients in your area find you first." },
-  { icon: Mail,      title: "Email Outreach",    desc: "Automated campaigns that keep past clients coming back." },
-  { icon: Monitor,   title: "Website Design",    desc: "A site that builds trust and turns visitors into bookings." },
-  { icon: FileText,  title: "Content Strategy",  desc: "Content that resonates with pet lovers and builds your authority." },
-  { icon: BarChart2, title: "Analytics",         desc: "Know exactly what's working and where every client came from." },
-];
 
 const steps = [
   { num: "01", title: "Audit & Strategy",  desc: "We analyze your current marketing, local competition, and growth opportunities." },
@@ -57,6 +50,14 @@ export default function Home() {
         </div>
       </section>
 
+      <ParallaxHero
+        imageSrc="/dogs_conference_room_laptop.png"
+        imageAlt="Dogs in conference room with laptop"
+        speedFactor={0.5}
+      />
+
+
+
       {/* Stats bar */}
       <section className="border-y border-border/40 bg-card/30 py-10">
         <div className="mx-auto max-w-6xl px-4 md:px-6">
@@ -91,33 +92,7 @@ export default function Home() {
       </section>
 
       {/* Services */}
-      <section className="py-20 bg-card/20">
-        <div className="mx-auto max-w-6xl px-4 md:px-6">
-          <div className="text-center mb-14">
-            <Badge variant="outline" className="border-primary/40 text-primary mb-4 px-4 py-1 text-xs tracking-widest uppercase font-mono">
-              Services
-            </Badge>
-            <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight">
-              Everything you need to grow
-            </h2>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {services.map((svc) => (
-              <Card key={svc.title} className="bg-card/60 backdrop-blur border-border/60 hover:border-primary/40 transition-colors group">
-                <CardHeader className="pb-2">
-                  <div className="text-primary mb-3 group-hover:scale-110 transition-transform w-fit">
-                    <svc.icon className="w-5 h-5" />
-                  </div>
-                  <CardTitle className="text-base">{svc.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">{svc.desc}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
+      <Services />
 
       {/* How it works */}
       <section className="py-24">

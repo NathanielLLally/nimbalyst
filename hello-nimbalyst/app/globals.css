@@ -2,10 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+  /* scale all rem-based sizes up 15% */
 html {
-  font-size: 115%; /* scale all rem-based sizes up 15% */
+  font-size: 1.15em;
 }
 
+  /* Your normal content scrolls here */
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-playfair);
 }
@@ -50,4 +52,50 @@ body::before {
   opacity: 0.03;
   pointer-events: none;
   z-index: 9999;
+}
+
+/* Parallax section with Safari iPhone support */
+.fixed-bg {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  overflow: hidden;
+  background-color: hsl(var(--background));
+}
+
+.fixed-bg img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+  will-change: transform;
+}
+
+.fixed-bg .overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.fixed-bg .overlay-dark {
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.2) 0%,
+    rgba(0, 0, 0, 0.4) 50%,
+    rgba(0, 0, 0, 0.6) 100%
+  );
+}
+
+/* Support for reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .fixed-bg img {
+    will-change: auto;
+  }
 }
