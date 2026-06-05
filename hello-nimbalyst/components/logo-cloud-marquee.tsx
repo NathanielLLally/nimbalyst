@@ -17,11 +17,11 @@ interface LogoCloudMarqueeProps {
 }
 
 const defaultLogos: Logo[] = [
-  { image: 'https://scrollxui.dev/assets/logos/phoenix.svg', name: 'Phoenix' },
-  { image: 'https://scrollxui.dev/assets/logos/oslo.svg', name: 'Oslo' },
-  { image: 'https://scrollxui.dev/assets/logos/theo.svg', name: 'Theo' },
-  { image: 'https://scrollxui.dev/assets/logos/kansas.svg', name: 'Kansas' },
-  { image: 'https://scrollxui.dev/assets/logos/cairo.svg', name: 'Cairo' },
+  { image: '/RIT20Tigers160x_2_8_9_.jpg', name: 'RIT Tigers' },
+  { image: '/Google-G_360x360.png', name: 'Google' },
+  { image: '/Glassdoor_eng_FOLLOW_US_270x90.png', name: 'Glassdoor' },
+  { image: '/neccdl-dark-logo.png', name: 'NECCDL' },
+  { image: '/Good-to-the-Bone-Dog-Training-ver1.3-1-clear-final.png', name: 'Good to the Bone' },
 ];
 
 export default function LogoCloudMarquee({

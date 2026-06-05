@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronRight, ChevronLeft, Mail, CheckCircle } from 'lucide-react';
@@ -89,7 +90,16 @@ export function MultiStepContactForm() {
   };
 
   return (
-    <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 sm:p-8 flex flex-col gap-8">
+    <div className="relative rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 sm:p-8 flex flex-col gap-8 overflow-hidden">
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 opacity-40 pointer-events-none">
+        <Image
+          src="/dog_shake.png"
+          alt="Dog shaking"
+          fill
+          className="object-contain"
+        />
+      </div>
+      <div className="relative z-10">
       {/* Progress indicator */}
       <div className="flex gap-2">
         {steps.map((_, i) => (
@@ -315,6 +325,7 @@ export function MultiStepContactForm() {
           </motion.div>
         )}
       </AnimatePresence>
+      </div>
     </div>
   );
 }

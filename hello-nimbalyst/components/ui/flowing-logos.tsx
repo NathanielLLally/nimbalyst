@@ -72,7 +72,7 @@ const LogoCard = ({
 }) => (
   <div
     className={cn(
-      'flex items-center justify-center shrink-0 cursor-pointer overflow-hidden hover:scale-110 rounded-xl border border-transparent transition-all hover:border-blue-400 hover:shadow-[0_0_10px_#60a5fa] dark:hover:border-blue-400',
+      'flex items-center justify-center shrink-0 cursor-pointer overflow-hidden hover:scale-110 rounded-[45px] border border-transparent transition-all hover:border-blue-400 hover:shadow-[0_0_10px_#60a5fa] dark:hover:border-blue-400 bg-white',
       {
         'h-16 w-16': variant === 'square',
         'h-14 w-auto px-5 py-3 min-w-20 max-w-55': variant === 'wide',
@@ -105,24 +105,22 @@ export const FlowingLogos = ({
   variant?: 'square' | 'wide' | 'auto';
 }) => (
   <div className={cn('w-full overflow-hidden', className)}>
-    {[false, true, false].map((reverse, index) => (
-      <FlowingLogo
-        key={`Canopy-${index}`}
-        reverse={reverse}
-        className='[--duration:30s]'
-        pauseOnHover
-        applyMask
-        repeat={9}
-      >
-        {data.map((logo) => (
-          <LogoCard
-            key={logo.name}
-            logo={logo}
-            variant={variant}
-            className={cardClassName}
-          />
-        ))}
-      </FlowingLogo>
-    ))}
+    <FlowingLogo
+      key='Canopy-single'
+      reverse={false}
+      className='[--duration:30s]'
+      pauseOnHover
+      applyMask
+      repeat={9}
+    >
+      {data.map((logo) => (
+        <LogoCard
+          key={logo.name}
+          logo={logo}
+          variant={variant}
+          className={cardClassName}
+        />
+      ))}
+    </FlowingLogo>
   </div>
 );

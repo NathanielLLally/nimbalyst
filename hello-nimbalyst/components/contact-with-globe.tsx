@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { motion } from 'motion/react';
 import { cn } from '@/lib/utils';
 import { ArrowRight, Mail, Phone, Headphones } from 'lucide-react';
