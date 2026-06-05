@@ -102,7 +102,7 @@ export function MultiStepContactForm() {
 
   return (
     <div className="relative rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 sm:p-8 flex flex-col gap-8 overflow-hidden">
-      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 opacity-40 pointer-events-none">
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 opacity-60 pointer-events-none">
         <Image
           src="/dog_shake.png"
           alt="Dog shaking"
@@ -110,7 +110,7 @@ export function MultiStepContactForm() {
           className="object-contain"
         />
       </div>
-      <div className="relative z-10">
+      <div className="relative z-10 text-white" style={{ textShadow: '0 2px 0 rgba(0, 0, 0, 1)' }}>
       {/* Progress indicator */}
       <div className="flex gap-2">
         {steps.map((_, i) => (
@@ -148,7 +148,7 @@ export function MultiStepContactForm() {
             {currentStep === 0 && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-2 sm:col-span-1">
-                  <label className="text-xs font-semibold tracking-widest uppercase text-zinc-400 dark:text-zinc-500">
+                  <label className="text-xs font-semibold tracking-widest uppercase text-white">
                     Full Name
                   </label>
                   <input
@@ -162,7 +162,7 @@ export function MultiStepContactForm() {
                   />
                 </div>
                 <div className="flex flex-col gap-2 sm:col-span-1">
-                  <label className="text-xs font-semibold tracking-widest uppercase text-zinc-400 dark:text-zinc-500">
+                  <label className="text-xs font-semibold tracking-widest uppercase text-white">
                     Email
                   </label>
                   <input
@@ -176,7 +176,7 @@ export function MultiStepContactForm() {
                   />
                 </div>
                 <div className="flex flex-col gap-2 sm:col-span-2">
-                  <label className="text-xs font-semibold tracking-widest uppercase text-zinc-400 dark:text-zinc-500">
+                  <label className="text-xs font-semibold tracking-widest uppercase text-white">
                     Phone Number
                   </label>
                   <input
@@ -196,7 +196,7 @@ export function MultiStepContactForm() {
             {currentStep === 1 && (
               <div className="grid grid-cols-1 gap-4">
                 <div className="flex flex-col gap-2">
-                  <label className="text-xs font-semibold tracking-widest uppercase text-zinc-400 dark:text-zinc-500">
+                  <label className="text-xs font-semibold tracking-widest uppercase text-white">
                     Company Name
                   </label>
                   <input
@@ -210,7 +210,7 @@ export function MultiStepContactForm() {
                   />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <label className="text-xs font-semibold tracking-widest uppercase text-zinc-400 dark:text-zinc-500">
+                  <label className="text-xs font-semibold tracking-widest uppercase text-white">
                     Website
                   </label>
                   <input
@@ -224,7 +224,7 @@ export function MultiStepContactForm() {
                   />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <label className="text-xs font-semibold tracking-widest uppercase text-zinc-400 dark:text-zinc-500">
+                  <label className="text-xs font-semibold tracking-widest uppercase text-white">
                     Business Type
                   </label>
                   <select
@@ -243,7 +243,7 @@ export function MultiStepContactForm() {
                   </select>
                 </div>
                 <div className="flex flex-col gap-2">
-                  <label className="text-xs font-semibold tracking-widest uppercase text-zinc-400 dark:text-zinc-500">
+                  <label className="text-xs font-semibold tracking-widest uppercase text-white">
                     Main Challenge
                   </label>
                   <select
@@ -268,7 +268,7 @@ export function MultiStepContactForm() {
             {currentStep === 2 && (
               <div className="flex flex-col gap-4">
                 <div className="flex flex-col gap-2">
-                  <label className="text-xs font-semibold tracking-widest uppercase text-zinc-400 dark:text-zinc-500">
+                  <label className="text-xs font-semibold tracking-widest uppercase text-white">
                     Tell us more
                   </label>
                   <textarea

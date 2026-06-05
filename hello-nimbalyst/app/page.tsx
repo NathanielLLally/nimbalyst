@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +13,7 @@ import LogoCloudMarquee from "@/components/logo-cloud-marquee";
 //import LogoCloudDemo from "@/components/shadcn-space/blocks/logo-cloud-01/logo-cloud"
 import ContactWithGlobe from "@/components/contact-with-globe";
 import { CardHoverLift } from "@/components/hover-lift";
+import GridLines from "@/components/aicanvas/grid-lines";
 import {
   ArrowRight, Star, Mail, Phone, Headphones, CheckCircle, Facebook, Instagram, Linkedin, Twitter,
 } from "lucide-react";
@@ -49,6 +51,7 @@ const testimonials = [
 ];
 
 export default function Home() {
+
   return (
     <>
       <MergedHero
@@ -132,6 +135,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Dog and cats parallax section */}
+      <section className="relative h-96 overflow-hidden" style={{ backgroundImage: 'url(/dog_and_cats.png)', backgroundSize: 'cover', backgroundPosition: 'bottom center', backgroundAttachment: 'fixed', opacity: 0.8 }} id="services-bg" />
 
       {/* Testimonials */}
       <section id="testimonials" className="py-20 bg-card/20">
