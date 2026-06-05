@@ -189,20 +189,17 @@ export default function Home() {
       <footer className="border-t border-border/40 py-16">
         <div className="mx-auto max-w-6xl px-4 md:px-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
-            {/* Logo and description */}
+            {/* Logo */}
             <div className="flex flex-col gap-4">
               <Link href="/" className="w-fit">
                 <Image
-                  src="/logo.png"
+                  src="/happy_tails_logo_blue_round_300x300.png"
                   alt="Happy Tails Paw Care"
                   width={200}
-                  height={70}
-                  className="h-16 w-auto"
+                  height={200}
+                  className="h-[200px] w-[200px]"
                 />
               </Link>
-              <p className="text-xs text-muted-foreground">
-                Pet business growth, handled. Strategic marketing solutions for groomers, daycares, vets, and trainers.
-              </p>
             </div>
 
             {/* Links */}
