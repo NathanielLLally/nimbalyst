@@ -93,10 +93,10 @@ export default function ContactWithGlobe({
           >
             <div className="flex flex-col gap-1">
               <h3 className="text-xl font-semibold text-zinc-900 dark:text-white">
-               Ready to fill your schedule? 
+        Connect with our team 
               </h3>
               <p className="text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed max-w-xs">
-        Connect with our team to discuss a custom marketing strategy designed specifically for your goals.
+        Let's discuss a custom marketing strategy designed specifically for your goals.
               </p>
             </div>
 
