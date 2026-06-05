@@ -1,12 +1,15 @@
-import GridTextBlur from "@/components/aicanvas/grid-text-blur";
-import TextBlur from "@/components/aicanvas/text-blur-reveal";
+'use client';
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Services } from "@/components/Services";
-import { ParallaxHero } from "@/components/ParallaxHero";
+import { MergedHero } from "@/components/MergedHero";
+import { FAQ } from "@/components/FAQ";
+import ContactWithGlobe from "@/components/contact-with-globe";
+import { CardHoverLift } from "@/components/hover-lift";
 import {
-  ArrowRight, Star,
+  ArrowRight, Star, Mail, Phone, Headphones, CheckCircle,
 } from "lucide-react";
 
 const stats = [
@@ -44,17 +47,13 @@ const testimonials = [
 export default function Home() {
   return (
     <>
-      {/* Hero — GridLines as interactive background */}
-      <section className="relative min-h-screen overflow-hidden dark">
-        <div className="relative z-10">
-          <TextBlur />
-        </div>
-      </section>
-
-      <ParallaxHero
-        imageSrc="/dogs_conference_room_laptop2.png"
+      <MergedHero
+        imageSrc="/dogs_conference_room_laptop4.png"
         imageAlt="Dogs in conference room with laptop"
         speedFactor={1}
+        words={['We', 'Fetch', 'the', 'Clients', 'You', 'Handle', 'the', 'Pets']}
+        accentedWords={[1, 7]}
+        subtext="Qualified leads, zero hustle."
       />
 
 
@@ -96,7 +95,7 @@ export default function Home() {
       <Services />
 
       {/* How it works */}
-      <section className="py-24">
+      <section id="how-it-works" className="py-24">
         <div className="mx-auto max-w-6xl px-4 md:px-6">
           <div className="text-center mb-14">
             <Badge variant="outline" className="border-primary/40 text-primary mb-4 px-4 py-1 text-xs tracking-widest uppercase font-mono">
@@ -106,20 +105,31 @@ export default function Home() {
               How it works
             </h2>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {steps.map((step) => (
-              <div key={step.num} className="flex flex-col gap-4">
-                <div className="text-5xl font-extrabold text-primary/20 leading-none">{step.num}</div>
-                <h3 className="text-lg font-semibold">{step.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{step.desc}</p>
-              </div>
+              <CardHoverLift key={step.num} className="bg-background border border-border/40 rounded-2xl p-8 hover:border-primary/40 transition-colors">
+                <div className="flex flex-col gap-6 h-full">
+                  <div className="flex items-center gap-4">
+                    <div className="text-4xl font-extrabold text-primary">{step.num}</div>
+                    <div className="h-12 w-1 bg-gradient-to-b from-primary to-primary/20 rounded-full"></div>
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-extrabold text-foreground mb-3">{step.title}</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{step.desc}</p>
+                  </div>
+                  <div className="flex items-center gap-2 text-primary pt-4 border-t border-border/20">
+                    <CheckCircle className="w-4 h-4" />
+                    <span className="text-xs font-semibold uppercase tracking-widest">Key milestone</span>
+                  </div>
+                </div>
+              </CardHoverLift>
             ))}
           </div>
         </div>
       </section>
 
       {/* Testimonials */}
-      <section className="py-20 bg-card/20">
+      <section id="testimonials" className="py-20 bg-card/20">
         <div className="mx-auto max-w-6xl px-4 md:px-6">
           <div className="text-center mb-14">
             <Badge variant="outline" className="border-primary/40 text-primary mb-4 px-4 py-1 text-xs tracking-widest uppercase font-mono">
@@ -150,29 +160,19 @@ export default function Home() {
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="py-32 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,hsl(var(--primary)/0.1),transparent_70%)] pointer-events-none" />
-        <div className="mx-auto max-w-3xl px-4 md:px-6 text-center relative">
-          <h2 className="text-4xl md:text-6xl font-extrabold tracking-tight mb-6">
-            Ready to fill{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-violet-400 to-purple-300">
-              your schedule?
-            </span>
-          </h2>
-          <p className="text-muted-foreground text-lg mb-10">
-            Join hundreds of pet businesses that have turned their marketing from a cost into their biggest revenue driver.
-          </p>
-          <div className="flex flex-wrap gap-4 justify-center">
-            <Button size="lg" className="gap-2">
-              Get started today <ArrowRight className="w-4 h-4" />
-            </Button>
-            <Button size="lg" variant="outline">
-              Book a free audit
-            </Button>
-          </div>
-        </div>
-      </section>
+      <ContactWithGlobe
+        id="contact"
+        title="Ready to fill your schedule?"
+        subtitle="Get Started"
+        description=""
+        contactLinks={[
+          { icon: Mail, label: 'info@happytailspawcare.com', href: 'mailto:info@happytailspawcare.com' },
+          { icon: Phone, label: '(646) 846-8087', href: 'tel:+16468468087' },
+          { icon: Headphones, label: 'Speak with an expert', href: 'mailto:info@happytailspawcare.com' },
+        ]}
+      />
+
+      <FAQ />
 
       {/* Footer */}
       <footer className="border-t border-border/40 py-12">
@@ -180,8 +180,12 @@ export default function Home() {
           <p className="text-sm font-bold tracking-widest uppercase text-foreground">Happy Tails Paw Care</p>
           <p className="text-xs text-muted-foreground">© 2021 Happy Tails Paw Care. All rights reserved.</p>
           <div className="flex gap-6">
-            {["Privacy", "Terms", "Contact"].map((l) => (
-              <a key={l} href="#" className="text-xs text-muted-foreground hover:text-foreground transition-colors">{l}</a>
+            {[
+              { label: "Privacy", href: "#" },
+              { label: "Terms", href: "#" },
+              { label: "Contact", href: "#contact" }
+            ].map((l) => (
+              <a key={l.label} href={l.href} className="text-xs text-muted-foreground hover:text-foreground transition-colors">{l.label}</a>
             ))}
           </div>
         </div>

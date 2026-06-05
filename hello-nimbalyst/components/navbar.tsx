@@ -19,8 +19,8 @@ import {
 } from '@/components/ui/navigation-menu'
 
 const simpleLinks = [
-  { label: 'Performance', href: '/performance' },
-  { label: 'Lead Gen',    href: '/lead_gen' },
+  { label: 'How It Works', href: '/#how-it-works' },
+  { label: 'Contact',      href: '/#contact' },
 ]
 
 type ServiceItem = { title: string; desc: string; href: string; icon: LucideIcon }
@@ -30,27 +30,27 @@ const services: ServiceSection[] = [
   {
     category: 'WEB SOLUTIONS',
     items: [
-      { title: 'Lead Generation',  icon: Target,     desc: "Qualified leads, zero hustle", href: '/services/lead-generation' },
-      { title: 'CRM Integration',  icon: Database,   desc: 'Your CRM, automated',                                               href: '/services/crm-integration' },
-      { title: 'SEO Optimization', icon: TrendingUp, desc: 'Rank higher. Spend less.',                                          href: '/services/seo' },
-      { title: 'Website Design',   icon: Monitor,    desc: 'Effective presentation makes an impact',                            href: '/services/website-design' },
+      { title: 'Lead Generation',  icon: Target,     desc: "Qualified leads, zero hustle", href: '/#services' },
+      { title: 'CRM Integration',  icon: Database,   desc: 'Your CRM, automated',                                               href: '/#services' },
+      { title: 'SEO Optimization', icon: TrendingUp, desc: 'Rank higher. Spend less.',                                          href: '/#services' },
+      { title: 'Website Design',   icon: Monitor,    desc: 'Effective presentation makes an impact',                            href: '/#services' },
     ],
   },
   {
     category: 'MARKETING TOOLS',
     items: [
-      { title: 'Email Outreach',   icon: Mail,      desc: "Reaching strangers is an art. We've mastered it.", href: '/services/email-outreach' },
-      { title: 'Content Strategy', icon: FileText,  desc: 'Effective messaging for growth',                  href: '/services/content-strategy' },
-      { title: 'Analytics',        icon: BarChart2, desc: 'Track results and insights',                      href: '/services/analytics' },
+      { title: 'Email Outreach',   icon: Mail,      desc: "Reaching strangers is an art. We've mastered it.", href: '/#services' },
+      { title: 'Content Strategy', icon: FileText,  desc: 'Effective messaging for growth',                  href: '/#services' },
+      { title: 'Analytics',        icon: BarChart2, desc: 'Track results and insights',                      href: '/#services' },
     ],
   },
   {
-    category: 'SUPPORT',
+    category: 'QUICK LINKS',
     items: [
-      { title: 'FAQs',      icon: HelpCircle,    desc: 'Answers to common questions',         href: '/faqs' },
-      { title: 'Contact',   icon: MessageSquare, desc: 'Reach our expert team',               href: '/contact' },
-      { title: 'Resources', icon: BookOpen,      desc: 'Guides for pet care businesses',       href: '/resources' },
-      { title: 'Blog',      icon: BookOpen,      desc: 'Think less. Know more. Read the blog.', href: '/blog' },
+      { title: 'How It Works',  icon: HelpCircle,    desc: 'Our proven process',                             href: '/#how-it-works' },
+      { title: 'FAQs',          icon: HelpCircle,    desc: 'Common questions answered',                      href: '/#faq' },
+      { title: 'Testimonials',  icon: MessageSquare, desc: 'What our clients say',                           href: '/#testimonials' },
+      { title: 'Contact',       icon: BookOpen,      desc: 'Get started with a free audit',                  href: '/#contact' },
     ],
   },
 ]

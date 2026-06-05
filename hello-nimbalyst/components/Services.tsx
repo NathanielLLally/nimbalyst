@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Target, TrendingUp, Mail, Monitor, FileText, BarChart2 } from 'lucide-react';
+import { CardHoverLift } from '@/components/hover-lift';
 
 interface ServiceBullet {
   text: string;
@@ -154,16 +155,16 @@ export function Services({
   };
 
   return (
-    <section className="py-20 lg:py-28 bg-gray-50/50 border-y border-gray-100" id="services">
+    <section className="py-20 lg:py-28 bg-card/20 border-y border-border/40" id="services">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto text-center space-y-4 mb-16">
-          <span className="text-sm font-bold uppercase tracking-wider text-teal-600 font-display">
+          <span className="text-sm font-bold uppercase tracking-wider text-primary font-display">
             {sectionLabel}
           </span>
-          <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-gray-900 font-display">
+          <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground font-display">
             {headline}
           </h2>
-          <p className="text-lg text-gray-600">{subtext}</p>
+          <p className="text-lg text-muted-foreground">{subtext}</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -171,51 +172,51 @@ export function Services({
             const c = colorClasses[service.iconColor];
             if (service.wide) {
               return (
-                <div
+                <CardHoverLift
                   key={service.id}
-                  className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col md:col-span-2 lg:col-span-3 group"
+                  className="bg-background p-8 rounded-2xl border border-border/40 hover:border-primary/40 transition-colors flex flex-col md:col-span-2 lg:col-span-3"
                 >
                   <div className="flex flex-col md:flex-row gap-6 md:items-center">
                     <div className={`w-14 h-14 rounded-2xl ${c.bg} flex-shrink-0 flex items-center justify-center ${c.text} group-hover:scale-110 transition-transform`}>
                       <service.icon className="w-6 h-6" />
                     </div>
                     <div className="flex-grow">
-                      <h3 className={`text-2xl font-bold text-gray-900 font-display mb-2 transition-colors ${c.hover}`}>
+                      <h3 className={`text-2xl font-bold text-foreground font-display mb-2 transition-colors ${c.hover}`}>
                         {service.title}
                       </h3>
-                      <p className="text-gray-500 text-sm leading-relaxed mb-4">{service.description}</p>
+                      <p className="text-muted-foreground text-sm leading-relaxed mb-4">{service.description}</p>
                     </div>
                     <div className="flex-shrink-0 self-end md:self-center">
                       <button
                         onClick={() => openModal(service)}
-                        className="inline-flex items-center justify-center px-6 py-3 rounded-xl text-sm font-bold text-white bg-teal-500 hover:bg-teal-700 transition-colors shadow-md shadow-teal-500/10"
+                        className="inline-flex items-center justify-center px-6 py-3 rounded-xl text-sm font-bold text-white bg-primary hover:bg-primary/90 transition-colors shadow-md shadow-primary/10"
                       >
                         Explaining Analytics <i className="fa-solid fa-circle-info ml-2" />
                       </button>
                     </div>
                   </div>
-                </div>
+                </CardHoverLift>
               );
             }
             return (
-              <div
+              <CardHoverLift
                 key={service.id}
-                className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col group"
+                className="bg-background p-8 rounded-2xl border border-border/40 hover:border-primary/40 transition-colors flex flex-col h-full"
               >
                 <div className={`w-14 h-14 rounded-2xl ${c.bg} flex items-center justify-center ${c.text} mb-6 group-hover:scale-110 transition-transform`}>
                   <service.icon className="w-6 h-6" />
                 </div>
-                <h3 className={`text-2xl font-bold text-gray-900 font-display mb-3 transition-colors ${c.hover}`}>
+                <h3 className={`text-2xl font-bold text-foreground font-display mb-3 transition-colors ${c.hover}`}>
                   {service.title}
                 </h3>
-                <p className="text-gray-500 text-sm leading-relaxed mb-6 flex-grow">{service.description}</p>
+                <p className="text-muted-foreground text-sm leading-relaxed mb-6 flex-grow">{service.description}</p>
                 <button
                   onClick={() => openModal(service)}
                   className={`inline-flex items-center gap-1.5 text-sm font-extrabold ${c.btn} transition-colors`}
                 >
                   Learn More <i className="fa-solid fa-arrow-right" />
                 </button>
-              </div>
+              </CardHoverLift>
             );
           })}
         </div>
@@ -227,12 +228,12 @@ export function Services({
           onClick={closeModal}
         >
           <div
-            className="bg-white rounded-3xl max-w-lg w-full p-8 shadow-2xl border border-gray-100 relative"
+            className="bg-background rounded-3xl max-w-lg w-full p-8 shadow-2xl border border-border/40 relative"
             onClick={(e) => e.stopPropagation()}
           >
             <button
               onClick={closeModal}
-              className="absolute top-4 right-4 w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200 transition-all"
+              className="absolute top-4 right-4 w-9 h-9 rounded-full bg-card flex items-center justify-center text-muted-foreground hover:bg-card/80 transition-all"
               aria-label="Close Modal"
             >
               <i className="fa-solid fa-xmark" />
@@ -248,25 +249,25 @@ export function Services({
                   <modalService.icon className="w-6 h-6" />
                 </div>
                 <div>
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400 font-display">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground font-display">
                     Service Focus
                   </span>
-                  <h3 className="text-2xl font-black text-gray-900 font-display leading-tight">
+                  <h3 className="text-2xl font-black text-foreground font-display leading-tight">
                     {modalService.title}
                   </h3>
                 </div>
               </div>
 
-              <p className="text-sm text-gray-500 leading-relaxed">{modalService.modalDesc}</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">{modalService.modalDesc}</p>
 
               <div className="space-y-3 pt-2">
-                <p className="text-xs font-bold uppercase tracking-wider text-gray-400 font-display">
+                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground font-display">
                   What&apos;s Included in the System:
                 </p>
                 <ul className="space-y-3">
                   {modalService.bullets.map((b, i) => (
-                    <li key={i} className="flex items-start gap-2.5 text-sm text-gray-600">
-                      <span className="flex-shrink-0 w-5 h-5 rounded-full bg-teal-50 text-teal-600 flex items-center justify-center mt-0.5">
+                    <li key={i} className="flex items-start gap-2.5 text-sm text-muted-foreground">
+                      <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center mt-0.5">
                         <i className="fa-solid fa-check text-xs" />
                       </span>
                       <span>{b.text}</span>
@@ -275,11 +276,11 @@ export function Services({
                 </ul>
               </div>
 
-              <div className="pt-4 border-t border-gray-100">
+              <div className="pt-4 border-t border-border/40">
                 <a
                   href="#contact"
                   onClick={closeModal}
-                  className="flex-grow inline-flex items-center justify-center w-full py-3 rounded-xl text-sm font-bold text-white bg-teal-500 hover:bg-teal-700 transition-colors shadow-md"
+                  className="flex-grow inline-flex items-center justify-center w-full py-3 rounded-xl text-sm font-bold text-white bg-primary hover:bg-primary/90 transition-colors shadow-md"
                 >
                   Get Started 🐾
                 </a>
