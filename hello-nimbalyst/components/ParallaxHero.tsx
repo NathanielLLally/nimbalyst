@@ -11,20 +11,20 @@ interface ParallaxHeroProps {
 export function ParallaxHero({
   imageSrc,
   imageAlt,
-  speedFactor = 0.5,
+  speedFactor = 1,
 }: ParallaxHeroProps) {
-  const { elementRef, imgRef } = useParallax(speedFactor);
+  // Initialize parallax effect using DOM queries
+  useParallax('bg1', speedFactor);
 
   return (
-    <section ref={elementRef}>
+    <section>
       <div className="fixed-bg" id="bg1">
         <img
-          ref={imgRef}
           src={imageSrc}
           alt={imageAlt}
           loading="eager"
         />
-        <div className="overlay overlay-dark"></div>
+        <div className="overlay"></div>
       </div>
     </section>
   );

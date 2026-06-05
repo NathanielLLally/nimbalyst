@@ -1,4 +1,5 @@
 import GridTextBlur from "@/components/aicanvas/grid-text-blur";
+import TextBlur from "@/components/aicanvas/text-blur-reveal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -46,14 +47,14 @@ export default function Home() {
       {/* Hero — GridLines as interactive background */}
       <section className="relative min-h-screen overflow-hidden dark">
         <div className="relative z-10">
-          <GridTextBlur />
+          <TextBlur />
         </div>
       </section>
 
       <ParallaxHero
-        imageSrc="/dogs_conference_room_laptop.png"
+        imageSrc="/dogs_conference_room_laptop2.png"
         imageAlt="Dogs in conference room with laptop"
-        speedFactor={0.5}
+        speedFactor={1}
       />
 
 
