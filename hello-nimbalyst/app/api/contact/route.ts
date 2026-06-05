@@ -11,11 +11,27 @@ interface ContactFormData {
   challenge: string;
   message: string;
   receiveMessages: boolean;
+  recaptchaToken: string;
 }
 
 export async function POST(request: NextRequest) {
   try {
     const data: ContactFormData = await request.json();
+
+    // Verify reCAPTCHA token
+    const recaptchaResponse = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${data.recaptchaToken}`,
+    });
+
+    const recaptchaData = await recaptchaResponse.json();
+    if (!recaptchaData.success || recaptchaData.score < 0.5) {
+      return NextResponse.json(
+        { error: 'reCAPTCHA verification failed' },
+        { status: 400 }
+      );
+    }
 
     // Initialize Google Sheets API
     const auth = new google.auth.GoogleAuth({
@@ -43,6 +59,9 @@ export async function POST(request: NextRequest) {
         data.receiveMessages ? 'Yes' : 'No',
       ],
     ];
+
+    // Remove recaptchaToken from data before logging
+    const { recaptchaToken, ...cleanData } = data;
 
     await sheets.spreadsheets.values.append({
       spreadsheetId: process.env.GOOGLE_SHEET_ID,

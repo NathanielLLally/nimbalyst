@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronRight, ChevronLeft, Mail, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -25,6 +25,12 @@ const steps = [
 ];
 
 export function MultiStepContactForm() {
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.src = `https://www.google.com/recaptcha/api.js?render=${process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY}`;
+    document.head.appendChild(script);
+  }, []);
+
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<FormData>({
     fullName: '',
@@ -84,10 +90,12 @@ export function MultiStepContactForm() {
     setError(null);
 
     try {
+      const token = await (window as any).grecaptcha.execute(process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY, { action: 'submit' });
+
       const response = await fetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ ...formData, recaptchaToken: token }),
       });
 
       if (!response.ok) {
