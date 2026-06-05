@@ -54,7 +54,6 @@ export default function Home() {
       <MergedHero
         imageSrc="/dogs_conference_room_laptop4.png"
         imageAlt="Dogs in conference room with laptop"
-        speedFactor={1}
         words={['We', 'Fetch', 'the', 'Clients', 'You', 'Handle', 'the', 'Pets']}
         accentedWords={[1, 7]}
         subtext="Qualified leads, zero hustle."

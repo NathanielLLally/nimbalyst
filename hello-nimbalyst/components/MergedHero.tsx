@@ -7,7 +7,6 @@ import { useParallax } from '@/lib/use-parallax';
 interface MergedHeroProps {
   imageSrc: string;
   imageAlt: string;
-  speedFactor?: number;
   words?: string[];
   accentedWords?: number[];
   subtext?: string;
@@ -21,7 +20,6 @@ const SHOW_BUTTON_AT = (words: string[]) => LAST_WORD_END(words) + 150;
 export function MergedHero({
   imageSrc,
   imageAlt,
-  speedFactor = 1,
   words = ['We', 'Fetch', 'the', 'Clients', 'You', 'Handle', 'the', 'Pets'],
   accentedWords = [1, words.length - 1],
   subtext = 'Pet business growth, handled.',
@@ -29,7 +27,7 @@ export function MergedHero({
   const [showCTA, setShowCTA] = useState(false);
 
   // Initialize parallax effect
-  useParallax('merged-hero-bg', speedFactor);
+  useParallax('merged-hero-bg');
 
   useEffect(() => {
     const t = setTimeout(() => setShowCTA(true), SHOW_BUTTON_AT(words));

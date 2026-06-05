@@ -5,16 +5,14 @@ import { useParallax } from '@/lib/use-parallax';
 interface ParallaxHeroProps {
   imageSrc: string;
   imageAlt: string;
-  speedFactor?: number;
 }
 
 export function ParallaxHero({
   imageSrc,
   imageAlt,
-  speedFactor = 1,
 }: ParallaxHeroProps) {
   // Initialize parallax effect using DOM queries
-  useParallax('bg1', speedFactor);
+  useParallax('bg1');
 
   return (
     <section>

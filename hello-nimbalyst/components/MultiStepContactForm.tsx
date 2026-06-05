@@ -15,6 +15,7 @@ interface FormData {
   businessType: string;
   challenge: string;
   message: string;
+  receiveMessages: boolean;
 }
 
 const steps = [
@@ -34,12 +35,17 @@ export function MultiStepContactForm() {
     businessType: '',
     challenge: '',
     message: '',
+    receiveMessages: false,
   });
   const [submitted, setSubmitted] = useState(false);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    const { name, value, type } = e.target as any;
+    if (type === 'checkbox') {
+      setFormData((prev) => ({ ...prev, [name]: (e.target as HTMLInputElement).checked }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
   };
 
   // Check if current step is complete
@@ -50,7 +56,7 @@ export function MultiStepContactForm() {
       case 1:
         return formData.company && formData.website && formData.businessType && formData.challenge;
       case 2:
-        return formData.message;
+        return formData.message && formData.receiveMessages;
       default:
         return false;
     }
@@ -74,19 +80,24 @@ export function MultiStepContactForm() {
       setSubmitted(true);
       setTimeout(() => {
         setSubmitted(false);
-        setCurrentStep(0);
-        setFormData({
-          fullName: '',
-          email: '',
-          phone: '',
-          company: '',
-          website: '',
-          businessType: '',
-          challenge: '',
-          message: '',
-        });
+        resetForm();
       }, 3000);
     }
+  };
+
+  const resetForm = () => {
+    setCurrentStep(0);
+    setFormData({
+      fullName: '',
+      email: '',
+      phone: '',
+      company: '',
+      website: '',
+      businessType: '',
+      challenge: '',
+      message: '',
+      receiveMessages: false,
+    });
   };
 
   return (
@@ -255,19 +266,36 @@ export function MultiStepContactForm() {
 
             {/* Step 3: Message */}
             {currentStep === 2 && (
-              <div className="flex flex-col gap-2">
-                <label className="text-xs font-semibold tracking-widest uppercase text-zinc-400 dark:text-zinc-500">
-                  Tell us more
-                </label>
-                <textarea
-                  name="message"
-                  placeholder="Share any additional details or goals you'd like to discuss..."
-                  rows={5}
-                  value={formData.message}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-3 text-sm text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 resize-none transition-all duration-200"
-                />
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs font-semibold tracking-widest uppercase text-zinc-400 dark:text-zinc-500">
+                    Tell us more
+                  </label>
+                  <textarea
+                    name="message"
+                    placeholder="Share any additional details or goals you'd like to discuss..."
+                    rows={5}
+                    value={formData.message}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-3 text-sm text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 resize-none transition-all duration-200"
+                  />
+                </div>
+
+                {/* Checkbox */}
+                <div className="flex items-start gap-3 pt-2">
+                  <input
+                    type="checkbox"
+                    name="receiveMessages"
+                    id="receiveMessages"
+                    checked={formData.receiveMessages}
+                    onChange={handleInputChange}
+                    className="w-4 h-4 mt-1 cursor-pointer rounded border-zinc-300 text-primary focus:ring-primary/20"
+                  />
+                  <label htmlFor="receiveMessages" className="text-xs text-zinc-600 dark:text-zinc-400 cursor-pointer">
+                    Check this box to receive messages from our sales team. Message frequency varies, and data rates may apply.
+                  </label>
+                </div>
               </div>
             )}
 
