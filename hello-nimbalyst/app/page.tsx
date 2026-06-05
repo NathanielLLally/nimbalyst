@@ -1,15 +1,19 @@
 'use client';
 
+import Image from 'next/image';
+import Link from 'next/link';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Services } from "@/components/Services";
 import { MergedHero } from "@/components/MergedHero";
 import { FAQ } from "@/components/FAQ";
+import LogoCloudMarquee from "@/components/logo-cloud-marquee";
+//import LogoCloudDemo from "@/components/shadcn-space/blocks/logo-cloud-01/logo-cloud"
 import ContactWithGlobe from "@/components/contact-with-globe";
 import { CardHoverLift } from "@/components/hover-lift";
 import {
-  ArrowRight, Star, Mail, Phone, Headphones, CheckCircle,
+  ArrowRight, Star, Mail, Phone, Headphones, CheckCircle, Facebook, Instagram, Linkedin, Twitter,
 } from "lucide-react";
 
 const stats = [
@@ -90,6 +94,8 @@ export default function Home() {
           </p>
         </div>
       </section>
+
+      <LogoCloudMarquee />
 
       {/* Services */}
       <Services />
@@ -175,18 +181,69 @@ export default function Home() {
       <FAQ />
 
       {/* Footer */}
-      <footer className="border-t border-border/40 py-12">
-        <div className="mx-auto max-w-6xl px-4 md:px-6 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-sm font-bold tracking-widest uppercase text-foreground">Happy Tails Paw Care</p>
-          <p className="text-xs text-muted-foreground">© 2021 Happy Tails Paw Care. All rights reserved.</p>
-          <div className="flex gap-6">
-            {[
-              { label: "Privacy", href: "#" },
-              { label: "Terms", href: "#" },
-              { label: "Contact", href: "#contact" }
-            ].map((l) => (
-              <a key={l.label} href={l.href} className="text-xs text-muted-foreground hover:text-foreground transition-colors">{l.label}</a>
-            ))}
+      <footer className="border-t border-border/40 py-16">
+        <div className="mx-auto max-w-6xl px-4 md:px-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
+            {/* Logo and description */}
+            <div className="flex flex-col gap-4">
+              <Link href="/" className="w-fit">
+                <Image
+                  src="/logo.png"
+                  alt="Happy Tails Paw Care"
+                  width={200}
+                  height={70}
+                  className="h-16 w-auto"
+                />
+              </Link>
+              <p className="text-xs text-muted-foreground">
+                Pet business growth, handled. Strategic marketing solutions for groomers, daycares, vets, and trainers.
+              </p>
+            </div>
+
+            {/* Links */}
+            <div className="flex flex-col gap-4">
+              <h4 className="text-sm font-semibold text-foreground">Quick Links</h4>
+              <div className="flex flex-col gap-2">
+                {[
+                  { label: "Privacy Policy", href: "/privacy" },
+                  { label: "Terms of Service", href: "/terms" },
+                  { label: "Contact", href: "#contact" },
+                  { label: "Services", href: "#services" },
+                ].map((l) => (
+                  <Link
+                    key={l.label}
+                    href={l.href}
+                    className="text-xs text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    {l.label}
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            {/* Social Media */}
+            <div className="flex flex-col gap-4">
+              <h4 className="text-sm font-semibold text-foreground">Follow Us</h4>
+              <div className="flex gap-4">
+                <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+                  <Facebook className="w-5 h-5" />
+                </a>
+                <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+                  <Instagram className="w-5 h-5" />
+                </a>
+                <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+                  <Linkedin className="w-5 h-5" />
+                </a>
+                <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+                  <Twitter className="w-5 h-5" />
+                </a>
+              </div>
+            </div>
+          </div>
+
+          {/* Divider */}
+          <div className="border-t border-border/40 pt-8">
+            <p className="text-xs text-muted-foreground text-center">© 2024 Happy Tails Paw Care. All rights reserved.</p>
           </div>
         </div>
       </footer>
