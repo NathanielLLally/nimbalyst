@@ -22,42 +22,56 @@ import * as SheetUtils from '@/lib/googleSheetUtils';
 
 interface VapiCallReport {
   id: string;
-  callId: string;
-  status: 'completed' | 'failed';
+  callId?: string;
+  type?: string; // 'end-of-call-report'
+  status?: string;
+  timestamp?: number;
+  startedAt?: string;
+  endedAt?: string;
   endedReason?:
     | 'customer_ended'
     | 'assistant_ended'
     | 'voicemail_reached'
+    | 'voicemail'
     | 'max_duration_reached'
     | 'assistant_error'
     | 'inbound_call_received'
     | 'customer_did_not_answer'
     | 'phone_number_not_found'
     | 'unknown';
-  error?: string;
-  errorMessage?: string;
-  startedAt?: string;
-  endedAt?: string;
+  durationSeconds?: number;
+  durationMs?: number;
   duration?: number;
   transcript?: string;
   recordingUrl?: string;
-  summaryUrl?: string;
+  stereoRecordingUrl?: string;
   summary?: string;
-  recordingMemoryUrl?: string;
-  costBreakdown?: {
-    minutes: number;
-    baseCost: number;
+  error?: string;
+  errorMessage?: string;
+  cost?: number;
+  analysis?: {
+    summary?: string;
+    structuredData?: {
+      outcome?: string;
+      aiDetection?: string;
+      aiImprovement?: string;
+    };
+    successEvaluation?: string;
   };
-  customerPhoneNumber?: string;
-  assistantId?: string;
-  assistantOverrides?: any;
-  messages?: Array<{
-    role: 'assistant' | 'customer' | 'system';
-    message: string;
-    time?: number;
-  }>;
+  artifact?: {
+    transcript?: string;
+    recordingUrl?: string;
+    messages?: Array<{ role: string; message: string; time?: number }>;
+  };
+  call?: {
+    id: string;
+    customer?: { number: string };
+  };
+  customer?: {
+    number: string;
+  };
   variables?: Record<string, any>;
-  artifacts?: Record<string, any>;
+  variableValues?: Record<string, any>;
 }
 
 interface CallMetrics {
@@ -76,9 +90,24 @@ interface CallMetrics {
 export async function POST(request: NextRequest) {
   try {
     const signature = request.headers.get('x-vapi-signature');
-    const body = await request.json() as VapiCallReport;
 
-    console.log(`📨 Vapi Webhook: ${body.callId} | Status: ${body.status}`);
+    // Parse the incoming JSON
+    let rawBody: any;
+    try {
+      rawBody = await request.json();
+    } catch (parseErr) {
+      console.error('❌ JSON parse error:', parseErr);
+      return NextResponse.json(
+        { success: false, error: 'Invalid JSON' },
+        { status: 400 }
+      );
+    }
+
+    // Vapi wraps the call report in a "message" field
+    // Extract the actual report from the message
+    const body: VapiCallReport = rawBody.message || rawBody;
+
+    console.log(`📨 Vapi Webhook: ${body.id || body.callId} | Type: ${body.type || 'unknown'} | Status: ${body.status}`);
 
     // Optional: Verify signature
     if (process.env.VAPI_WEBHOOK_SECRET && signature) {
@@ -91,10 +120,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Validate required fields
-    if (!body.callId || !body.status) {
+    // Validate required fields (Vapi end-of-call-report has different structure)
+    const callId = body.id || body.callId || body.call?.id;
+    if (!callId) {
+      console.warn('⚠️ No call ID found in webhook payload');
       return NextResponse.json(
-        { success: false, error: 'Missing callId or status' },
+        { success: false, error: 'Missing call ID' },
         { status: 400 }
       );
     }
@@ -132,23 +163,29 @@ async function processCallReport(report: VapiCallReport): Promise<void> {
   }
 
   try {
+    const callId = report.id || report.callId || report.call?.id;
+    if (!callId) {
+      console.warn('No call ID in report');
+      return;
+    }
+
     // Find the contact by Vapi Call ID (column K, 0-based index 10)
     const matches = await SheetUtils.findContactRows(
       sheetId,
       apiKey,
       10, // Column K: Vapi Call ID
-      report.callId,
+      callId,
       sheetName
     );
 
     if (matches.length === 0) {
-      console.warn(`⚠️ No contact found for call ID: ${report.callId}`);
+      console.warn(`⚠️ No contact found for call ID: ${callId}`);
       return;
     }
 
     if (matches.length > 1) {
       console.warn(
-        `⚠️ Multiple contacts found for call ID: ${report.callId}, using first`
+        `⚠️ Multiple contacts found for call ID: ${callId}, using first`
       );
     }
 
@@ -247,6 +284,13 @@ async function updateContactWithCallResults(
 }
 
 /**
+ * Extract call ID from report (handles various field names)
+ */
+function getCallId(report: VapiCallReport): string {
+  return report.id || report.callId || report.call?.id || 'unknown';
+}
+
+/**
  * Determine contact status based on call outcome
  */
 function determineStatus(report: VapiCallReport, metrics: CallMetrics): string {
@@ -254,7 +298,8 @@ function determineStatus(report: VapiCallReport, metrics: CallMetrics): string {
     return 'SUCCESS';
   } else if (
     report.endedReason === 'customer_did_not_answer' ||
-    report.endedReason === 'voicemail_reached'
+    report.endedReason === 'voicemail_reached' ||
+    report.endedReason === 'voicemail'
   ) {
     return 'FAILED'; // Will be retried
   } else {
@@ -266,18 +311,37 @@ function determineStatus(report: VapiCallReport, metrics: CallMetrics): string {
  * Extract call metrics from report
  */
 function extractMetrics(report: VapiCallReport): CallMetrics {
+  // Vapi sends transcript in multiple places, check all
+  const transcript =
+    report.transcript ||
+    report.artifact?.transcript ||
+    report.analysis?.summary ||
+    '';
+
+  // Recording URL can be in multiple places
+  const recordingUrl =
+    report.recordingUrl ||
+    report.artifact?.recordingUrl ||
+    report.stereoRecordingUrl ||
+    '';
+
+  // Duration might be in seconds or milliseconds
+  const duration = report.durationSeconds || Math.round((report.durationMs || 0) / 1000) || report.duration || 0;
+
+  // Check if call was successful
+  // Voicemail is considered "reached" (not failed, but not successful)
   const isSuccess =
-    report.status === 'completed' &&
-    (report.endedReason === 'customer_ended' ||
-      report.endedReason === 'assistant_ended');
+    report.endedReason === 'customer_ended' ||
+    report.endedReason === 'assistant_ended';
 
   return {
-    duration: report.duration || 0,
-    transcript: sanitizeTranscript(report.transcript || ''),
+    duration,
+    transcript: sanitizeTranscript(transcript),
     summary:
       report.summary ||
-      extractSummaryFromTranscript(report.transcript || ''),
-    recordingUrl: report.recordingUrl,
+      report.analysis?.summary ||
+      extractSummaryFromTranscript(transcript),
+    recordingUrl,
     endReason: report.endedReason || 'unknown',
     success: isSuccess,
   };
@@ -345,8 +409,10 @@ async function logCallDetails(
       return; // Skip if not configured
     }
 
+    const callId = report.id || report.callId || report.call?.id || 'unknown';
+
     const row = [
-      report.callId, // Call ID
+      callId, // Call ID
       contact[0], // Contact ID
       contact[1], // Phone
       contact[2], // Name
@@ -355,7 +421,7 @@ async function logCallDetails(
       metrics.endReason, // End reason
       metrics.transcript.substring(0, 100), // Transcript snippet
       metrics.summary.substring(0, 150), // Summary snippet
-      report.recordingUrl || '', // Recording URL
+      metrics.recordingUrl || '', // Recording URL
       new Date().toISOString(), // Logged at
     ];
 
@@ -366,7 +432,7 @@ async function logCallDetails(
       callDetailsSheetName
     );
 
-    console.log(`📊 Call details logged for ${report.callId}`);
+    console.log(`📊 Call details logged for ${callId}`);
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err);
     console.warn(`Could not log call details: ${errMsg}`);
