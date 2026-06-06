@@ -1,0 +1,15 @@
+await fetch('https://api.vapi.ai/call/phone', {
+  method: 'POST',
+  headers: {
+    Authorization: `Bearer ${process.env.VAPI_API_KEY}`,
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    assistantId: '3b55189f-fbc6-4861-a7d7-7f746191ea81',
+    customer: {
+      number: '+12125550100',
+      name: 'John Smith',
+    },
+    phoneNumberId: 'b53e88f4-397a-454f-afd1-52b428a3a7eb',
+  }),
+})

@@ -90,7 +90,9 @@ export function MultiStepContactForm() {
     setError(null);
 
     try {
+      console.log('📝 Submitting form...');
       const token = await (window as any).grecaptcha.execute(process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY, { action: 'submit' });
+      console.log('🔐 reCAPTCHA token obtained');
 
       const response = await fetch('/api/contact', {
         method: 'POST',
@@ -102,6 +104,7 @@ export function MultiStepContactForm() {
         throw new Error('Failed to submit form');
       }
 
+      console.log('✅ Form submitted successfully');
       setSubmitted(true);
       setTimeout(() => {
         setSubmitted(false);
@@ -109,7 +112,9 @@ export function MultiStepContactForm() {
         setLoading(false);
       }, 3000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred';
+      console.error('❌ Form submission error:', errorMessage);
+      setError(errorMessage);
       setLoading(false);
     }
   };

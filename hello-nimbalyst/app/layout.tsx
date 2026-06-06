@@ -18,6 +18,10 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Happy Tails Paw Care",
   description: "A pet services growth agency",
+  icons: {
+    icon: "/paw_96x96.png",
+    apple: "/paw_96x96.png",
+  },
 };
 
 export default function RootLayout({
