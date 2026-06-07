@@ -189,7 +189,7 @@ export async function POST(request: NextRequest) {
     console.log('📊 Appending to Google Sheets...');
     await sheets.spreadsheets.values.append({
       spreadsheetId: process.env.GOOGLE_SHEET_ID,
-      range: 'Sheet1!A2',
+      range: 'contact!A2',
       valueInputOption: 'RAW',
       requestBody: { values },
     });
