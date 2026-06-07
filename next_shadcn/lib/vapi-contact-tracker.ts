@@ -202,7 +202,6 @@ export async function processContacts(): Promise<void> {
         const errMsg = err instanceof Error ? err.message : String(err);
         await SheetUtils.appendContactNote(
           cfg.GOOGLE_SHEET_ID,
-          cfg.GOOGLE_API_KEY,
           rowIndex,
           `Error: ${errMsg}`,
           cfg.SHEET_NAME
@@ -415,7 +414,6 @@ async function markSuccess(
 
   await SheetUtils.updateContactRow(
     cfg.GOOGLE_SHEET_ID,
-    cfg.GOOGLE_API_KEY,
     rowIndex,
     {
       [4]: ContactStatus.SUCCESS, // Status
@@ -434,7 +432,6 @@ async function markSuccess(
 
   await SheetUtils.appendContactNote(
     cfg.GOOGLE_SHEET_ID,
-    cfg.GOOGLE_API_KEY,
     rowIndex,
     notes,
     cfg.SHEET_NAME

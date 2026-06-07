@@ -6,11 +6,11 @@
 'use client';
 
 import GoogleChart from './GoogleChart';
-import { 
-  getExampleBusinessData, 
+import {
+  getExampleBusinessData,
   getExampleSalesData,
-  chartConfigs 
-} from '@/lib/googleSheetUtils';
+  chartConfigs
+} from '@/lib/googleChartHelpers';
 
 export const LineChartExample = () => {
   const { columns, rows } = getExampleBusinessData();

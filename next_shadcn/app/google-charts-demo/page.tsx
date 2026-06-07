@@ -1,7 +1,7 @@
 'use client';
 
 import GoogleChart from '@/components/GoogleChart';
-import { getExampleBusinessData, getExampleSalesData } from '@/lib/googleSheetUtils';
+import { getExampleBusinessData, getExampleSalesData } from '@/lib/googleChartHelpers';
 import { useState } from 'react';
 
 export default function DemoPage() {

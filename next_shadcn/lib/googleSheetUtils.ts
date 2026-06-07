@@ -56,9 +56,9 @@ function getAuth() {
 export interface SheetResponse {
   spreadsheetId: string;
   updatedRange: string;
-  updatedRows?: number;
-  updatedColumns?: number;
-  updatedCells?: number;
+  updatedRows?: number | null;
+  updatedColumns?: number | null;
+  updatedCells?: number | null;
 }
 
 /**
@@ -360,7 +360,7 @@ export async function getTrackerData(
       range: sheetName,
     });
 
-    return (response.data.values || []) as ContactRow[];
+    return (response.data.values || []) as unknown as ContactRow[];
   } catch (err) {
     const error = err instanceof Error ? err.message : String(err);
     throw new Error(`Failed to fetch tracker data: ${error}`);

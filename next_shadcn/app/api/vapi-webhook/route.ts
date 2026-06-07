@@ -200,7 +200,6 @@ async function processCallReport(report: VapiCallReport): Promise<void> {
     // Update the contact row with call details
     await updateContactWithCallResults(
       sheetId,
-      apiKey,
       rowIndex,
       row,
       report,
@@ -221,7 +220,6 @@ async function processCallReport(report: VapiCallReport): Promise<void> {
  */
 async function updateContactWithCallResults(
   sheetId: string,
-  apiKey: string,
   rowIndex: number,
   row: SheetUtils.ContactRow,
   report: VapiCallReport,
@@ -281,7 +279,7 @@ async function updateContactWithCallResults(
   );
 
   // Optionally store call data in a separate "Call Details" sheet
-  await logCallDetails(sheetId, apiKey, row, report, metrics);
+  await logCallDetails(sheetId, row, report, metrics);
 }
 
 /**
@@ -398,7 +396,6 @@ function extractSummaryFromTranscript(transcript: string): string {
  */
 async function logCallDetails(
   sheetId: string,
-  apiKey: string,
   contact: SheetUtils.ContactRow,
   report: VapiCallReport,
   metrics: CallMetrics
