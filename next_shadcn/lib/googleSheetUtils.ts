@@ -2,7 +2,11 @@
  * Google Sheets Utility Functions
  * Helper functions for working with Google Sheets and Google Charts
  * Also handles Vapi contact tracker operations with data integrity
+ *
+ * Uses Google Service Account for authentication (googleapis library)
  */
+
+import { google } from 'googleapis';
 
 export interface SheetDataColumn {
   label: string;
@@ -29,6 +33,24 @@ export interface ContactRow {
   [9]: string; // Resolved
   [10]: string; // Vapi Call ID
   [11]: string; // Notes
+}
+
+function getAuth() {
+  const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
+  const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+
+  if (!email || !privateKey) {
+    throw new Error('Missing GOOGLE_SERVICE_ACCOUNT_EMAIL or GOOGLE_PRIVATE_KEY');
+  }
+
+  return new google.auth.GoogleAuth({
+    credentials: {
+      type: 'service_account',
+      client_email: email,
+      private_key: privateKey,
+    },
+    scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+  });
 }
 
 export interface SheetResponse {
@@ -327,28 +349,18 @@ export const chartConfigs = {
  */
 export async function getTrackerData(
   sheetId: string,
-  apiKey: string,
   sheetName: string = 'Sheet1'
 ): Promise<ContactRow[]> {
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(
-    sheetName
-  )}`;
+  const auth = getAuth();
+  const sheets = google.sheets({ version: 'v4', auth });
 
   try {
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Accept': 'application/json',
-      },
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: sheetId,
+      range: sheetName,
     });
 
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    return (data.values || []) as ContactRow[];
+    return (response.data.values || []) as ContactRow[];
   } catch (err) {
     const error = err instanceof Error ? err.message : String(err);
     throw new Error(`Failed to fetch tracker data: ${error}`);
@@ -358,38 +370,34 @@ export async function getTrackerData(
 /**
  * Create a new contact tracking row
  * @param sheetId - Google Sheet ID
- * @param apiKey - Google API key
  * @param row - Contact row data
  * @param sheetName - Sheet name (default: "Sheet1")
  * @returns Response from API
  */
 export async function createContactRow(
   sheetId: string,
-  apiKey: string,
   row: (string | number)[],
   sheetName: string = 'Sheet1'
 ): Promise<SheetResponse> {
+  const auth = getAuth();
+  const sheets = google.sheets({ version: 'v4', auth });
   const range = `${sheetName}!A:L`;
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(
-    range
-  )}:append?valueInputOption=RAW`;
 
   try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({ values: [row] }),
+    const response = await sheets.spreadsheets.values.append({
+      spreadsheetId: sheetId,
+      range,
+      valueInputOption: 'RAW',
+      requestBody: { values: [row] },
     });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error?.message || `HTTP ${response.status}`);
-    }
-
-    return response.json();
+    return {
+      spreadsheetId: response.data.spreadsheetId!,
+      updatedRange: response.data.updates?.updatedRange || range,
+      updatedRows: response.data.updates?.updatedRows,
+      updatedColumns: response.data.updates?.updatedColumns,
+      updatedCells: response.data.updates?.updatedCells,
+    };
   } catch (err) {
     const error = err instanceof Error ? err.message : String(err);
     throw new Error(`Failed to create contact row: ${error}`);
@@ -400,7 +408,6 @@ export async function createContactRow(
  * Update a contact row - atomic operation for data integrity
  * Fetches latest data, updates, and writes back with validation
  * @param sheetId - Google Sheet ID
- * @param apiKey - Google API key
  * @param rowIndex - 1-based row index
  * @param updates - Partial row updates (sparse object with column indices as keys)
  * @param sheetName - Sheet name (default: "Sheet1")
@@ -408,14 +415,16 @@ export async function createContactRow(
  */
 export async function updateContactRow(
   sheetId: string,
-  apiKey: string,
   rowIndex: number,
   updates: Partial<ContactRow>,
   sheetName: string = 'Sheet1'
 ): Promise<ContactRow> {
   try {
+    const auth = getAuth();
+    const sheets = google.sheets({ version: 'v4', auth });
+
     // 1. Fetch current state
-    const data = await getTrackerData(sheetId, apiKey, sheetName);
+    const data = await getTrackerData(sheetId, sheetName);
     const currentRow = data[rowIndex - 1] as ContactRow;
 
     if (!currentRow) {
@@ -427,29 +436,19 @@ export async function updateContactRow(
 
     // 3. Write back atomically
     const range = `${sheetName}!A${rowIndex}:L${rowIndex}`;
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(
-      range
-    )}?valueInputOption=RAW`;
 
-    const response = await fetch(url, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: sheetId,
+      range,
+      valueInputOption: 'RAW',
+      requestBody: {
         values: [[
           updatedRow[0], updatedRow[1], updatedRow[2], updatedRow[3],
           updatedRow[4], updatedRow[5], updatedRow[6], updatedRow[7],
           updatedRow[8], updatedRow[9], updatedRow[10], updatedRow[11],
         ]],
-      }),
+      },
     });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error?.message || `HTTP ${response.status}`);
-    }
 
     return updatedRow;
   } catch (err) {
@@ -467,15 +466,22 @@ export async function updateContactRow(
  * @param sheetName - Sheet name (default: "Sheet1")
  * @returns Array of { rowIndex, row }
  */
+/**
+ * Find rows by column value
+ * @param sheetId - Google Sheet ID
+ * @param columnIndex - 0-based column index
+ * @param value - Value to match
+ * @param sheetName - Sheet name (default: "Sheet1")
+ * @returns Array of { rowIndex, row }
+ */
 export async function findContactRows(
   sheetId: string,
-  apiKey: string,
   columnIndex: number,
   value: string,
   sheetName: string = 'Sheet1'
 ): Promise<Array<{ rowIndex: number; row: ContactRow }>> {
   try {
-    const data = await getTrackerData(sheetId, apiKey, sheetName);
+    const data = await getTrackerData(sheetId, sheetName);
     const matches: Array<{ rowIndex: number; row: ContactRow }> = [];
 
     // Skip header row
@@ -497,20 +503,18 @@ export async function findContactRows(
  * Append note to Notes column with timestamp
  * Atomic: read-modify-write
  * @param sheetId - Google Sheet ID
- * @param apiKey - Google API key
  * @param rowIndex - 1-based row index
  * @param note - Note to append
  * @param sheetName - Sheet name (default: "Sheet1")
  */
 export async function appendContactNote(
   sheetId: string,
-  apiKey: string,
   rowIndex: number,
   note: string,
   sheetName: string = 'Sheet1'
 ): Promise<void> {
   try {
-    const data = await getTrackerData(sheetId, apiKey, sheetName);
+    const data = await getTrackerData(sheetId, sheetName);
     const row = data[rowIndex - 1] as ContactRow;
 
     if (!row) {
@@ -524,7 +528,7 @@ export async function appendContactNote(
       : `[${timestamp}] ${note}`;
 
     // Update via atomic operation
-    await updateContactRow(sheetId, apiKey, rowIndex, { [11]: newNote } as Partial<ContactRow>, sheetName);
+    await updateContactRow(sheetId, rowIndex, { [11]: newNote } as Partial<ContactRow>, sheetName);
   } catch (err) {
     const error = err instanceof Error ? err.message : String(err);
     console.error(`Failed to append contact note: ${error}`);
@@ -535,19 +539,20 @@ export async function appendContactNote(
 /**
  * Batch update multiple contact rows atomically
  * @param sheetId - Google Sheet ID
- * @param apiKey - Google API key
  * @param updates - Array of { rowIndex, updates }
  * @param sheetName - Sheet name (default: "Sheet1")
  */
 export async function batchUpdateContacts(
   sheetId: string,
-  apiKey: string,
   updates: Array<{ rowIndex: number; updates: Partial<ContactRow> }>,
   sheetName: string = 'Sheet1'
 ): Promise<void> {
   try {
+    const auth = getAuth();
+    const sheets = google.sheets({ version: 'v4', auth });
+
     // Fetch all data once
-    const data = await getTrackerData(sheetId, apiKey, sheetName);
+    const data = await getTrackerData(sheetId, sheetName);
 
     // Prepare all updates
     const batchUpdates = updates.map(({ rowIndex, updates: upd }) => {
@@ -567,23 +572,13 @@ export async function batchUpdateContacts(
     });
 
     // Send batch update
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values:batchUpdate`;
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
+    await sheets.spreadsheets.values.batchUpdate({
+      spreadsheetId: sheetId,
+      requestBody: {
         data: batchUpdates,
         valueInputOption: 'RAW',
-      }),
+      },
     });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error?.message || `HTTP ${response.status}`);
-    }
   } catch (err) {
     const error = err instanceof Error ? err.message : String(err);
     throw new Error(`Failed to batch update contacts: ${error}`);

@@ -18,7 +18,6 @@ import * as SheetUtils from './googleSheetUtils';
 
 interface Config {
   GOOGLE_SHEET_ID: string;
-  GOOGLE_API_KEY: string;
   VAPI_API_KEY: string;
   VAPI_PHONE_NUMBER_ID: string;
   VAPI_ASSISTANT_ID: string;
@@ -31,7 +30,8 @@ interface Config {
 function loadConfig(): Config {
   const required = [
     'GOOGLE_SHEET_ID',
-    'GOOGLE_API_KEY',
+    'GOOGLE_SERVICE_ACCOUNT_EMAIL',
+    'GOOGLE_PRIVATE_KEY',
     'VAPI_API_KEY',
     'VAPI_PHONE_NUMBER_ID',
     'VAPI_ASSISTANT_ID',
@@ -44,7 +44,6 @@ function loadConfig(): Config {
 
   return {
     GOOGLE_SHEET_ID: process.env.GOOGLE_SHEET_ID!,
-    GOOGLE_API_KEY: process.env.GOOGLE_API_KEY!,
     VAPI_API_KEY: process.env.VAPI_API_KEY!,
     VAPI_PHONE_NUMBER_ID: process.env.VAPI_PHONE_NUMBER_ID!,
     VAPI_ASSISTANT_ID: process.env.VAPI_ASSISTANT_ID!,
@@ -143,7 +142,6 @@ export async function onFormSubmit(
   try {
     await SheetUtils.createContactRow(
       cfg.GOOGLE_SHEET_ID,
-      cfg.GOOGLE_API_KEY,
       row,
       cfg.SHEET_NAME
     );
@@ -169,7 +167,6 @@ export async function processContacts(): Promise<void> {
   try {
     const rows = await SheetUtils.getTrackerData(
       cfg.GOOGLE_SHEET_ID,
-      cfg.GOOGLE_API_KEY,
       cfg.SHEET_NAME
     );
 
@@ -246,7 +243,6 @@ async function dispatchContact(
     const now = new Date();
     await SheetUtils.updateContactRow(
       cfg.GOOGLE_SHEET_ID,
-      cfg.GOOGLE_API_KEY,
       rowIndex,
       {
         [4]: ContactStatus.IN_PROGRESS, // Status
@@ -259,7 +255,6 @@ async function dispatchContact(
 
     await SheetUtils.appendContactNote(
       cfg.GOOGLE_SHEET_ID,
-      cfg.GOOGLE_API_KEY,
       rowIndex,
       `Dispatched to Vapi (call ID: ${vapiResponse.callId})`,
       cfg.SHEET_NAME
@@ -460,7 +455,6 @@ async function markFailed(
     // No more retries
     await SheetUtils.updateContactRow(
       cfg.GOOGLE_SHEET_ID,
-      cfg.GOOGLE_API_KEY,
       rowIndex,
       {
         [4]: ContactStatus.RETRY_EXHAUSTED,
@@ -471,7 +465,6 @@ async function markFailed(
 
     await SheetUtils.appendContactNote(
       cfg.GOOGLE_SHEET_ID,
-      cfg.GOOGLE_API_KEY,
       rowIndex,
       `❌ RETRY_EXHAUSTED: ${reason}`,
       cfg.SHEET_NAME
@@ -484,7 +477,6 @@ async function markFailed(
 
     await SheetUtils.updateContactRow(
       cfg.GOOGLE_SHEET_ID,
-      cfg.GOOGLE_API_KEY,
       rowIndex,
       {
         [4]: ContactStatus.FAILED,
@@ -495,7 +487,6 @@ async function markFailed(
 
     await SheetUtils.appendContactNote(
       cfg.GOOGLE_SHEET_ID,
-      cfg.GOOGLE_API_KEY,
       rowIndex,
       `⏱️ FAILED (retry ${attemptCount + 1}/${cfg.MAX_ATTEMPTS}): ${reason} | Next retry: ${nextRetry.toISOString()}`,
       cfg.SHEET_NAME
@@ -531,7 +522,6 @@ export async function onVapiWebhook(vapiEvent: {
     // Find row by Vapi Call ID
     const matches = await SheetUtils.findContactRows(
       cfg.GOOGLE_SHEET_ID,
-      cfg.GOOGLE_API_KEY,
       10, // Column K (Vapi Call ID)
       callId!,
       cfg.SHEET_NAME

@@ -154,11 +154,15 @@ export async function POST(request: NextRequest) {
  */
 async function processCallReport(report: VapiCallReport): Promise<void> {
   const sheetId = process.env.GOOGLE_SHEET_ID;
-  const apiKey = process.env.GOOGLE_API_KEY;
   const sheetName = process.env.SHEET_NAME || 'Sheet1';
 
-  if (!sheetId || !apiKey) {
-    console.error('Missing Google Sheets configuration');
+  if (!sheetId) {
+    console.error('Missing GOOGLE_SHEET_ID');
+    return;
+  }
+
+  if (!process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || !process.env.GOOGLE_PRIVATE_KEY) {
+    console.error('Missing GOOGLE_SERVICE_ACCOUNT_EMAIL or GOOGLE_PRIVATE_KEY');
     return;
   }
 
@@ -172,7 +176,6 @@ async function processCallReport(report: VapiCallReport): Promise<void> {
     // Find the contact by Vapi Call ID (column K, 0-based index 10)
     const matches = await SheetUtils.findContactRows(
       sheetId,
-      apiKey,
       10, // Column K: Vapi Call ID
       callId,
       sheetName
@@ -238,7 +241,6 @@ async function updateContactWithCallResults(
 
   await SheetUtils.updateContactRow(
     sheetId,
-    apiKey,
     rowIndex,
     updates,
     sheetName
@@ -273,7 +275,6 @@ async function updateContactWithCallResults(
   // Append to notes column
   await SheetUtils.appendContactNote(
     sheetId,
-    apiKey,
     rowIndex,
     note,
     sheetName
@@ -427,7 +428,6 @@ async function logCallDetails(
 
     await SheetUtils.createContactRow(
       sheetId,
-      apiKey,
       row,
       callDetailsSheetName
     );
