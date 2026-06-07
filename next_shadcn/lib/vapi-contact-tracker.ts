@@ -235,22 +235,32 @@ export async function dispatchContactDirectly(row: SheetUtils.ContactRow): Promi
 
     // Update the contact with the Vapi Call ID
     // Get the row count to find the index of the contact we just created
+    console.log(`🔄 Fetching all rows to find contact ${id}...`);
     const allRows = await SheetUtils.getTrackerData(cfg.GOOGLE_SHEET_ID, cfg.SHEET_NAME);
     const rowIndex = allRows.length; // Last row is the one we just created
 
-    const now = new Date();
-    await SheetUtils.updateContactRow(
-      cfg.GOOGLE_SHEET_ID,
-      rowIndex,
-      {
-        [4]: ContactStatus.IN_PROGRESS, // Status
-        [10]: vapiResponse.callId, // Vapi Call ID
-        [7]: now.toISOString(), // Last Attempt
-      } as Partial<SheetUtils.ContactRow>,
-      cfg.SHEET_NAME
-    );
+    console.log(`📊 Found ${allRows.length - 1} contacts, new contact is at row ${rowIndex}`);
 
-    console.log(`✅ Contact ${id} dispatched with Call ID: ${vapiResponse.callId}`);
+    const now = new Date();
+    console.log(`📝 Updating row ${rowIndex} with Vapi Call ID: ${vapiResponse.callId}`);
+
+    try {
+      await SheetUtils.updateContactRow(
+        cfg.GOOGLE_SHEET_ID,
+        rowIndex,
+        {
+          [4]: ContactStatus.IN_PROGRESS, // Status
+          [10]: vapiResponse.callId, // Vapi Call ID
+          [7]: now.toISOString(), // Last Attempt
+        } as Partial<SheetUtils.ContactRow>,
+        cfg.SHEET_NAME
+      );
+      console.log(`✅ Contact ${id} dispatched with Call ID: ${vapiResponse.callId}`);
+    } catch (updateErr) {
+      const updateErrMsg = updateErr instanceof Error ? updateErr.message : String(updateErr);
+      console.error(`❌ Failed to update contact row ${rowIndex}:`, updateErrMsg);
+      throw updateErr;
+    }
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err);
     console.error(`Failed to dispatch contact ${id}:`, errMsg);
