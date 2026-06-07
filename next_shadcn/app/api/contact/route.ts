@@ -52,7 +52,8 @@ export async function POST(request: NextRequest) {
     console.log('📝 Form submission received:', { name: data.fullName, email: data.email, phone: data.phone, company: data.company });
 
     // Verify reCAPTCHA token
-    const isLocalhost = process.env.NODE_ENV === 'development' && request.headers.get('host')?.includes('localhost');
+    const host = request.headers.get('host') || '';
+    const isLocalhost = host.includes('localhost') || host.includes('127.0.0.1');
 
     if (!isLocalhost) {
       console.log('🔍 Verifying reCAPTCHA...');
