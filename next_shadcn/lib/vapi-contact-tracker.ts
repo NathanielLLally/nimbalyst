@@ -234,10 +234,14 @@ export async function dispatchContactDirectly(row: SheetUtils.ContactRow): Promi
     }
 
     // Update the contact with the Vapi Call ID
+    // Get the row count to find the index of the contact we just created
+    const allRows = await SheetUtils.getTrackerData(cfg.GOOGLE_SHEET_ID, cfg.SHEET_NAME);
+    const rowIndex = allRows.length; // Last row is the one we just created
+
     const now = new Date();
     await SheetUtils.updateContactRow(
       cfg.GOOGLE_SHEET_ID,
-      2, // Row 2 (header is row 1, new contact is row 2)
+      rowIndex,
       {
         [4]: ContactStatus.IN_PROGRESS, // Status
         [10]: vapiResponse.callId, // Vapi Call ID
