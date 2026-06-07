@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { onFormSubmit, dispatchContactById } from '@/lib/vapi-contact-tracker';
+import { onFormSubmit, dispatchContactDirectly } from '@/lib/vapi-contact-tracker';
 
 interface ContactFormData {
   fullName: string;
@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
     const timezone = data.timezone || 'Unknown';
     const submittedAt = data.submittedAt || new Date().toISOString();
 
-    const contactId = await onFormSubmit({
+    const { id: contactId, row } = await onFormSubmit({
       phone: phoneValidation.formatted!,
       fullName: data.fullName,
       email: data.email,
@@ -100,9 +100,9 @@ export async function POST(request: NextRequest) {
 
     console.log(`✅ Contact created: ${contactId} | Timezone: ${timezone} | Submitted: ${submittedAt}`);
 
-    // Dispatch to Vapi immediately
+    // Dispatch to Vapi immediately with the row we just created
     try {
-      await dispatchContactById(contactId);
+      await dispatchContactDirectly(row);
       console.log('✅ Contact dispatched to Vapi:', contactId);
     } catch (dispatchError) {
       const errMsg = dispatchError instanceof Error ? dispatchError.message : String(dispatchError);

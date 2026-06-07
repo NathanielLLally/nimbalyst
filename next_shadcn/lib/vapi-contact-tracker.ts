@@ -119,7 +119,7 @@ interface VapiStatus {
 export async function onFormSubmit(
   formData: FormData,
   channel: Channel = Channel.VOICE
-): Promise<string> {
+): Promise<{ id: string; row: SheetUtils.ContactRow }> {
   const cfg = getConfig();
   const now = new Date();
   const id = generateId();
@@ -146,7 +146,7 @@ export async function onFormSubmit(
       cfg.SHEET_NAME
     );
     console.log(`✅ Contact created: ${id} (${formData.phone})`);
-    return id;
+    return { id, row: row as unknown as SheetUtils.ContactRow };
   } catch (err) {
     console.error(`❌ Failed to create contact: ${err}`);
     throw err;
@@ -217,6 +217,43 @@ export async function processContacts(): Promise<void> {
 // Dispatch Logic
 // ============================================================================
 
+export async function dispatchContactDirectly(row: SheetUtils.ContactRow): Promise<void> {
+  const cfg = getConfig();
+  const id = row[0];
+  const phone = row[1];
+  const name = row[2];
+  const channel = row[3];
+
+  console.log(`📞 Dispatching ${id} immediately (${phone})`);
+
+  try {
+    const vapiResponse = await makeVapiCall(phone as string, name as string, channel as string);
+
+    if (!vapiResponse.success) {
+      throw new Error(vapiResponse.error || 'Unknown Vapi error');
+    }
+
+    // Update the contact with the Vapi Call ID
+    const now = new Date();
+    await SheetUtils.updateContactRow(
+      cfg.GOOGLE_SHEET_ID,
+      2, // Row 2 (header is row 1, new contact is row 2)
+      {
+        [4]: ContactStatus.IN_PROGRESS, // Status
+        [10]: vapiResponse.callId, // Vapi Call ID
+        [7]: now.toISOString(), // Last Attempt
+      } as Partial<SheetUtils.ContactRow>,
+      cfg.SHEET_NAME
+    );
+
+    console.log(`✅ Contact ${id} dispatched with Call ID: ${vapiResponse.callId}`);
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.error(`Failed to dispatch contact ${id}:`, errMsg);
+    throw err;
+  }
+}
+
 export async function dispatchContactById(contactId: string, retries: number = 3): Promise<void> {
   const cfg = getConfig();
 
@@ -238,7 +275,7 @@ export async function dispatchContactById(contactId: string, retries: number = 3
       // Not found, retry after a delay
       if (attempt < retries - 1) {
         console.log(`⏳ Contact not found (attempt ${attempt + 1}/${retries}), retrying...`);
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, 1000));
         continue;
       }
 
