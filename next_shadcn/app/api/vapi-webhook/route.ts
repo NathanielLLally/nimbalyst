@@ -150,45 +150,6 @@ export async function POST(request: NextRequest) {
 // ============================================================================
 
 /**
- * Store all call data to a separate sheet for logging/analytics
- */
-async function storeCallData(
-  sheetId: string,
-  callId: string,
-  report: VapiCallReport,
-  metrics: CallMetrics
-): Promise<void> {
-  try {
-    const callDataSheetName = process.env.VAPI_CALLS_SHEET || 'Vapi Calls';
-    const timestamp = new Date().toISOString();
-
-    const row = [
-      callId,
-      report.customer?.number || report.call?.customer?.number || 'Unknown',
-      metrics.success ? 'SUCCESS' : 'FAILED',
-      metrics.duration || 0,
-      metrics.endReason,
-      metrics.transcript.substring(0, 200),
-      metrics.summary.substring(0, 200),
-      metrics.recordingUrl || '',
-      timestamp,
-    ];
-
-    await SheetUtils.createContactRow(
-      sheetId,
-      row,
-      callDataSheetName
-    );
-
-    console.log(`📊 Call data stored for ${callId} in "${callDataSheetName}" sheet`);
-  } catch (err) {
-    const errMsg = err instanceof Error ? err.message : String(err);
-    console.warn(`⚠️ Could not store call data: ${errMsg}`);
-    // Don't fail if call data logging fails
-  }
-}
-
-/**
  * Process call report and update contact tracker
  * Always stores call data, with or without matching contact
  */
@@ -215,9 +176,6 @@ async function processCallReport(report: VapiCallReport): Promise<void> {
 
     const metrics = extractMetrics(report);
 
-    // Always store call data (even if no matching contact)
-    await storeCallData(sheetId, callId, report, metrics);
-
     // Try to find and update matching contact
     const matches = await SheetUtils.findContactRows(
       sheetId,
@@ -227,7 +185,28 @@ async function processCallReport(report: VapiCallReport): Promise<void> {
     );
 
     if (matches.length === 0) {
-      console.warn(`⚠️ No contact found for call ID: ${callId}, but call data stored`);
+      // No contact found, but still log the call data
+      console.warn(`⚠️ No contact found for call ID: ${callId}`);
+      try {
+        const unknownContact: SheetUtils.ContactRow = [
+          'Unmatched',
+          report.customer?.number || report.call?.customer?.number || 'Unknown',
+          'Unknown',
+          'Unknown',
+          'UNKNOWN',
+          0,
+          '',
+          '',
+          '',
+          '',
+          callId,
+          ''
+        ] as any;
+        await logCallDetails(sheetId, unknownContact, report, metrics);
+        console.log(`📊 Call data stored for unmatched call ${callId}`);
+      } catch (logErr) {
+        console.warn(`⚠️ Could not log call details:`, logErr);
+      }
       return;
     }
 
@@ -444,11 +423,8 @@ async function logCallDetails(
   metrics: CallMetrics
 ): Promise<void> {
   try {
-    // Only log if SHEET_NAME environment variable includes a call details sheet name
-    const callDetailsSheetName = process.env.VAPI_CALL_DETAILS_SHEET;
-    if (!callDetailsSheetName) {
-      return; // Skip if not configured
-    }
+    // Use configured sheet name or default to "Vapi Calls"
+    const callDetailsSheetName = process.env.VAPI_CALL_DETAILS_SHEET || 'Vapi Calls';
 
     const callId = report.id || report.callId || report.call?.id || 'unknown';
 
@@ -472,7 +448,7 @@ async function logCallDetails(
       callDetailsSheetName
     );
 
-    console.log(`📊 Call details logged for ${callId}`);
+    console.log(`📊 Call details logged for ${callId} in "${callDetailsSheetName}" sheet`);
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err);
     console.warn(`Could not log call details: ${errMsg}`);
