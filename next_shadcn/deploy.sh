@@ -66,18 +66,25 @@ REMOTE_SCRIPT
 echo -e "${GREEN}✅ Remote build successful${NC}"
 echo ""
 
-# Step 6: Restart service
-echo -e "${YELLOW}Step 5: Restarting service...${NC}"
+# Step 6: Restart services
+echo -e "${YELLOW}Step 5: Restarting services...${NC}"
 ssh "${REMOTE_USER}@${REMOTE_HOST}" << 'RESTART_SCRIPT'
   echo "Restarting happytailspawcare service..."
   sudo systemctl restart happytailspawcare
 
-  echo "Checking service status..."
+  echo "Checking happytailspawcare status..."
   sudo systemctl status happytailspawcare --no-pager
 
-  echo "✅ Service restarted successfully"
+  echo ""
+  echo "Restarting vapi-processor service..."
+  sudo systemctl restart vapi-processor
+
+  echo "Checking vapi-processor status..."
+  sudo systemctl status vapi-processor --no-pager
+
+  echo "✅ Services restarted successfully"
 RESTART_SCRIPT
-echo -e "${GREEN}✅ Service restarted${NC}"
+echo -e "${GREEN}✅ Services restarted${NC}"
 echo ""
 
 echo -e "${GREEN}=== Deploy Complete ===${NC}"
