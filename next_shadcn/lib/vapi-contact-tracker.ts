@@ -217,28 +217,39 @@ export async function processContacts(): Promise<void> {
 // Dispatch Logic
 // ============================================================================
 
-export async function dispatchContactById(contactId: string): Promise<void> {
+export async function dispatchContactById(contactId: string, retries: number = 3): Promise<void> {
   const cfg = getConfig();
 
-  try {
-    const rows = await SheetUtils.getTrackerData(
-      cfg.GOOGLE_SHEET_ID,
-      cfg.SHEET_NAME
-    );
+  for (let attempt = 0; attempt < retries; attempt++) {
+    try {
+      const rows = await SheetUtils.getTrackerData(
+        cfg.GOOGLE_SHEET_ID,
+        cfg.SHEET_NAME
+      );
 
-    for (let i = 1; i < rows.length; i++) {
-      const row = rows[i] as SheetUtils.ContactRow;
-      if (row[0] === contactId) {
-        await dispatchContact(i + 1, row);
-        return;
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i] as SheetUtils.ContactRow;
+        if (row[0] === contactId) {
+          await dispatchContact(i + 1, row);
+          return;
+        }
+      }
+
+      // Not found, retry after a delay
+      if (attempt < retries - 1) {
+        console.log(`⏳ Contact not found (attempt ${attempt + 1}/${retries}), retrying...`);
+        await new Promise(resolve => setTimeout(resolve, 500));
+        continue;
+      }
+
+      throw new Error(`Contact not found: ${contactId}`);
+    } catch (err) {
+      if (attempt === retries - 1) {
+        const errMsg = err instanceof Error ? err.message : String(err);
+        console.error(`Failed to dispatch contact ${contactId}:`, errMsg);
+        throw err;
       }
     }
-
-    throw new Error(`Contact not found: ${contactId}`);
-  } catch (err) {
-    const errMsg = err instanceof Error ? err.message : String(err);
-    console.error(`Failed to dispatch contact ${contactId}:`, errMsg);
-    throw err;
   }
 }
 
