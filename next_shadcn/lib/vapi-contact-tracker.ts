@@ -191,6 +191,7 @@ export async function processContacts(): Promise<void> {
       const row = rows[i] as SheetUtils.ContactRow;
       const rowIndex = i + 1;
       const status = row[4] as unknown as ContactStatus;
+      const attemptCount = parseInt(String(row[5])) || 0;
 
       try {
         if (
@@ -199,9 +200,21 @@ export async function processContacts(): Promise<void> {
         ) {
           const nextRetry = new Date(row[8]);
 
-          // Check if it's time to retry
-          if (nextRetry <= now) {
+          // Check if it's time to retry AND we haven't exceeded max attempts
+          if (nextRetry <= now && attemptCount < cfg.MAX_ATTEMPTS) {
             await dispatchContact(rowIndex, row);
+          } else if (attemptCount >= cfg.MAX_ATTEMPTS && status === ContactStatus.FAILED) {
+            // Mark as exhausted if we've hit the limit
+            await SheetUtils.updateContactRow(
+              cfg.GOOGLE_SHEET_ID,
+              rowIndex,
+              {
+                [4]: ContactStatus.RETRY_EXHAUSTED,
+                [9]: now.toISOString(),
+              } as Partial<SheetUtils.ContactRow>,
+              cfg.SHEET_NAME
+            );
+            console.log(`⚠️ Contact ${row[0]} exhausted (${attemptCount}/${cfg.MAX_ATTEMPTS} attempts)`);
           }
         } else if (status === ContactStatus.IN_PROGRESS) {
           await pollInProgress(rowIndex, row);
