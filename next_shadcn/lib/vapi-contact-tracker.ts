@@ -217,6 +217,31 @@ export async function processContacts(): Promise<void> {
 // Dispatch Logic
 // ============================================================================
 
+export async function dispatchContactById(contactId: string): Promise<void> {
+  const cfg = getConfig();
+
+  try {
+    const rows = await SheetUtils.getTrackerData(
+      cfg.GOOGLE_SHEET_ID,
+      cfg.SHEET_NAME
+    );
+
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i] as SheetUtils.ContactRow;
+      if (row[0] === contactId) {
+        await dispatchContact(i + 1, row);
+        return;
+      }
+    }
+
+    throw new Error(`Contact not found: ${contactId}`);
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.error(`Failed to dispatch contact ${contactId}:`, errMsg);
+    throw err;
+  }
+}
+
 async function dispatchContact(
   rowIndex: number,
   row: SheetUtils.ContactRow
@@ -272,7 +297,7 @@ async function dispatchContact(
 /**
  * Call Vapi API to initiate voice call or SMS.
  */
-async function makeVapiCall(
+export async function makeVapiCall(
   phone: string,
   name: string,
   channel: string
