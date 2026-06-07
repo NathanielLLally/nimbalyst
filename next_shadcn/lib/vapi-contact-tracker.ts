@@ -42,7 +42,7 @@ function loadConfig(): Config {
     throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
   }
 
-  return {
+  const cfg = {
     GOOGLE_SHEET_ID: process.env.GOOGLE_SHEET_ID!,
     VAPI_API_KEY: process.env.VAPI_API_KEY!,
     VAPI_PHONE_NUMBER_ID: process.env.VAPI_PHONE_NUMBER_ID!,
@@ -54,6 +54,15 @@ function loadConfig(): Config {
     POLL_INTERVAL_SECONDS: parseInt(process.env.POLL_INTERVAL_SECONDS || '30'),
     SHEET_NAME: process.env.SHEET_NAME || 'Sheet1',
   };
+
+  console.log('⚙️ Config loaded:', {
+    MAX_ATTEMPTS: cfg.MAX_ATTEMPTS,
+    RETRY_DELAYS_MINUTES: cfg.RETRY_DELAYS_MINUTES,
+    POLL_INTERVAL_SECONDS: cfg.POLL_INTERVAL_SECONDS,
+    SHEET_NAME: cfg.SHEET_NAME,
+  });
+
+  return cfg;
 }
 
 let config: Config | null = null;
