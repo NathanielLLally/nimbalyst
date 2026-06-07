@@ -12,6 +12,8 @@ interface ContactFormData {
   message: string;
   receiveMessages: boolean;
   recaptchaToken: string;
+  timezone?: string;
+  submittedAt?: string;
 }
 
 function validateE164Format(phone: string): { valid: boolean; formatted?: string; error?: string } {
@@ -85,6 +87,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Create contact in tracking sheet
+    const timezone = data.timezone || 'Unknown';
+    const submittedAt = data.submittedAt || new Date().toISOString();
+
     const contactId = await onFormSubmit({
       phone: phoneValidation.formatted!,
       fullName: data.fullName,
@@ -93,7 +98,7 @@ export async function POST(request: NextRequest) {
       challenge: data.challenge,
     });
 
-    console.log('✅ Contact created:', contactId);
+    console.log(`✅ Contact created: ${contactId} | Timezone: ${timezone} | Submitted: ${submittedAt}`);
 
     // Dispatch to Vapi immediately
     try {

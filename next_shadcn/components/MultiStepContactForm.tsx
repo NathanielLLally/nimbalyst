@@ -182,6 +182,9 @@ export function MultiStepContactForm() {
               <p className="text-sm text-zinc-500 dark:text-zinc-400">
                 {steps[currentStep].description}
               </p>
+              <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-2">
+                Your timezone: {formData.timezone || 'Detecting...'}
+              </p>
             </div>
 
             {/* Step 1: Personal Info */}
