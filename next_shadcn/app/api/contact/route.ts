@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { google } from 'googleapis';
 import { onFormSubmit, dispatchContactDirectly } from '@/lib/vapi-contact-tracker';
 
 interface ContactFormData {
@@ -87,33 +88,72 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create contact in tracking sheet
-    const timezone = data.timezone || 'Unknown';
-    const submittedAt = data.submittedAt || new Date().toISOString();
-
-    const { id: contactId, row } = await onFormSubmit({
-      phone: phoneValidation.formatted!,
-      fullName: data.fullName,
-      email: data.email,
-      company: data.company,
-      challenge: data.challenge,
+    // Initialize Google Sheets API
+    const auth = new google.auth.GoogleAuth({
+      credentials: {
+        type: 'service_account',
+        client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+        private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+      },
+      scopes: ['https://www.googleapis.com/auth/spreadsheets'],
     });
 
-    console.log(`✅ Contact created: ${contactId} | Timezone: ${timezone} | Submitted: ${submittedAt}`);
+    const sheets = google.sheets({ version: 'v4', auth });
 
-    // Dispatch to Vapi immediately with the row we just created
+    // Save form data to "contact" sheet
+    const values = [
+      [
+        new Date().toISOString(),
+        data.fullName,
+        data.email,
+        data.phone,
+        data.company,
+        data.website,
+        data.businessType,
+        data.challenge,
+        data.message,
+        data.receiveMessages ? 'Yes' : 'No',
+        data.timezone || 'Unknown',
+      ],
+    ];
+
+    console.log('📊 Saving to contact sheet...');
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: process.env.GOOGLE_SHEET_ID,
+      range: 'contact!A2',
+      valueInputOption: 'RAW',
+      requestBody: { values },
+    });
+    console.log('✅ Form data saved to contact sheet');
+
+    // Also create tracking entry for Vapi dispatch
     try {
-      await dispatchContactDirectly(row);
-      console.log('✅ Contact dispatched to Vapi:', contactId);
-    } catch (dispatchError) {
-      const errMsg = dispatchError instanceof Error ? dispatchError.message : String(dispatchError);
-      console.warn('⚠️ Dispatch failed, but contact created:', errMsg);
-      // Don't fail the form submission if dispatch fails
+      const { id: contactId, row } = await onFormSubmit({
+        phone: phoneValidation.formatted!,
+        fullName: data.fullName,
+        email: data.email,
+        company: data.company,
+        challenge: data.challenge,
+      });
+
+      console.log(`✅ Tracking entry created: ${contactId}`);
+
+      // Dispatch to Vapi
+      try {
+        await dispatchContactDirectly(row);
+        console.log('✅ Contact dispatched to Vapi:', contactId);
+      } catch (dispatchError) {
+        const errMsg = dispatchError instanceof Error ? dispatchError.message : String(dispatchError);
+        console.warn('⚠️ Dispatch failed:', errMsg);
+      }
+    } catch (trackingErr) {
+      const errMsg = trackingErr instanceof Error ? trackingErr.message : String(trackingErr);
+      console.warn('⚠️ Failed to create tracking entry:', errMsg);
     }
 
     console.log('✨ Form submission completed successfully');
     return NextResponse.json(
-      { message: 'Form submitted successfully', contactId },
+      { message: 'Form submitted successfully' },
       { status: 200 }
     );
   } catch (error) {
