@@ -192,17 +192,26 @@ export async function processContacts(): Promise<void> {
       const rowIndex = i + 1;
       const status = row[4] as unknown as ContactStatus;
       const attemptCount = parseInt(String(row[5])) || 0;
+      const nextRetryStr = String(row[8]);
+      const nextRetryTime = nextRetryStr ? new Date(nextRetryStr).getTime() : 0;
+      const nowTime = now.getTime();
 
       try {
         if (
           status === ContactStatus.PENDING ||
           status === ContactStatus.FAILED
         ) {
-          const nextRetry = new Date(row[8]);
+          // Only retry if: (1) it's time, (2) we haven't hit max attempts, (3) next retry is set
+          const isTimeToRetry = nextRetryTime > 0 && nextRetryTime <= nowTime;
+          const canRetry = attemptCount < cfg.MAX_ATTEMPTS;
 
-          // Check if it's time to retry AND we haven't exceeded max attempts
-          if (nextRetry <= now && attemptCount < cfg.MAX_ATTEMPTS) {
+          if (isTimeToRetry && canRetry) {
+            console.log(`⏰ Retrying ${row[0]} (attempt ${attemptCount + 1}/${cfg.MAX_ATTEMPTS}, scheduled for ${new Date(nextRetryTime).toISOString()})`);
             await dispatchContact(rowIndex, row);
+          } else if (!isTimeToRetry && canRetry && nextRetryTime > 0) {
+            const waitMs = nextRetryTime - nowTime;
+            const waitMin = Math.ceil(waitMs / 60000);
+            console.log(`⏳ ${row[0]} scheduled in ${waitMin}min (next: ${new Date(nextRetryTime).toISOString()})`);
           } else if (attemptCount >= cfg.MAX_ATTEMPTS && status === ContactStatus.FAILED) {
             // Mark as exhausted if we've hit the limit
             await SheetUtils.updateContactRow(
@@ -577,16 +586,20 @@ async function markFailed(
     );
     console.log(`❌ Contact ${row[0]} exhausted all retries`);
   } else {
-    // Schedule retry
-    const delayMinutes = cfg.RETRY_DELAYS_MINUTES[attemptCount] || 60;
-    const nextRetry = new Date(now.getTime() + delayMinutes * 60000);
+    // Schedule retry with delay from RETRY_DELAYS_MINUTES
+    const delayMinutes = cfg.RETRY_DELAYS_MINUTES[attemptCount];
+    const delayMs = (delayMinutes || 60) * 60000;
+    const nextRetryTime = now.getTime() + delayMs;
+    const nextRetry = new Date(nextRetryTime);
+
+    console.log(`📋 markFailed for ${row[0]}: attemptCount=${attemptCount}, delayMinutes=${delayMinutes}, nextRetry=${nextRetry.toISOString()}`);
 
     await SheetUtils.updateContactRow(
       cfg.GOOGLE_SHEET_ID,
       rowIndex,
       {
         [4]: ContactStatus.FAILED,
-        [8]: nextRetry.toISOString(), // Next Retry
+        [8]: nextRetry.toISOString(), // Next Retry (column I)
       } as Partial<SheetUtils.ContactRow>,
       cfg.SHEET_NAME
     );
@@ -594,11 +607,11 @@ async function markFailed(
     await SheetUtils.appendContactNote(
       cfg.GOOGLE_SHEET_ID,
       rowIndex,
-      `⏱️ FAILED (retry ${attemptCount + 1}/${cfg.MAX_ATTEMPTS}): ${reason} | Next retry: ${nextRetry.toISOString()}`,
+      `⏱️ FAILED (attempt ${attemptCount + 1}/${cfg.MAX_ATTEMPTS}): ${reason} | Retry in ${delayMinutes || 60}min at ${nextRetry.toISOString()}`,
       cfg.SHEET_NAME
     );
     console.log(
-      `⏱️ Contact ${row[0]} scheduled for retry at ${nextRetry.toISOString()}`
+      `⏱️ ${row[0]}: scheduled retry in ${delayMinutes || 60}min (${nextRetry.toISOString()})`
     );
   }
 }
