@@ -16,6 +16,8 @@ interface FormData {
   challenge: string;
   message: string;
   receiveMessages: boolean;
+  timezone?: string;
+  submittedAt?: string;
 }
 
 const steps = [
@@ -42,6 +44,8 @@ export function MultiStepContactForm() {
     challenge: '',
     message: '',
     receiveMessages: false,
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    submittedAt: new Date().toISOString(),
   });
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -131,6 +135,8 @@ export function MultiStepContactForm() {
       challenge: '',
       message: '',
       receiveMessages: false,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      submittedAt: new Date().toISOString(),
     });
   };
 

@@ -150,7 +150,47 @@ export async function POST(request: NextRequest) {
 // ============================================================================
 
 /**
+ * Store all call data to a separate sheet for logging/analytics
+ */
+async function storeCallData(
+  sheetId: string,
+  callId: string,
+  report: VapiCallReport,
+  metrics: CallMetrics
+): Promise<void> {
+  try {
+    const callDataSheetName = process.env.VAPI_CALLS_SHEET || 'Vapi Calls';
+    const timestamp = new Date().toISOString();
+
+    const row = [
+      callId,
+      report.customer?.number || report.call?.customer?.number || 'Unknown',
+      metrics.success ? 'SUCCESS' : 'FAILED',
+      metrics.duration || 0,
+      metrics.endReason,
+      metrics.transcript.substring(0, 200),
+      metrics.summary.substring(0, 200),
+      metrics.recordingUrl || '',
+      timestamp,
+    ];
+
+    await SheetUtils.createContactRow(
+      sheetId,
+      row,
+      callDataSheetName
+    );
+
+    console.log(`📊 Call data stored for ${callId} in "${callDataSheetName}" sheet`);
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.warn(`⚠️ Could not store call data: ${errMsg}`);
+    // Don't fail if call data logging fails
+  }
+}
+
+/**
  * Process call report and update contact tracker
+ * Always stores call data, with or without matching contact
  */
 async function processCallReport(report: VapiCallReport): Promise<void> {
   const sheetId = process.env.GOOGLE_SHEET_ID;
@@ -173,7 +213,12 @@ async function processCallReport(report: VapiCallReport): Promise<void> {
       return;
     }
 
-    // Find the contact by Vapi Call ID (column K, 0-based index 10)
+    const metrics = extractMetrics(report);
+
+    // Always store call data (even if no matching contact)
+    await storeCallData(sheetId, callId, report, metrics);
+
+    // Try to find and update matching contact
     const matches = await SheetUtils.findContactRows(
       sheetId,
       10, // Column K: Vapi Call ID
@@ -182,7 +227,7 @@ async function processCallReport(report: VapiCallReport): Promise<void> {
     );
 
     if (matches.length === 0) {
-      console.warn(`⚠️ No contact found for call ID: ${callId}`);
+      console.warn(`⚠️ No contact found for call ID: ${callId}, but call data stored`);
       return;
     }
 
@@ -193,8 +238,6 @@ async function processCallReport(report: VapiCallReport): Promise<void> {
     }
 
     const { rowIndex, row } = matches[0];
-    const metrics = extractMetrics(report);
-
     console.log(`🔄 Updating contact ${row[0]} with call results`);
 
     // Update the contact row with call details
