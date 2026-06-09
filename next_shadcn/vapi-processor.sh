@@ -8,7 +8,7 @@
 ##
 
 BASE_URL="${BASE_URL:-https://happytailspawcare.com}"
-POLL_INTERVAL="${POLL_INTERVAL_SECONDS:-30}"
+POLL_INTERVAL="${POLL_INTERVAL_SECONDS:-60}"
 LOG_FILE="${LOG_FILE:-/var/log/vapi-processor.log}"
 
 echo "🚀 Starting Vapi Contact Processor"
