@@ -470,22 +470,24 @@ export async function makeVapiCall(
   const cfg = getConfig();
   const url = 'https://api.vapi.ai/call';
 
-  const payload: any = {
-    phoneNumberId: cfg.VAPI_PHONE_NUMBER_ID,
-    customerPhoneNumber: phone,
-    assistantId: cfg.VAPI_ASSISTANT_ID,
-    assistantOverrides: {
-      variableValues: {
-        customerName: name,
-        channel,
-        attemptNumber,
-      },
+  const assistant: any = {
+    id: cfg.VAPI_ASSISTANT_ID,
+    variableValues: {
+      customerName: name,
+      channel,
+      attemptNumber,
     },
   };
 
   if (callMachineMessage) {
-    payload.voicemailMessage = callMachineMessage;
+    assistant.voicemailMessage = callMachineMessage;
   }
+
+  const payload = {
+    phoneNumberId: cfg.VAPI_PHONE_NUMBER_ID,
+    customerPhoneNumber: phone,
+    assistant,
+  };
 
   try {
     const response = await fetch(url, {
