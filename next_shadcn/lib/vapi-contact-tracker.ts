@@ -478,13 +478,13 @@ export async function makeVapiCall(
       variableValues: {
         customerName: name,
         channel,
-        attemptNumber
+        attemptNumber,
       },
     },
   };
 
   if (callMachineMessage) {
-    payload.assistantOverrides.callMachineMessage = callMachineMessage;
+    payload.voicemailMessage = callMachineMessage;
   }
 
   try {
