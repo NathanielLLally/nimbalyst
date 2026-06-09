@@ -66,12 +66,20 @@ function loadConfig(): Config {
 }
 
 let config: Config | null = null;
+let callMachineMessages: Map<number, string> | null = null;
 
 function getConfig(): Config {
   if (!config) {
     config = loadConfig();
   }
   return config;
+}
+
+async function getCallMachineMessages(): Promise<Map<number, string>> {
+  if (!callMachineMessages) {
+    callMachineMessages = await loadCallMachineMessages();
+  }
+  return callMachineMessages;
 }
 
 // ============================================================================
@@ -116,6 +124,54 @@ interface VapiStatus {
   error?: string;
   transcript?: string;
   duration?: number;
+}
+
+// ============================================================================
+// Configuration Helpers
+// ============================================================================
+
+/**
+ * Load call machine messages from vapi_config sheet
+ * Expected format: column A = "CALL_MACHINE_MESSAGE", column B = message for attempt 1, C = attempt 2, etc.
+ */
+async function loadCallMachineMessages(): Promise<Map<number, string>> {
+  const cfg = getConfig();
+  const messages = new Map<number, string>();
+
+  try {
+    const data = await SheetUtils.getTrackerData(
+      cfg.GOOGLE_SHEET_ID,
+      'vapi_config'
+    );
+
+    if (data.length < 2) {
+      console.warn('⚠️ vapi_config sheet is empty or missing');
+      return messages;
+    }
+
+    // Find row with "CALL_MACHINE_MESSAGE"
+    for (let i = 0; i < data.length; i++) {
+      const row = data[i] as unknown as any[];
+      if (String(row[0])?.trim() === 'CALL_MACHINE_MESSAGE') {
+        // Columns B, C, D, E map to attempts 1, 2, 3, 4
+        for (let col = 1; col < Math.min(row.length, 5); col++) {
+          const attemptNum = col;
+          const message = String(row[col])?.trim();
+          if (message) {
+            messages.set(attemptNum, message);
+          }
+        }
+        break;
+      }
+    }
+
+    console.log(`📋 Loaded ${messages.size} call machine messages`);
+    return messages;
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.warn(`⚠️ Failed to load call machine messages: ${errMsg}`);
+    return messages;
+  }
 }
 
 // ============================================================================
@@ -261,7 +317,9 @@ export async function dispatchContactDirectly(row: SheetUtils.ContactRow): Promi
     const allRows = await SheetUtils.getTrackerData(cfg.GOOGLE_SHEET_ID, cfg.SHEET_NAME);
     const rowIndex = allRows.length; // Last row is the one we just created
 
-    const vapiResponse = await makeVapiCall(phone as string, name as string, channel as string);
+    const messages = await getCallMachineMessages();
+    const callMachineMessage = messages.get(1);
+    const vapiResponse = await makeVapiCall(phone as string, name as string, channel as string, 1, callMachineMessage);
 
     if (!vapiResponse.success) {
       throw new Error(vapiResponse.error || 'Unknown Vapi error');
@@ -361,7 +419,9 @@ async function dispatchContact(
   );
 
   try {
-    const vapiResponse = await makeVapiCall(phone, name, channel);
+    const messages = await getCallMachineMessages();
+    const callMachineMessage = messages.get(attemptCount + 1);
+    const vapiResponse = await makeVapiCall(phone, name, channel, attemptCount + 1, callMachineMessage);
 
     if (!vapiResponse.success) {
       throw new Error(vapiResponse.error || 'Unknown Vapi error');
@@ -403,12 +463,14 @@ async function dispatchContact(
 export async function makeVapiCall(
   phone: string,
   name: string,
-  channel: string
+  channel: string,
+  attemptNumber: number = 1,
+  callMachineMessage?: string
 ): Promise<VapiResponse> {
   const cfg = getConfig();
   const url = 'https://api.vapi.ai/call';
 
-  const payload = {
+  const payload: any = {
     phoneNumberId: cfg.VAPI_PHONE_NUMBER_ID,
     customerPhoneNumber: phone,
     assistantId: cfg.VAPI_ASSISTANT_ID,
@@ -416,9 +478,14 @@ export async function makeVapiCall(
       variableValues: {
         customerName: name,
         channel,
+        attemptNumber
       },
     },
   };
+
+  if (callMachineMessage) {
+    payload.assistantOverrides.callMachineMessage = callMachineMessage;
+  }
 
   try {
     const response = await fetch(url, {
