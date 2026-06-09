@@ -142,7 +142,7 @@ export async function onFormSubmit(
     0, // F: Attempt Count
     now.toISOString(), // G: Submitted
     '', // H: Last Attempt
-    now.toISOString(), // I: Next Retry (immediately)
+    '', // I: Next Retry (empty until first dispatch attempt)
     '', // J: Resolved
     '', // K: Vapi Call ID
     `Form submitted: ${formData.email} | Challenge: ${formData.challenge}`, // L: Notes
@@ -201,12 +201,13 @@ export async function processContacts(): Promise<void> {
           status === ContactStatus.PENDING ||
           status === ContactStatus.FAILED
         ) {
-          // Only retry if: (1) it's time, (2) we haven't hit max attempts, (3) next retry is set
-          const isTimeToRetry = nextRetryTime > 0 && nextRetryTime <= nowTime;
           const canRetry = attemptCount < cfg.MAX_ATTEMPTS;
+          const nextRetryIsEmpty = !nextRetryStr || nextRetryTime === 0;
+          const isTimeToRetry = nextRetryIsEmpty || nextRetryTime <= nowTime;
 
           if (isTimeToRetry && canRetry) {
-            console.log(`⏰ Retrying ${row[0]} (attempt ${attemptCount + 1}/${cfg.MAX_ATTEMPTS}, scheduled for ${new Date(nextRetryTime).toISOString()})`);
+            const context = nextRetryIsEmpty ? 'first dispatch' : `attempt ${attemptCount + 1}/${cfg.MAX_ATTEMPTS}`;
+            console.log(`📤 ${row[0]}: ${context}`);
             await dispatchContact(rowIndex, row);
           } else if (!isTimeToRetry && canRetry && nextRetryTime > 0) {
             const waitMs = nextRetryTime - nowTime;
