@@ -49,41 +49,37 @@ sudo rm /tmp/.env
 
 # Step 5: Remote deployment
 echo -e "${YELLOW}Step 4: Running remote build and deployment...${NC}"
+echo "Pulling latest code..."
+echo "Building application..."
 ssh "${REMOTE_USER}@${REMOTE_HOST}" << 'REMOTE_SCRIPT'
   set -e
 
   TOP="/home/devel/src/git/nimbalyst/next_shadcn"
 
-  echo "Pulling latest code..."
   cd "$TOP"
   git pull
 
-  echo "Building application..."
   npm run build
-
-  echo "✅ Remote build completed"
 REMOTE_SCRIPT
+echo "✅ Remote build completed"
 echo -e "${GREEN}✅ Remote build successful${NC}"
 echo ""
 
 # Step 6: Restart services
 echo -e "${YELLOW}Step 5: Restarting services...${NC}"
+echo "Restarting happytailspawcare service..."
+echo "Checking happytailspawcare status..."
+echo ""
+echo "Restarting vapi-processor service..."
+echo "Checking vapi-processor status..."
 ssh "${REMOTE_USER}@${REMOTE_HOST}" << 'RESTART_SCRIPT'
-  echo "Restarting happytailspawcare service..."
   sudo systemctl restart happytailspawcare
-
-  echo "Checking happytailspawcare status..."
   sudo systemctl status happytailspawcare --no-pager
 
-  echo ""
-  echo "Restarting vapi-processor service..."
   sudo systemctl restart vapi-processor
-
-  echo "Checking vapi-processor status..."
   sudo systemctl status vapi-processor --no-pager
-
-  echo "✅ Services restarted successfully"
 RESTART_SCRIPT
+echo "✅ Services restarted successfully"
 echo -e "${GREEN}✅ Services restarted${NC}"
 echo ""
 
