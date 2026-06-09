@@ -17,6 +17,25 @@ interface ContactFormData {
   submittedAt?: string;
 }
 
+function formatTimestampInTimezone(isoString: string, timezone: string): string {
+  try {
+    const date = new Date(isoString);
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      timeZone: timezone,
+    });
+    const formatted = formatter.format(date);
+    return formatted;
+  } catch (e) {
+    return isoString;
+  }
+}
+
 function validateE164Format(phone: string): { valid: boolean; formatted?: string; error?: string } {
   if (!phone || typeof phone !== 'string') {
     return { valid: false, error: 'Phone number is required' };
@@ -100,10 +119,15 @@ export async function POST(request: NextRequest) {
 
     const sheets = google.sheets({ version: 'v4', auth });
 
-    // Save form data to "contact" sheet
+    // Format timestamp in user's timezone
+    const submittedAtStr = data.submittedAt || new Date().toISOString();
+    const userTimezone = data.timezone || 'UTC';
+    const localTimestamp = formatTimestampInTimezone(submittedAtStr, userTimezone);
+
+    // Save form data to "contact" sheet (initially with empty tracking ID, column L)
     const values = [
       [
-        new Date().toISOString(),
+        localTimestamp,
         data.fullName,
         data.email,
         data.phone,
@@ -113,12 +137,13 @@ export async function POST(request: NextRequest) {
         data.challenge,
         data.message,
         data.receiveMessages ? 'Yes' : 'No',
-        data.timezone || 'Unknown',
+        userTimezone,
+        '', // L: Contact Tracking ID (will be updated after creating tracking entry)
       ],
     ];
 
     console.log('📊 Saving to contact sheet...');
-    await sheets.spreadsheets.values.append({
+    const appendResponse = await sheets.spreadsheets.values.append({
       spreadsheetId: process.env.GOOGLE_SHEET_ID,
       range: 'contact!A2',
       valueInputOption: 'RAW',
@@ -126,7 +151,12 @@ export async function POST(request: NextRequest) {
     });
     console.log('✅ Form data saved to contact sheet');
 
-    // Also create tracking entry for Vapi dispatch
+    // Extract row number from the append response (e.g., "contact!A2:L2" -> row 2)
+    const updatedRange = appendResponse.data.updates?.updatedRange || '';
+    const rowMatch = updatedRange.match(/!A(\d+):/);
+    const contactSheetRowIndex = rowMatch ? parseInt(rowMatch[1]) : null;
+
+    // Create tracking entry for Vapi dispatch
     try {
       const { id: contactId, row } = await onFormSubmit({
         phone: phoneValidation.formatted!,
@@ -137,6 +167,24 @@ export async function POST(request: NextRequest) {
       });
 
       console.log(`✅ Tracking entry created: ${contactId}`);
+
+      // Update contact sheet with tracking ID
+      if (contactSheetRowIndex) {
+        try {
+          await sheets.spreadsheets.values.update({
+            spreadsheetId: process.env.GOOGLE_SHEET_ID,
+            range: `contact!L${contactSheetRowIndex}`,
+            valueInputOption: 'RAW',
+            requestBody: {
+              values: [[contactId]],
+            },
+          });
+          console.log(`✅ Updated contact sheet row ${contactSheetRowIndex} with tracking ID`);
+        } catch (updateErr) {
+          const updateErrMsg = updateErr instanceof Error ? updateErr.message : String(updateErr);
+          console.warn('⚠️ Failed to update contact sheet with tracking ID:', updateErrMsg);
+        }
+      }
 
       // Dispatch to Vapi
       try {

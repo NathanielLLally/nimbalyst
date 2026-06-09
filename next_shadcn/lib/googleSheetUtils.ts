@@ -431,8 +431,28 @@ export async function updateContactRow(
       throw new Error(`Row ${rowIndex} not found`);
     }
 
-    // 2. Merge updates (preserving existing values)
-    const updatedRow = { ...currentRow, ...updates } as ContactRow;
+    // 2. Build updated row by explicitly setting each column
+    const updatedRow: any[] = [
+      updates[0] !== undefined ? updates[0] : currentRow[0],
+      updates[1] !== undefined ? updates[1] : currentRow[1],
+      updates[2] !== undefined ? updates[2] : currentRow[2],
+      updates[3] !== undefined ? updates[3] : currentRow[3],
+      updates[4] !== undefined ? updates[4] : currentRow[4],
+      updates[5] !== undefined ? updates[5] : currentRow[5],
+      updates[6] !== undefined ? updates[6] : currentRow[6],
+      updates[7] !== undefined ? updates[7] : currentRow[7],
+      updates[8] !== undefined ? updates[8] : currentRow[8],
+      updates[9] !== undefined ? updates[9] : currentRow[9],
+      updates[10] !== undefined ? updates[10] : currentRow[10],
+      updates[11] !== undefined ? updates[11] : currentRow[11],
+    ];
+
+    console.log(`📝 Updating row ${rowIndex}:`, {
+      ID: updatedRow[0],
+      Status: updatedRow[4],
+      NextRetry: updatedRow[8],
+      VapiCallId: updatedRow[10],
+    });
 
     // 3. Write back atomically
     const range = `${sheetName}!A${rowIndex}:L${rowIndex}`;
@@ -442,15 +462,11 @@ export async function updateContactRow(
       range,
       valueInputOption: 'RAW',
       requestBody: {
-        values: [[
-          updatedRow[0], updatedRow[1], updatedRow[2], updatedRow[3],
-          updatedRow[4], updatedRow[5], updatedRow[6], updatedRow[7],
-          updatedRow[8], updatedRow[9], updatedRow[10], updatedRow[11],
-        ]],
+        values: [[...updatedRow]],
       },
     });
 
-    return updatedRow;
+    return updatedRow as unknown as ContactRow;
   } catch (err) {
     const error = err instanceof Error ? err.message : String(err);
     throw new Error(`Failed to update contact row: ${error}`);
