@@ -432,7 +432,7 @@ export async function updateContactRow(
     }
 
     // 2. Create new row array, applying updates
-    const updatedRow: any[] = [...currentRow];
+    const updatedRow: any[] = (currentRow as unknown as any[]).slice();
 
     // Apply any updates that were passed in (handle both numeric and string keys)
     Object.entries(updates).forEach(([key, value]) => {
