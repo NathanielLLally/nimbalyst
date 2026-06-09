@@ -258,17 +258,15 @@ export async function dispatchContactDirectly(row: SheetUtils.ContactRow): Promi
   console.log(`📞 Dispatching ${id} immediately (${phone})`);
 
   try {
+    // Get the row count to find the index
+    const allRows = await SheetUtils.getTrackerData(cfg.GOOGLE_SHEET_ID, cfg.SHEET_NAME);
+    const rowIndex = allRows.length; // Last row is the one we just created
+
     const vapiResponse = await makeVapiCall(phone as string, name as string, channel as string);
 
     if (!vapiResponse.success) {
       throw new Error(vapiResponse.error || 'Unknown Vapi error');
     }
-
-    // Update the contact with the Vapi Call ID
-    // Get the row count to find the index of the contact we just created
-    console.log(`🔄 Fetching all rows to find contact ${id}...`);
-    const allRows = await SheetUtils.getTrackerData(cfg.GOOGLE_SHEET_ID, cfg.SHEET_NAME);
-    const rowIndex = allRows.length; // Last row is the one we just created
 
     console.log(`📊 Found ${allRows.length - 1} contacts, new contact is at row ${rowIndex}`);
 
@@ -295,6 +293,19 @@ export async function dispatchContactDirectly(row: SheetUtils.ContactRow): Promi
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err);
     console.error(`Failed to dispatch contact ${id}:`, errMsg);
+
+    // Mark as failed with retry delay on initial dispatch error
+    try {
+      const allRows = await SheetUtils.getTrackerData(cfg.GOOGLE_SHEET_ID, cfg.SHEET_NAME);
+      const rowIndex = allRows.length;
+      if (rowIndex > 0) {
+        const currentRow = allRows[rowIndex - 1] as SheetUtils.ContactRow;
+        await markFailed(rowIndex, currentRow, `Initial dispatch failed: ${errMsg}`);
+      }
+    } catch (markErr) {
+      console.error(`Failed to mark contact as failed:`, markErr);
+    }
+
     throw err;
   }
 }
@@ -563,7 +574,11 @@ async function markFailed(
   reason: string
 ): Promise<void> {
   const cfg = getConfig();
-  const attemptCount = parseInt(String(row[5])) || 0;
+
+  // Fetch current row from sheet to get updated attempt count
+  const allRows = await SheetUtils.getTrackerData(cfg.GOOGLE_SHEET_ID, cfg.SHEET_NAME);
+  const currentRow = allRows[rowIndex - 1] as SheetUtils.ContactRow;
+  const attemptCount = parseInt(String(currentRow[5])) || 0;
   const now = new Date();
 
   if (attemptCount >= cfg.MAX_ATTEMPTS) {
