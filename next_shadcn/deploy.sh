@@ -15,6 +15,7 @@ NC='\033[0m' # No Color
 TOP="/home/${USER}/src/git/nimbalyst/next_shadcn"
 REMOTE_HOST="happytailspawcare.com"
 REMOTE_USER="devel"
+REMOTE_SUDO_USER="nathaniel"
 REMOTE_PATH="/home/devel/src/git/nimbalyst/next_shadcn"
 
 echo -e "${YELLOW}=== Starting Deploy ===${NC}"
@@ -72,7 +73,7 @@ echo "Checking happytailspawcare status..."
 echo ""
 echo "Restarting vapi-processor service..."
 echo "Checking vapi-processor status..."
-ssh "${REMOTE_USER}@${REMOTE_HOST}" << 'RESTART_SCRIPT'
+ssh "${REMOTE_SUDO_USER}@${REMOTE_HOST}" << 'RESTART_SCRIPT'
   sudo systemctl restart happytailspawcare
   sudo systemctl status happytailspawcare --no-pager
 
