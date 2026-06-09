@@ -219,15 +219,16 @@ async function processCallReport(report: VapiCallReport): Promise<void> {
     const { rowIndex, row } = matches[0];
     console.log(`🔄 Updating contact ${row[0]} with call results`);
 
-    // Update the contact row with call details
-    await updateContactWithCallResults(
-      sheetId,
-      rowIndex,
-      row,
-      report,
-      metrics,
-      sheetName
-    );
+    // Call vapi-contact-tracker to handle status update
+    await onVapiWebhook({
+      callId,
+      status: report.status || (metrics.success ? 'completed' : 'failed'),
+      endedReason: report.endedReason,
+      error: report.error || report.errorMessage,
+    });
+
+    // Log detailed call metrics to separate sheet
+    await logCallDetails(sheetId, row, report, metrics);
 
     console.log(`✅ Contact ${row[0]} updated with call results`);
   } catch (err) {
@@ -237,96 +238,6 @@ async function processCallReport(report: VapiCallReport): Promise<void> {
   }
 }
 
-/**
- * Update contact row with call metrics and results
- */
-async function updateContactWithCallResults(
-  sheetId: string,
-  rowIndex: number,
-  row: SheetUtils.ContactRow,
-  report: VapiCallReport,
-  metrics: CallMetrics,
-  sheetName: string
-): Promise<void> {
-  const now = new Date();
-
-  // Determine status based on call outcome
-  const status = determineStatus(report, metrics);
-
-  // Update row with call results
-  const updates: Partial<SheetUtils.ContactRow> = {
-    [4]: status, // Status column
-    [9]: now.toISOString(), // Resolved column
-  };
-
-  await SheetUtils.updateContactRow(
-    sheetId,
-    rowIndex,
-    updates,
-    sheetName
-  );
-
-  // Build comprehensive note with call details
-  let note = '';
-
-  if (metrics.success) {
-    note = `✅ SUCCESS\n`;
-    note += `Duration: ${metrics.duration}s\n`;
-    if (metrics.summary) {
-      note += `Summary: ${metrics.summary.substring(0, 150)}\n`;
-    }
-    if (report.recordingUrl) {
-      note += `Recording: ${report.recordingUrl}\n`;
-    }
-  } else {
-    note = `❌ FAILED\n`;
-    note += `Reason: ${metrics.endReason}\n`;
-    if (report.error || report.errorMessage) {
-      note += `Error: ${report.error || report.errorMessage}\n`;
-    }
-  }
-
-  // Add timing info
-  if (report.startedAt) {
-    note += `Started: ${new Date(report.startedAt).toISOString()}\n`;
-  }
-  note += `Ended: ${now.toISOString()}`;
-
-  // Append to notes column
-  await SheetUtils.appendContactNote(
-    sheetId,
-    rowIndex,
-    note,
-    sheetName
-  );
-
-  // Optionally store call data in a separate "Call Details" sheet
-  await logCallDetails(sheetId, row, report, metrics);
-}
-
-/**
- * Extract call ID from report (handles various field names)
- */
-function getCallId(report: VapiCallReport): string {
-  return report.id || report.callId || report.call?.id || 'unknown';
-}
-
-/**
- * Determine contact status based on call outcome
- */
-function determineStatus(report: VapiCallReport, metrics: CallMetrics): string {
-  if (metrics.success) {
-    return 'SUCCESS';
-  } else if (
-    report.endedReason === 'customer_did_not_answer' ||
-    report.endedReason === 'voicemail_reached' ||
-    report.endedReason === 'voicemail'
-  ) {
-    return 'FAILED'; // Will be retried
-  } else {
-    return 'FAILED';
-  }
-}
 
 /**
  * Extract call metrics from report

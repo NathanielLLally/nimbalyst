@@ -49,7 +49,7 @@ function loadConfig(): Config {
     VAPI_ASSISTANT_ID: process.env.VAPI_ASSISTANT_ID!,
     RETRY_DELAYS_MINUTES: process.env.RETRY_DELAYS_MINUTES
       ? JSON.parse(process.env.RETRY_DELAYS_MINUTES)
-      : [0, 5, 15, 60],
+      : [2, 5, 15, 60],
     MAX_ATTEMPTS: parseInt(process.env.MAX_ATTEMPTS || '4'),
     POLL_INTERVAL_SECONDS: parseInt(process.env.POLL_INTERVAL_SECONDS || '30'),
     SHEET_NAME: process.env.SHEET_NAME || 'Sheet1',
@@ -226,8 +226,6 @@ export async function processContacts(): Promise<void> {
             );
             console.log(`⚠️ Contact ${row[0]} exhausted (${attemptCount}/${cfg.MAX_ATTEMPTS} attempts)`);
           }
-        } else if (status === ContactStatus.IN_PROGRESS) {
-          await pollInProgress(rowIndex, row);
         }
       } catch (err) {
         console.error(`Error processing row ${rowIndex}:`, err);
