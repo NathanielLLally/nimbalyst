@@ -701,7 +701,7 @@ async function markFailed(
       cfg.SHEET_NAME
     );
     console.log(
-      `⏱️ ${row[0]}: scheduled retry in ${delayMinutes || 60}min (${nextRetry.toISOString()})`
+      `⏱️ ${row[0]}: scheduled retry in ${delayMinutes ?? 60}min (${nextRetry.toISOString()})`
     );
   }
 }
