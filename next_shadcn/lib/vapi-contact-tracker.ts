@@ -484,6 +484,10 @@ export async function makeVapiCall(
     },
   };
 
+  if (process.env.DEBUG) {
+    console.log('🔍 DEBUG: Outgoing Vapi payload:', JSON.stringify(payload, null, 2));
+  }
+
   try {
     const response = await fetch(url, {
       method: 'POST',
