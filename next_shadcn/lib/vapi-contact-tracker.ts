@@ -676,11 +676,16 @@ async function markFailed(
     // Use attemptCount - 1 because attemptCount is 1-indexed but array is 0-indexed
     // After attempt 1 fails (attemptCount=1): use RETRY_DELAYS_MINUTES[0]
     // After attempt 2 fails (attemptCount=2): use RETRY_DELAYS_MINUTES[1], etc.
-    const delayIndex = Math.min(attemptCount - 1, cfg.RETRY_DELAYS_MINUTES.length - 1);
-    const delayMinutes = cfg.RETRY_DELAYS_MINUTES[delayIndex] ?? 60;
+    const delayIndex = Math.min(Math.max(0, attemptCount - 1), cfg.RETRY_DELAYS_MINUTES.length - 1);
+    const rawDelayValue = cfg.RETRY_DELAYS_MINUTES[delayIndex];
+    const delayMinutes = rawDelayValue !== undefined && rawDelayValue !== null ? rawDelayValue : 60;
     const delayMs = delayMinutes * 60000;
     const nextRetryTime = now.getTime() + delayMs;
     const nextRetry = new Date(nextRetryTime);
+
+    if (process.env.DEBUG) {
+      console.log(`🔍 DEBUG markFailed: config=${JSON.stringify(cfg.RETRY_DELAYS_MINUTES)}, attemptCount=${attemptCount}, delayIndex=${delayIndex}, rawValue=${rawDelayValue}, delayMinutes=${delayMinutes}, delayMs=${delayMs}`);
+    }
 
     console.log(`📋 markFailed for ${row[0]}: attemptCount=${attemptCount}, delayIndex=${delayIndex}, delayMinutes=${delayMinutes}, nextRetry=${nextRetry.toISOString()}`);
 
