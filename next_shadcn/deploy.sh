@@ -60,8 +60,6 @@ ssh "${REMOTE_USER}@${REMOTE_HOST}" << 'REMOTE_SCRIPT'
   cd "$TOP"
   git pull
 
-  npm ci
-
   npm run build
 REMOTE_SCRIPT
 echo "✅ Remote build completed"

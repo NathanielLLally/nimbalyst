@@ -62,6 +62,10 @@ function loadConfig(): Config {
     SHEET_NAME: cfg.SHEET_NAME,
   });
 
+  if (cfg.RETRY_DELAYS_MINUTES.every((d: number) => d === 0)) {
+    console.warn('⚠️  WARNING: All RETRY_DELAYS_MINUTES are 0 - retries will be immediate');
+  }
+
   return cfg;
 }
 
@@ -669,12 +673,16 @@ async function markFailed(
     console.log(`❌ Contact ${row[0]} exhausted all retries`);
   } else {
     // Schedule retry with delay from RETRY_DELAYS_MINUTES
-    const delayMinutes = cfg.RETRY_DELAYS_MINUTES[attemptCount];
-    const delayMs = (delayMinutes || 60) * 60000;
+    // Use attemptCount - 1 because attemptCount is 1-indexed but array is 0-indexed
+    // After attempt 1 fails (attemptCount=1): use RETRY_DELAYS_MINUTES[0]
+    // After attempt 2 fails (attemptCount=2): use RETRY_DELAYS_MINUTES[1], etc.
+    const delayIndex = Math.min(attemptCount - 1, cfg.RETRY_DELAYS_MINUTES.length - 1);
+    const delayMinutes = cfg.RETRY_DELAYS_MINUTES[delayIndex] ?? 60;
+    const delayMs = delayMinutes * 60000;
     const nextRetryTime = now.getTime() + delayMs;
     const nextRetry = new Date(nextRetryTime);
 
-    console.log(`📋 markFailed for ${row[0]}: attemptCount=${attemptCount}, delayMinutes=${delayMinutes}, nextRetry=${nextRetry.toISOString()}`);
+    console.log(`📋 markFailed for ${row[0]}: attemptCount=${attemptCount}, delayIndex=${delayIndex}, delayMinutes=${delayMinutes}, nextRetry=${nextRetry.toISOString()}`);
 
     await SheetUtils.updateContactRow(
       cfg.GOOGLE_SHEET_ID,
