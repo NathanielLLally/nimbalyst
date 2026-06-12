@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { onFormSubmit, onVapiWebhook } from '@/lib/vapi-contact-tracker';
+import { processSmsAndBooking } from '@/lib/contact-sms-booking';
 
 /**
  * API endpoint for contact tracking.
@@ -22,6 +23,7 @@ interface FormSubmitRequest {
     email: string;
     company: string;
     challenge: string;
+    timezone?: string;
   };
   channel?: string;
 }
@@ -45,7 +47,23 @@ export async function POST(request: NextRequest) {
     if (data.type === 'form_submit') {
       const req = data as FormSubmitRequest;
       const contactId = await onFormSubmit(req.formData, req.channel as any);
-      return NextResponse.json({ success: true, contactId }, { status: 200 });
+
+      const smsBookingResult = await processSmsAndBooking(req.formData, req.formData.timezone);
+      console.log('📱 SMS & Booking result:', {
+        smsSuccess: smsBookingResult.smsSuccess,
+        bookingSuccess: smsBookingResult.bookingSuccess,
+        errors: smsBookingResult.errors,
+      });
+
+      return NextResponse.json({
+        success: true,
+        contactId,
+        smsBooking: {
+          smsSuccess: smsBookingResult.smsSuccess,
+          bookingSuccess: smsBookingResult.bookingSuccess,
+          errors: smsBookingResult.errors,
+        },
+      }, { status: 200 });
     } else if (data.type === 'vapi_webhook') {
       const req = data as VapiWebhookRequest;
       await onVapiWebhook(req.event);
