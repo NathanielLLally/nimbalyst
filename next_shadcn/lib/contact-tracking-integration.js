@@ -11,7 +11,7 @@
  */
 export async function trackContactInVapiSheet(formData) {
   try {
-    const response = await fetch('/api/vapi-track', {
+    const response = await fetch('/api/contact-track', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

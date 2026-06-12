@@ -2,15 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { onFormSubmit, onVapiWebhook } from '@/lib/vapi-contact-tracker';
 
 /**
- * API endpoint for Vapi contact tracking.
+ * API endpoint for contact tracking.
  * Handles form submissions and webhook callbacks.
  *
  * Loads configuration from environment variables.
  *
- * POST /api/vapi-track
+ * POST /api/contact-track
  * Body: { type: 'form_submit', formData: {...}, channel: 'voice' }
  *
- * POST /api/vapi-track (webhook from Vapi)
+ * POST /api/contact-track (webhook from Vapi)
  * Body: { type: 'vapi_webhook', event: {...} }
  */
 
@@ -40,7 +40,7 @@ interface VapiWebhookRequest {
 export async function POST(request: NextRequest) {
   try {
     const data = await request.json() as FormSubmitRequest | VapiWebhookRequest;
-    console.log('📨 /api/vapi-track request:', data.type);
+    console.log('📨 /api/contact-track request:', data.type);
 
     if (data.type === 'form_submit') {
       const req = data as FormSubmitRequest;
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
     }
   } catch (error) {
     const errMsg = error instanceof Error ? error.message : String(error);
-    console.error('❌ /api/vapi-track error:', errMsg);
+    console.error('❌ /api/contact-track error:', errMsg);
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }
