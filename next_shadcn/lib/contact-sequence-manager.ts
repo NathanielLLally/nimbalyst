@@ -76,7 +76,7 @@ export function getStageMessage(
   contactName: string,
   attemptNumber: number = 1
 ): string | null {
-  const messages: Record<ContactStage, string> = {
+  const messages: Record<ContactStage, string | null> = {
     [ContactStage.PHONE_CALL]:
       `Initial outreach call to ${contactName}`,
     [ContactStage.SMS]:
@@ -88,7 +88,7 @@ export function getStageMessage(
     [ContactStage.COMPLETED]: null,
   };
 
-  return messages[stage] || null;
+  return messages[stage] ?? null;
 }
 
 /**
