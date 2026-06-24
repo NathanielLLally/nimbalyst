@@ -1,9 +1,13 @@
 /**
- * Contact SMS + Availability Booking
+ * Contact SMS + Email + Availability Booking
  *
- * Sends SMS confirmation after form submission and automatically
- * checks availability + books a meeting using cal.com integration
+ * Handles the sequential contact flow:
+ * 1. SMS confirmation after form submission
+ * 2. Email with availability checking & booking
+ * 3. Supports retry attempts with different messaging
  */
+
+import { sendFollowupEmail, sendInformationalEmail } from './contact-email-sender';
 
 interface SMSConfig {
   TWILIO_ACCOUNT_SID: string;
@@ -218,9 +222,109 @@ export async function processSmsAndBooking(
   };
 }
 
+/**
+ * Send email at different stages
+ */
+export async function sendStageEmail(
+  stage: 'initial' | 'followup',
+  formData: {
+    phone: string;
+    fullName: string;
+    email: string;
+    company: string;
+    challenge: string;
+  }
+): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  try {
+    if (stage === 'initial') {
+      return await sendInformationalEmail(
+        formData.fullName,
+        formData.email,
+        formData.company,
+        formData.challenge
+      );
+    } else {
+      return await sendFollowupEmail(formData.fullName, formData.email);
+    }
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    return { success: false, error: errMsg };
+  }
+}
+
+/**
+ * Complete sequential flow: SMS → Email → Booking
+ */
+export async function processSequentialFlow(
+  formData: {
+    phone: string;
+    fullName: string;
+    email: string;
+    company: string;
+    challenge: string;
+  },
+  timezone?: string
+): Promise<{
+  smsSuccess: boolean;
+  emailSuccess: boolean;
+  bookingSuccess: boolean;
+  smsMessageId?: string;
+  emailMessageId?: string;
+  bookingInfo?: string;
+  errors: { sms?: string; email?: string; booking?: string };
+}> {
+  const errors: { sms?: string; email?: string; booking?: string } = {};
+
+  // 1. Send initial SMS
+  const smsResult = await sendConfirmationSms(formData.phone, formData.fullName);
+  if (!smsResult.success) {
+    errors.sms = smsResult.error;
+  }
+
+  // 2. Send initial email
+  let emailSuccess = false;
+  let emailMessageId: string | undefined;
+  const emailResult = await sendStageEmail('initial', formData);
+  if (emailResult.success) {
+    emailSuccess = true;
+    emailMessageId = emailResult.messageId;
+  } else {
+    errors.email = emailResult.error;
+  }
+
+  // 3. Try to book meeting (non-blocking)
+  let bookingSuccess = false;
+  let bookingInfo: string | undefined;
+  const bookingResult = await bookMeetingForContact({
+    name: formData.fullName,
+    email: formData.email,
+    phone: formData.phone,
+    timezone,
+  });
+
+  if (bookingResult.success) {
+    bookingSuccess = true;
+    bookingInfo = bookingResult.bookingInfo;
+  } else {
+    errors.booking = bookingResult.error;
+  }
+
+  return {
+    smsSuccess: smsResult.success,
+    emailSuccess,
+    bookingSuccess,
+    smsMessageId: smsResult.messageId,
+    emailMessageId,
+    bookingInfo,
+    errors,
+  };
+}
+
 export default {
   sendConfirmationSms,
   checkAvailability,
   bookMeetingForContact,
   processSmsAndBooking,
+  sendStageEmail,
+  processSequentialFlow,
 };

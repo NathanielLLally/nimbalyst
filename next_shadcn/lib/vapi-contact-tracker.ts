@@ -5,9 +5,9 @@
  * Vapi call dispatch, polling, and retry logic using Google Sheets for persistence.
  *
  * Configuration: Read from environment variables
- * Sheet structure (12 columns):
- * A: ID | B: Phone | C: Name | D: Channel (voice/sms) | E: Status | F: Attempt Count
- * G: Submitted | H: Last Attempt | I: Next Retry | J: Resolved | K: Vapi Call ID | L: Notes
+ * Sheet structure (13 columns):
+ * A: ID | B: Phone | C: Name | D: Email | E: Channel (voice/sms) | F: Status | G: Attempt Count
+ * H: Submitted | I: Last Attempt | J: Next Retry | K: Resolved | L: Vapi Call ID | M: Notes
  */
 
 import * as SheetUtils from './googleSheetUtils';
@@ -197,15 +197,16 @@ export async function onFormSubmit(
     id, // A: ID
     formData.phone, // B: Phone
     formData.fullName, // C: Name
-    channel, // D: Channel
-    ContactStatus.PENDING, // E: Status
-    0, // F: Attempt Count
-    now.toISOString(), // G: Submitted
-    '', // H: Last Attempt
-    '', // I: Next Retry (empty until first dispatch attempt)
-    '', // J: Resolved
-    '', // K: Vapi Call ID
-    `Form submitted: ${formData.email} | Challenge: ${formData.challenge}`, // L: Notes
+    formData.email, // D: Email
+    channel, // E: Channel
+    ContactStatus.PENDING, // F: Status
+    0, // G: Attempt Count
+    now.toISOString(), // H: Submitted
+    '', // I: Last Attempt
+    '', // J: Next Retry (empty until first dispatch attempt)
+    '', // K: Resolved
+    '', // L: Vapi Call ID
+    `Challenge: ${formData.challenge} | Company: ${formData.company}`, // M: Notes
   ];
 
   try {
@@ -250,9 +251,9 @@ export async function processContacts(): Promise<void> {
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i] as SheetUtils.ContactRow;
       const rowIndex = i + 1;
-      const status = row[4] as unknown as ContactStatus;
-      const attemptCount = parseInt(String(row[5])) || 0;
-      const nextRetryStr = String(row[8]);
+      const status = row[5] as unknown as ContactStatus;
+      const attemptCount = parseInt(String(row[6])) || 0;
+      const nextRetryStr = String(row[9]);
       const nextRetryTime = nextRetryStr ? new Date(nextRetryStr).getTime() : 0;
       const nowTime = now.getTime();
 
@@ -279,8 +280,8 @@ export async function processContacts(): Promise<void> {
               cfg.GOOGLE_SHEET_ID,
               rowIndex,
               {
-                [4]: ContactStatus.RETRY_EXHAUSTED,
-                [9]: now.toISOString(),
+                [5]: ContactStatus.RETRY_EXHAUSTED,
+                [10]: now.toISOString(),
               } as Partial<SheetUtils.ContactRow>,
               cfg.SHEET_NAME
             );
@@ -339,9 +340,9 @@ export async function dispatchContactDirectly(row: SheetUtils.ContactRow): Promi
         cfg.GOOGLE_SHEET_ID,
         rowIndex,
         {
-          [4]: ContactStatus.IN_PROGRESS, // Status
-          [10]: vapiResponse.callId, // Vapi Call ID
-          [7]: now.toISOString(), // Last Attempt
+          [5]: ContactStatus.IN_PROGRESS, // Status
+          [11]: vapiResponse.callId, // Vapi Call ID
+          [8]: now.toISOString(), // Last Attempt
         } as Partial<SheetUtils.ContactRow>,
         cfg.SHEET_NAME
       );
@@ -416,7 +417,7 @@ async function dispatchContact(
   const phone = row[1];
   const name = row[2];
   const channel = row[3];
-  const attemptCount = parseInt(String(row[5])) || 0;
+  const attemptCount = parseInt(String(row[6])) || 0;
 
   console.log(
     `📞 Dispatching ${id} (attempt ${attemptCount + 1}/${cfg.MAX_ATTEMPTS})`
@@ -436,10 +437,10 @@ async function dispatchContact(
       cfg.GOOGLE_SHEET_ID,
       rowIndex,
       {
-        [4]: ContactStatus.IN_PROGRESS, // Status
-        [5]: attemptCount + 1, // Attempt Count
-        [7]: now.toISOString(), // Last Attempt
-        [10]: vapiResponse.callId || '', // Vapi Call ID
+        [5]: ContactStatus.IN_PROGRESS, // Status
+        [6]: attemptCount + 1, // Attempt Count
+        [8]: now.toISOString(), // Last Attempt
+        [11]: vapiResponse.callId || '', // Vapi Call ID
       } as Partial<SheetUtils.ContactRow>,
       cfg.SHEET_NAME
     );
@@ -534,7 +535,7 @@ async function pollInProgress(
 ): Promise<void> {
   const cfg = getConfig();
   const id = row[0];
-  const vapiCallId = row[10];
+  const vapiCallId = row[11];
 
   if (!vapiCallId) {
     console.warn(`No Vapi Call ID for ${id}, marking failed`);
@@ -616,8 +617,8 @@ async function markSuccess(
     cfg.GOOGLE_SHEET_ID,
     rowIndex,
     {
-      [4]: ContactStatus.SUCCESS, // Status
-      [9]: now.toISOString(), // Resolved
+      [5]: ContactStatus.SUCCESS, // Status
+      [10]: now.toISOString(), // Resolved
     } as Partial<SheetUtils.ContactRow>,
     cfg.SHEET_NAME
   );
@@ -649,7 +650,7 @@ async function markFailed(
   // Fetch current row from sheet to get updated attempt count
   const allRows = await SheetUtils.getTrackerData(cfg.GOOGLE_SHEET_ID, cfg.SHEET_NAME);
   const currentRow = allRows[rowIndex - 1] as SheetUtils.ContactRow;
-  const attemptCount = parseInt(String(currentRow[5])) || 0;
+  const attemptCount = parseInt(String(currentRow[6])) || 0;
   const now = new Date();
 
   if (attemptCount >= cfg.MAX_ATTEMPTS) {
@@ -658,8 +659,8 @@ async function markFailed(
       cfg.GOOGLE_SHEET_ID,
       rowIndex,
       {
-        [4]: ContactStatus.RETRY_EXHAUSTED,
-        [9]: now.toISOString(),
+        [5]: ContactStatus.RETRY_EXHAUSTED,
+        [10]: now.toISOString(),
       } as Partial<SheetUtils.ContactRow>,
       cfg.SHEET_NAME
     );
@@ -693,8 +694,8 @@ async function markFailed(
       cfg.GOOGLE_SHEET_ID,
       rowIndex,
       {
-        [4]: ContactStatus.FAILED,
-        [8]: nextRetry.toISOString(), // Next Retry (column I)
+        [5]: ContactStatus.FAILED,
+        [9]: nextRetry.toISOString(), // Next Retry (column J)
       } as Partial<SheetUtils.ContactRow>,
       cfg.SHEET_NAME
     );

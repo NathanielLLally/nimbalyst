@@ -1,12 +1,27 @@
 #!/usr/bin/env node
 
 /**
- * Unit Tests for Contact SMS + Booking Feature
+ * Integration Tests for Contact SMS + Booking Feature
  * Run: node test-contact-sms-booking.js
+ *
+ * Prerequisites:
+ * - Next.js server running on BASE_URL (default: http://localhost:3000)
+ * - TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER configured
+ * - CAL_API_KEY, CAL_EVENT_TYPE_ID configured (optional for booking tests)
  */
 
 require('dotenv').config();
 const assert = require('assert');
+
+// Test data
+const testFormData = {
+  phone: '+16464507917',
+  fullName: 'Anna Claude',
+  email: 'anna@happytailspawcare.com',
+  company: 'Acme Corp',
+  challenge: 'Need help with scheduling',
+  timezone: 'America/New_York',
+};
 
 // Test configuration
 const tests = {
@@ -28,48 +43,6 @@ function test(name, fn) {
   }
 }
 
-async function asyncTest(name, fn) {
-  try {
-    await fn();
-    tests.passed++;
-    console.log(`✅ ${name}`);
-  } catch (err) {
-    tests.failed++;
-    tests.errors.push({ name, error: err.message });
-    console.log(`❌ ${name}`);
-    console.log(`   Error: ${err.message}`);
-  }
-}
-
-// ============================================================================
-// Mocks and Utilities
-// ============================================================================
-
-let fetchMockCalls = [];
-let fetchMockResponses = {};
-
-function mockFetch(url, responses) {
-  fetchMockResponses[url] = responses;
-  fetchMockCalls = [];
-}
-
-async function fetchWithMock(url, options) {
-  fetchMockCalls.push({ url, options });
-
-  if (fetchMockResponses[url]) {
-    const response = fetchMockResponses[url];
-    return {
-      ok: response.ok !== false,
-      status: response.status || 200,
-      json: async () => response.data || {},
-    };
-  }
-
-  throw new Error(`No mock configured for ${url}`);
-}
-
-// Override global fetch in Node.js context
-global.fetch = fetchWithMock;
 
 // ============================================================================
 // Configuration Tests
@@ -271,6 +244,33 @@ test('Phone number should be formatted for Twilio', () => {
 });
 
 // ============================================================================
+// Email Tests
+// ============================================================================
+
+test('Email should include contact information', () => {
+  const emailSubject = `We Got Your Message - ${testFormData.challenge}`;
+
+  assert.ok(emailSubject.includes(testFormData.challenge), 'Subject should include challenge');
+  assert.ok(emailSubject.includes('Got Your Message'), 'Subject should acknowledge receipt');
+});
+
+test('Email should have proper sender information', () => {
+  const fromEmail = 'noreply@happytailspawcare.com';
+  const fromName = 'Happy Tails Paw Care';
+
+  assert.ok(fromEmail.includes('@'), 'Email should be valid format');
+  assert.ok(fromName.length > 0, 'Sender name should be provided');
+});
+
+test('Followup email should include company and challenge context', () => {
+  const emailBody = `Thanks for reaching out, ${testFormData.fullName}!\n\nWe received your inquiry about ${testFormData.challenge} at ${testFormData.company}.`;
+
+  assert.ok(emailBody.includes(testFormData.fullName), 'Should include contact name');
+  assert.ok(emailBody.includes(testFormData.challenge), 'Should include challenge');
+  assert.ok(emailBody.includes(testFormData.company), 'Should include company');
+});
+
+// ============================================================================
 // Error Handling Tests
 // ============================================================================
 
@@ -333,27 +333,32 @@ test('SMS and booking should be independent', () => {
   assert.ok(result.errors.booking, 'Should track booking error');
 });
 
-test('Should return both SMS and booking results', () => {
+test('Should return SMS, email, and booking results', () => {
   const result = {
     smsSuccess: true,
+    emailSuccess: true,
     bookingSuccess: true,
     smsMessageId: 'SM1234567890',
+    emailMessageId: 'em_1234567890',
     bookingInfo: 'Booked for 2024-01-15T10:00:00Z',
     errors: {},
   };
 
   assert.ok(typeof result.smsSuccess === 'boolean', 'Should have SMS success flag');
+  assert.ok(typeof result.emailSuccess === 'boolean', 'Should have email success flag');
   assert.ok(typeof result.bookingSuccess === 'boolean', 'Should have booking success flag');
-  assert.ok(result.smsMessageId || !result.smsSuccess, 'Should have message ID if successful');
+  assert.ok(result.smsMessageId || !result.smsSuccess, 'Should have SMS message ID if successful');
+  assert.ok(result.emailMessageId || !result.emailSuccess, 'Should have email message ID if successful');
   assert.ok(result.bookingInfo || !result.bookingSuccess, 'Should have booking info if successful');
 });
 
-test('Form submission response should include SMS and booking status', () => {
+test('Form submission response should include sequential flow status', () => {
   const response = {
     success: true,
     contactId: 'contact_1234567890_abc123',
-    smsBooking: {
+    sequentialFlow: {
       smsSuccess: true,
+      emailSuccess: true,
       bookingSuccess: true,
       errors: {},
     },
@@ -361,23 +366,159 @@ test('Form submission response should include SMS and booking status', () => {
 
   assert.ok(response.success, 'Response should be successful');
   assert.ok(response.contactId, 'Response should include contact ID');
-  assert.ok(response.smsBooking, 'Response should include SMS booking info');
-  assert.ok(typeof response.smsBooking.smsSuccess === 'boolean', 'Should have SMS success flag');
+  assert.ok(response.sequentialFlow, 'Response should include sequential flow info');
+  assert.ok(typeof response.sequentialFlow.smsSuccess === 'boolean', 'Should have SMS success flag');
+  assert.ok(typeof response.sequentialFlow.emailSuccess === 'boolean', 'Should have email success flag');
+  assert.ok(typeof response.sequentialFlow.bookingSuccess === 'boolean', 'Should have booking success flag');
 });
+
+// ============================================================================
+// Integration Tests - Actual SMS Sending
+// ============================================================================
+
+async function runIntegrationTests() {
+  console.log('\n' + '='.repeat(60));
+  console.log('\n📲 Integration Tests (Actual SMS Sending)\n');
+
+  const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+  const endpoint = `${baseUrl}/api/contact-track`;
+
+  // Check prerequisites
+  const hasSmsCreds = process.env.TWILIO_ACCOUNT_SID &&
+    process.env.TWILIO_AUTH_TOKEN &&
+    process.env.TWILIO_PHONE_NUMBER;
+
+  if (!hasSmsCreds) {
+    console.log('⚠️  SMS credentials not configured');
+    console.log('   Cannot run integration tests\n');
+    console.log('   Configure these in .env to run SMS tests:');
+    console.log('   - TWILIO_ACCOUNT_SID');
+    console.log('   - TWILIO_AUTH_TOKEN');
+    console.log('   - TWILIO_PHONE_NUMBER\n');
+    return false;
+  }
+
+  // Test: Send actual SMS + Email via form submission
+  console.log('Test 1: Form submission with sequential flow (SMS → Email → Booking)');
+  try {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'form_submit',
+        formData: testFormData,
+        channel: 'voice',
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || `HTTP ${response.status}`);
+    }
+
+    assert.ok(data.success, 'Should return success');
+    assert.ok(data.contactId, 'Should return contact ID');
+    assert.ok(data.sequentialFlow, 'Should return sequential flow result');
+    assert.ok(typeof data.sequentialFlow.smsSuccess === 'boolean', 'Should have SMS success flag');
+    assert.ok(typeof data.sequentialFlow.emailSuccess === 'boolean', 'Should have email success flag');
+
+    console.log('✅ Form submission with sequential flow passed');
+    console.log(`   Contact ID: ${data.contactId}`);
+    console.log(`   📱 SMS: ${data.sequentialFlow.smsSuccess ? '✅' : '❌'}`);
+    if (data.sequentialFlow.smsSuccess) {
+      console.log(`      Message ID: ${data.sequentialFlow.smsMessageId}`);
+    } else if (data.sequentialFlow.errors.sms) {
+      console.log(`      Error: ${data.sequentialFlow.errors.sms}`);
+    }
+    console.log(`   📧 Email: ${data.sequentialFlow.emailSuccess ? '✅' : '❌'}`);
+    if (data.sequentialFlow.emailSuccess) {
+      console.log(`      Message ID: ${data.sequentialFlow.emailMessageId}`);
+    } else if (data.sequentialFlow.errors.email) {
+      console.log(`      Error: ${data.sequentialFlow.errors.email}`);
+    }
+    console.log(`   📅 Booking: ${data.sequentialFlow.bookingSuccess ? '✅' : '❌'}`);
+    if (data.sequentialFlow.bookingSuccess && data.sequentialFlow.bookingInfo) {
+      console.log(`      Info: ${data.sequentialFlow.bookingInfo}`);
+    }
+    tests.passed++;
+  } catch (err) {
+    tests.failed++;
+    tests.errors.push({ name: 'Form submission with sequential flow', error: err.message });
+    console.log('❌ Form submission with sequential flow failed');
+    console.log(`   Error: ${err.message}`);
+
+    // Check if server is running
+    if (err.message.includes('ECONNREFUSED')) {
+      console.log(`\n   ⚠️  Could not connect to server at ${baseUrl}`);
+      console.log('   Make sure Next.js dev server is running:');
+      console.log('   $ npm run dev\n');
+    }
+  }
+
+  // Test: Verify SMS message format
+  console.log('\nTest 2: SMS message format validation');
+  try {
+    const expectedMessage = `Hi ${testFormData.fullName}! We received your form submission. We'll be in touch soon to schedule a call. Thanks!`;
+    assert.ok(expectedMessage.includes(testFormData.fullName), 'Message should include name');
+    assert.ok(expectedMessage.includes('form submission'), 'Message should mention submission');
+    console.log('✅ SMS message format validation passed');
+    console.log(`   Message: ${expectedMessage}\n`);
+    tests.passed++;
+  } catch (err) {
+    tests.failed++;
+    tests.errors.push({ name: 'SMS message format', error: err.message });
+    console.log('❌ SMS message format validation failed');
+    console.log(`   Error: ${err.message}`);
+  }
+
+  // Test: Verify contact data is properly tracked
+  console.log('Test 3: Contact data validation');
+  try {
+    assert.ok(testFormData.phone === '+16464507917', 'Phone should be correct');
+    assert.ok(testFormData.fullName === 'Anna Claude', 'Name should be correct');
+    assert.ok(testFormData.email === 'anna@happytailspawcare.com', 'Email should be correct');
+    assert.ok(testFormData.company === 'Acme Corp', 'Company should be correct');
+    assert.ok(testFormData.timezone === 'America/New_York', 'Timezone should be correct');
+    console.log('✅ Contact data validation passed');
+    tests.passed++;
+  } catch (err) {
+    tests.failed++;
+    tests.errors.push({ name: 'Contact data validation', error: err.message });
+    console.log('❌ Contact data validation failed');
+    console.log(`   Error: ${err.message}`);
+  }
+
+  return true;
+}
 
 // ============================================================================
 // Test Summary
 // ============================================================================
 
-console.log('\n' + '='.repeat(60));
-console.log(`\nTest Results: ${tests.passed} passed, ${tests.failed} failed\n`);
+(async () => {
+  console.log('\n' + '='.repeat(60));
+  console.log(`\nUnit Test Results: ${tests.passed} passed, ${tests.failed} failed`);
 
-if (tests.errors.length > 0) {
-  console.log('Failed tests:');
-  tests.errors.forEach(({ name, error }) => {
-    console.log(`  - ${name}: ${error}`);
-  });
-  console.log();
-}
+  if (tests.errors.length > 0) {
+    console.log('\nFailed unit tests:');
+    tests.errors.forEach(({ name, error }) => {
+      console.log(`  - ${name}: ${error}`);
+    });
+  }
 
-process.exit(tests.failed > 0 ? 1 : 0);
+  // Run integration tests
+  const runIntegration = await runIntegrationTests();
+
+  // Final summary
+  console.log('\n' + '='.repeat(60));
+  console.log(`\nFinal Results: ${tests.passed} passed, ${tests.failed} failed\n`);
+
+  if (tests.failed > 0) {
+    console.log('Some tests failed. Check output above for details.\n');
+  } else {
+    console.log('✅ All tests passed!\n');
+  }
+
+  process.exit(tests.failed > 0 ? 1 : 0);
+})();

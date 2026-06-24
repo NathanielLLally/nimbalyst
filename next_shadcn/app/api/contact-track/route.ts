@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { onFormSubmit, onVapiWebhook } from '@/lib/vapi-contact-tracker';
-import { processSmsAndBooking } from '@/lib/contact-sms-booking';
+import { processSequentialFlow } from '@/lib/contact-sms-booking';
 
 /**
  * API endpoint for contact tracking.
@@ -48,20 +48,22 @@ export async function POST(request: NextRequest) {
       const req = data as FormSubmitRequest;
       const contactId = await onFormSubmit(req.formData, req.channel as any);
 
-      const smsBookingResult = await processSmsAndBooking(req.formData, req.formData.timezone);
-      console.log('📱 SMS & Booking result:', {
-        smsSuccess: smsBookingResult.smsSuccess,
-        bookingSuccess: smsBookingResult.bookingSuccess,
-        errors: smsBookingResult.errors,
+      const sequentialResult = await processSequentialFlow(req.formData, req.formData.timezone);
+      console.log('📱 Sequential flow result:', {
+        smsSuccess: sequentialResult.smsSuccess,
+        emailSuccess: sequentialResult.emailSuccess,
+        bookingSuccess: sequentialResult.bookingSuccess,
+        errors: sequentialResult.errors,
       });
 
       return NextResponse.json({
         success: true,
         contactId,
-        smsBooking: {
-          smsSuccess: smsBookingResult.smsSuccess,
-          bookingSuccess: smsBookingResult.bookingSuccess,
-          errors: smsBookingResult.errors,
+        sequentialFlow: {
+          smsSuccess: sequentialResult.smsSuccess,
+          emailSuccess: sequentialResult.emailSuccess,
+          bookingSuccess: sequentialResult.bookingSuccess,
+          errors: sequentialResult.errors,
         },
       }, { status: 200 });
     } else if (data.type === 'vapi_webhook') {
