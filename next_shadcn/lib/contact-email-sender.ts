@@ -50,15 +50,18 @@ export async function sendEmail(
   try {
     const config = getEmailConfig();
 
+    // Use plaintext, or fallback to html if no text provided
+    const plaintext = text || html.replace(/<[^>]*>/g, '');
+
     // Build SMTP message
     const messageId = `<${Date.now()}.${Math.random().toString(36).substring(7)}@${config.SMTP_HOST}>`;
     const message = `From: ${config.FROM_NAME} <${config.FROM_EMAIL}>\r\n` +
       `To: ${to}\r\n` +
       `Subject: ${subject}\r\n` +
       `Message-ID: ${messageId}\r\n` +
-      `Content-Type: text/html; charset=utf-8\r\n` +
+      `Content-Type: text/plain; charset=utf-8\r\n` +
       `\r\n` +
-      `${html}\r\n`;
+      `${plaintext}\r\n`;
 
     // Connect to SMTP server and send
     const response = await fetch(`http://${config.SMTP_HOST}:${config.SMTP_PORT}/send`, {
@@ -119,12 +122,14 @@ async function sendViaSMTPNative(
       },
     });
 
+    // Use plaintext only
+    const plaintext = text || html.replace(/<[^>]*>/g, '');
+
     const info = await transporter.sendMail({
       from: `${config.FROM_NAME} <${config.FROM_EMAIL}>`,
       to,
       subject,
-      text,
-      html,
+      text: plaintext,
       messageId,
     });
 
@@ -195,14 +200,15 @@ async function sendViaRawSMTP(
     await write(`DATA\r\n`);
     await new Promise(resolve => setTimeout(resolve, 100));
 
-    // Message
+    // Message (plaintext only)
+    const plaintext = text || html.replace(/<[^>]*>/g, '');
     const fullMessage = `From: ${config.FROM_NAME} <${config.FROM_EMAIL}>\r\n` +
       `To: ${to}\r\n` +
       `Subject: ${subject}\r\n` +
       `Message-ID: ${messageId}\r\n` +
-      `Content-Type: text/html; charset=utf-8\r\n` +
+      `Content-Type: text/plain; charset=utf-8\r\n` +
       `\r\n` +
-      `${html}\r\n`;
+      `${plaintext}\r\n`;
 
     await write(`${fullMessage}\r\n.\r\n`);
     await new Promise(resolve => setTimeout(resolve, 100));
@@ -220,27 +226,25 @@ async function sendViaRawSMTP(
 }
 
 /**
- * Send followup SMS reminder (no SMS sending, just a placeholder for SMS service integration)
+ * Send followup email
  */
 export async function sendFollowupEmail(
   contactName: string,
   email: string
 ): Promise<{ success: boolean; messageId?: string; error?: string }> {
-  const htmlContent = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2>Hi ${contactName}!</h2>
-      <p>Following up on our earlier message. We'd love to help with your scheduling needs.</p>
-      <p>Feel free to reach out at any time if you have questions or would like to discuss your requirements.</p>
-      <p>Best regards,<br>Happy Tails Paw Care Team</p>
-    </div>
-  `;
+  const textContent = `Hi ${contactName}!
 
-  const textContent = `Hi ${contactName}!\n\nFollowing up on our earlier message. We'd love to help with your scheduling needs.\n\nFeel free to reach out at any time if you have questions.\n\nBest regards,\nHappy Tails Paw Care Team`;
+Following up on our earlier message. We'd love to help with your scheduling needs.
+
+Feel free to reach out at any time if you have questions or would like to discuss your requirements.
+
+Best regards,
+Happy Tails Paw Care Team`;
 
   return sendEmail(
     email,
     'Following Up - Let\'s Schedule a Call',
-    htmlContent,
+    textContent,
     textContent
   );
 }
@@ -254,27 +258,24 @@ export async function sendInformationalEmail(
   company: string,
   challenge: string
 ): Promise<{ success: boolean; messageId?: string; error?: string }> {
-  const htmlContent = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2>Thanks for reaching out, ${contactName}!</h2>
-      <p>We received your inquiry about <strong>${challenge}</strong> at <strong>${company}</strong>.</p>
-      <p>We're here to help and will be in touch shortly to discuss how we can support your needs.</p>
-      <h3>In the meantime:</h3>
-      <ul>
-        <li>Check out our services and how we can help</li>
-        <li>Feel free to call us directly if you have questions</li>
-        <li>Look forward to connecting with you soon</li>
-      </ul>
-      <p>Best regards,<br>Happy Tails Paw Care Team</p>
-    </div>
-  `;
+  const textContent = `Thanks for reaching out, ${contactName}!
 
-  const textContent = `Thanks for reaching out, ${contactName}!\n\nWe received your inquiry about ${challenge} at ${company}.\n\nWe're here to help and will be in touch shortly.\n\nBest regards,\nHappy Tails Paw Care Team`;
+We received your inquiry about ${challenge} at ${company}.
+
+We're here to help and will be in touch shortly to discuss how we can support your needs.
+
+In the meantime:
+- Check out our services and how we can help
+- Feel free to call us directly if you have questions
+- Look forward to connecting with you soon
+
+Best regards,
+Happy Tails Paw Care Team`;
 
   return sendEmail(
     email,
     `We Got Your Message - ${challenge}`,
-    htmlContent,
+    textContent,
     textContent
   );
 }
