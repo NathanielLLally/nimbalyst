@@ -143,8 +143,9 @@ async function sendViaSMTPNative(
     console.log(`✅ Email sent via nodemailer SMTPS (${info.messageId})`);
     return { success: true, messageId: info.messageId };
   } catch (err) {
-    // If nodemailer not available, try raw SMTPS protocol
-    console.warn('⚠️  nodemailer not available, attempting raw SMTPS');
+    // If nodemailer fails, try raw SMTPS protocol
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.warn(`⚠️  nodemailer error: ${errMsg}, attempting raw SMTPS`);
     return sendViaRawSMTPS(config, to, subject, html, text, messageId);
   }
 }

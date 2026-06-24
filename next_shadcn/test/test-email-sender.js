@@ -441,6 +441,9 @@ Happy Tails Paw Care Team`;
             user: config.SMTP_USER,
             pass: config.SMTP_PASSWORD,
           },
+          requireTLS: true,
+          connectionTimeout: 10000,
+          socketTimeout: 10000,
         });
 
         const info = await transporter.sendMail({
@@ -455,7 +458,7 @@ Happy Tails Paw Care Team`;
         tests.passed++;
         sent = true;
       } catch (nmErr) {
-        console.log('   ℹ️  nodemailer not available');
+        console.log('   ℹ️  nodemailer connection failed');
         console.log(`   Error: ${nmErr.message}`);
       }
     }
