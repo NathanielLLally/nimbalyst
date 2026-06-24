@@ -41,7 +41,7 @@ echo ""
 
 # Step 3: Copy .env to remote server
 echo -e "${YELLOW}Step 3: Copying .env to remote server...${NC}"
-scp /tmp/.env "${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_PATH}/"
+scp -P 2222 /tmp/.env "${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_PATH}/"
 echo -e "${GREEN}✅ .env copied to remote${NC}"
 echo ""
 
@@ -52,7 +52,7 @@ sudo rm /tmp/.env
 echo -e "${YELLOW}Step 4: Running remote build and deployment...${NC}"
 echo "Pulling latest code..."
 echo "Building application..."
-ssh "${REMOTE_USER}@${REMOTE_HOST}" << 'REMOTE_SCRIPT'
+ssh -p 2222 "${REMOTE_USER}@${REMOTE_HOST}" << 'REMOTE_SCRIPT'
   set -e
 
   TOP="/home/devel/src/git/nimbalyst/next_shadcn"
@@ -73,7 +73,7 @@ echo "Checking happytailspawcare status..."
 echo ""
 echo "Restarting vapi-processor service..."
 echo "Checking vapi-processor status..."
-ssh "${REMOTE_SUDO_USER}@${REMOTE_HOST}" << 'RESTART_SCRIPT'
+ssh -p 2222 "${REMOTE_SUDO_USER}@${REMOTE_HOST}" << 'RESTART_SCRIPT'
   sudo systemctl restart happytailspawcare
   sudo systemctl status happytailspawcare --no-pager
 
