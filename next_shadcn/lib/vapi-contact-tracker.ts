@@ -282,7 +282,7 @@ export async function processContacts(): Promise<void> {
               {
                 [5]: ContactStatus.RETRY_EXHAUSTED,
                 [10]: now.toISOString(),
-              } as Partial<SheetUtils.ContactRow>,
+              } as any,
               cfg.SHEET_NAME
             );
             console.log(`⚠️ Contact ${row[0]} exhausted (${attemptCount}/${cfg.MAX_ATTEMPTS} attempts)`);
@@ -343,7 +343,7 @@ export async function dispatchContactDirectly(row: SheetUtils.ContactRow): Promi
           [5]: ContactStatus.IN_PROGRESS, // Status
           [11]: vapiResponse.callId, // Vapi Call ID
           [8]: now.toISOString(), // Last Attempt
-        } as Partial<SheetUtils.ContactRow>,
+        } as any,
         cfg.SHEET_NAME
       );
       console.log(`✅ Contact ${id} dispatched with Call ID: ${vapiResponse.callId}`);
@@ -441,7 +441,7 @@ async function dispatchContact(
         [6]: attemptCount + 1, // Attempt Count
         [8]: now.toISOString(), // Last Attempt
         [11]: vapiResponse.callId || '', // Vapi Call ID
-      } as Partial<SheetUtils.ContactRow>,
+      } as any,
       cfg.SHEET_NAME
     );
 
@@ -619,7 +619,7 @@ async function markSuccess(
     {
       [5]: ContactStatus.SUCCESS, // Status
       [10]: now.toISOString(), // Resolved
-    } as Partial<SheetUtils.ContactRow>,
+    } as any,
     cfg.SHEET_NAME
   );
 
@@ -661,7 +661,7 @@ async function markFailed(
       {
         [5]: ContactStatus.RETRY_EXHAUSTED,
         [10]: now.toISOString(),
-      } as Partial<SheetUtils.ContactRow>,
+      } as any,
       cfg.SHEET_NAME
     );
 
@@ -696,7 +696,7 @@ async function markFailed(
       {
         [5]: ContactStatus.FAILED,
         [9]: nextRetry.toISOString(), // Next Retry (column J)
-      } as Partial<SheetUtils.ContactRow>,
+      } as any,
       cfg.SHEET_NAME
     );
 
