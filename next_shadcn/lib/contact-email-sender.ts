@@ -64,32 +64,34 @@ export async function sendEmail(
       `${plaintext}\r\n`;
 
     // Connect to SMTP server and send
-    const response = await fetch(`http://${config.SMTP_HOST}:${config.SMTP_PORT}/send`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Basic ${Buffer.from(`${config.SMTP_USER}:${config.SMTP_PASSWORD}`).toString('base64')}`,
-      },
-      body: JSON.stringify({
-        from: config.FROM_EMAIL,
-        to,
-        subject,
-        message,
-        html,
-        text: text || html,
-      }),
-    }).catch(async () => {
+    try {
+      const response = await fetch(`http://${config.SMTP_HOST}:${config.SMTP_PORT}/send`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Basic ${Buffer.from(`${config.SMTP_USER}:${config.SMTP_PASSWORD}`).toString('base64')}`,
+        },
+        body: JSON.stringify({
+          from: config.FROM_EMAIL,
+          to,
+          subject,
+          message,
+          html,
+          text: text || html,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json() as any;
+        throw new Error(data.error || `HTTP ${response.status}`);
+      }
+
+      console.log(`✅ Email sent to ${to}`);
+      return { success: true, messageId };
+    } catch (httpErr) {
       // Fallback: Try SMTP via native connection
       return sendViaSMTPNative(config, to, subject, html, text || html, messageId);
-    });
-
-    if (response && !response.ok) {
-      const data = await response.json() as any;
-      throw new Error(data.error || `HTTP ${response.status}`);
     }
-
-    console.log(`✅ Email sent to ${to}`);
-    return { success: true, messageId };
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err);
     console.error(`❌ Failed to send email:`, errMsg);
@@ -107,7 +109,7 @@ async function sendViaSMTPNative(
   html: string,
   text: string,
   messageId: string
-): Promise<{ ok: boolean }> {
+): Promise<{ success: boolean; messageId?: string; error?: string }> {
   try {
     // Try to use nodemailer if available
     const nodemailer = require('nodemailer');
@@ -139,7 +141,7 @@ async function sendViaSMTPNative(
     });
 
     console.log(`✅ Email sent via nodemailer SMTPS (${info.messageId})`);
-    return { ok: true };
+    return { success: true, messageId: info.messageId };
   } catch (err) {
     // If nodemailer not available, try raw SMTPS protocol
     console.warn('⚠️  nodemailer not available, attempting raw SMTPS');
@@ -157,7 +159,7 @@ async function sendViaRawSMTPS(
   html: string,
   text: string,
   messageId: string
-): Promise<{ ok: boolean }> {
+): Promise<{ success: boolean; messageId?: string; error?: string }> {
   try {
     const tls = require('tls');
     const { promisify } = require('util');
@@ -225,10 +227,11 @@ async function sendViaRawSMTPS(
     socket.end();
 
     console.log(`✅ Email sent via raw SMTPS (TLS)`);
-    return { ok: true };
+    return { success: true, messageId };
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err);
-    throw new Error(`Raw SMTPS failed: ${errMsg}`);
+    console.error(`❌ Raw SMTPS failed: ${errMsg}`);
+    return { success: false, error: `Raw SMTPS failed: ${errMsg}` };
   }
 }
 
