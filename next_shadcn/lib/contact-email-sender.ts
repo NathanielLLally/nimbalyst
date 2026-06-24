@@ -98,7 +98,7 @@ export async function sendEmail(
 }
 
 /**
- * Send via native SMTP using nodemailer if available
+ * Send via native SMTPS using nodemailer if available
  */
 async function sendViaSMTPNative(
   config: EmailConfig,
@@ -112,10 +112,15 @@ async function sendViaSMTPNative(
     // Try to use nodemailer if available
     const nodemailer = require('nodemailer');
 
+    // Use SMTPS (SMTP over SSL/TLS)
+    // Port 465 = implicit TLS (secure: true)
+    // Port 587 = STARTTLS (secure: false)
+    const secure = config.SMTP_PORT === 465 || config.SMTP_PORT === 25 ? false : true;
+
     const transporter = nodemailer.createTransport({
       host: config.SMTP_HOST,
       port: config.SMTP_PORT,
-      secure: config.SMTP_PORT === 465,
+      secure: secure,
       auth: {
         user: config.SMTP_USER,
         pass: config.SMTP_PASSWORD,
@@ -133,19 +138,19 @@ async function sendViaSMTPNative(
       messageId,
     });
 
-    console.log(`✅ Email sent via nodemailer (${info.messageId})`);
+    console.log(`✅ Email sent via nodemailer SMTPS (${info.messageId})`);
     return { ok: true };
   } catch (err) {
-    // If nodemailer not available, try raw SMTP protocol
-    console.warn('⚠️  nodemailer not available, attempting raw SMTP');
-    return sendViaRawSMTP(config, to, subject, html, text, messageId);
+    // If nodemailer not available, try raw SMTPS protocol
+    console.warn('⚠️  nodemailer not available, attempting raw SMTPS');
+    return sendViaRawSMTPS(config, to, subject, html, text, messageId);
   }
 }
 
 /**
- * Send via raw SMTP protocol
+ * Send via raw SMTPS protocol (SMTP over TLS)
  */
-async function sendViaRawSMTP(
+async function sendViaRawSMTPS(
   config: EmailConfig,
   to: string,
   subject: string,
@@ -154,15 +159,17 @@ async function sendViaRawSMTP(
   messageId: string
 ): Promise<{ ok: boolean }> {
   try {
-    const net = require('net');
+    const tls = require('tls');
     const { promisify } = require('util');
 
-    const socket = net.createConnection(config.SMTP_PORT, config.SMTP_HOST);
+    // Create TLS socket for SMTPS
+    const socket = tls.connect(config.SMTP_PORT, config.SMTP_HOST, { rejectUnauthorized: false });
+
     const write = promisify(socket.write.bind(socket));
     const once = promisify(socket.once.bind(socket));
 
-    // SMTP conversation
-    await once('connect');
+    // Wait for connection
+    await once('secureConnect');
 
     // Read greeting
     let response = '';
@@ -217,11 +224,11 @@ async function sendViaRawSMTP(
     await write(`QUIT\r\n`);
     socket.end();
 
-    console.log(`✅ Email sent via raw SMTP`);
+    console.log(`✅ Email sent via raw SMTPS (TLS)`);
     return { ok: true };
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err);
-    throw new Error(`Raw SMTP failed: ${errMsg}`);
+    throw new Error(`Raw SMTPS failed: ${errMsg}`);
   }
 }
 

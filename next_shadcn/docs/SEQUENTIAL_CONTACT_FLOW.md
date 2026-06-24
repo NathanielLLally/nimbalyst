@@ -69,7 +69,9 @@ TWILIO_ACCOUNT_SID=your_account_sid
 TWILIO_AUTH_TOKEN=your_auth_token
 TWILIO_PHONE_NUMBER=+1234567890
 
-# Email Configuration (Local SMTP with SASL)
+# Email Configuration (SMTPS with SASL authentication)
+# Uses TLS/SSL encryption for secure email delivery
+# Port 465 = Implicit TLS | Port 587 = STARTTLS
 SMTP_HOST=localhost
 SMTP_PORT=587
 SMTP_USER=vmail
@@ -142,17 +144,18 @@ Handles form submissions and triggers the sequential flow.
 
 ### Email Server Details
 
-The system sends emails via local SMTP server with the following configuration:
+The system sends emails via local SMTPS server (SMTP over TLS/SSL) with the following configuration:
 - **Host**: localhost (default) or configured SMTP_HOST
-- **Port**: 587 (default submission port) or SMTP_PORT
+- **Port**: 587 (STARTTLS) or 465 (Implicit TLS)
+- **Protocol**: SMTPS (SMTP with TLS/SSL encryption)
 - **Authentication**: SASL with user credentials
 - **User**: vmail
 - **Password**: q1w2E#r4
 
 The email sender supports three fallback methods:
 1. HTTP endpoint on SMTP server (if available)
-2. nodemailer library (if installed)
-3. Native SMTP protocol via raw socket connection
+2. nodemailer library with SMTPS support (if installed)
+3. Native SMTPS protocol via TLS socket connection
 
 ## Implementation Files
 

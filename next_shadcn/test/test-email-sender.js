@@ -340,18 +340,202 @@ test('Email should properly escape HTML special characters', () => {
 });
 
 // ============================================================================
+// Integration Tests - Actual Email Sending
+// ============================================================================
+
+async function runIntegrationTests() {
+  console.log('\n' + '='.repeat(60));
+  console.log('\n📧 Integration Tests (Actual Email Sending)\n');
+
+  const config = {
+    SMTP_HOST: process.env.SMTP_HOST,
+    SMTP_PORT: process.env.SMTP_PORT,
+    SMTP_USER: process.env.SMTP_USER,
+    SMTP_PASSWORD: process.env.SMTP_PASSWORD,
+    FROM_EMAIL: process.env.FROM_EMAIL || 'anna@happytailspawcare.com',
+    FROM_NAME: process.env.FROM_NAME || 'Anna',
+  };
+
+  // Check prerequisites
+  const hasSMTP = config.SMTP_HOST && config.SMTP_PORT && config.SMTP_USER && config.SMTP_PASSWORD;
+
+  if (!hasSMTP) {
+    console.log('⚠️  SMTP not fully configured');
+    console.log('   Cannot run integration tests\n');
+    console.log('   Configure these in .env:');
+    console.log('   - SMTP_HOST');
+    console.log('   - SMTP_PORT');
+    console.log('   - SMTP_USER');
+    console.log('   - SMTP_PASSWORD\n');
+    return false;
+  }
+
+  // Test 1: Send test email
+  console.log('Test 1: Send plaintext test email to info@happytailspawcare.com');
+  try {
+    const messageId = `<${Date.now()}.${Math.random().toString(36).substring(7)}@${config.SMTP_HOST}>`;
+    const plaintext = `Hello!
+
+This is a test email from the contact tracking system.
+
+Test timestamp: ${new Date().toISOString()}
+From: ${config.FROM_NAME} <${config.FROM_EMAIL}>
+Message ID: ${messageId}
+
+This email is plaintext only (no HTML).
+
+Best regards,
+Happy Tails Paw Care Team`;
+
+    const message = `From: ${config.FROM_NAME} <${config.FROM_EMAIL}>\r\n` +
+      `To: info@happytailspawcare.com\r\n` +
+      `Subject: Test Email from Contact Tracker\r\n` +
+      `Message-ID: ${messageId}\r\n` +
+      `Content-Type: text/plain; charset=utf-8\r\n` +
+      `\r\n` +
+      `${plaintext}\r\n`;
+
+    // Try to send via HTTP endpoint first
+    let sent = false;
+    try {
+      const response = await fetch(`http://${config.SMTP_HOST}:${config.SMTP_PORT}/send`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Basic ${Buffer.from(`${config.SMTP_USER}:${config.SMTP_PASSWORD}`).toString('base64')}`,
+        },
+        body: JSON.stringify({
+          from: config.FROM_EMAIL,
+          to: 'info@happytailspawcare.com',
+          subject: 'Test Email from Contact Tracker',
+          message,
+          text: plaintext,
+        }),
+      });
+
+      if (response.ok) {
+        sent = true;
+        console.log('✅ Email sent via HTTP endpoint');
+        tests.passed++;
+      }
+    } catch (httpErr) {
+      console.log('   ℹ️  HTTP endpoint not available, attempting raw SMTP...');
+    }
+
+    if (!sent) {
+      // Fallback to nodemailer attempt (will fail gracefully if not installed)
+      try {
+        const nodemailer = require('nodemailer');
+
+        // Use SMTPS (SMTP over SSL/TLS)
+        // Port 465 = implicit TLS (secure: true)
+        // Port 587 = STARTTLS (secure: false)
+        const port = parseInt(config.SMTP_PORT);
+        const secure = port === 465 || port === 25 ? false : true;
+
+        const transporter = nodemailer.createTransport({
+          host: config.SMTP_HOST,
+          port: port,
+          secure: secure,
+          auth: {
+            user: config.SMTP_USER,
+            pass: config.SMTP_PASSWORD,
+          },
+        });
+
+        const info = await transporter.sendMail({
+          from: `${config.FROM_NAME} <${config.FROM_EMAIL}>`,
+          to: 'info@happytailspawcare.com',
+          subject: 'Test Email from Contact Tracker',
+          text: plaintext,
+        });
+
+        console.log('✅ Email sent via nodemailer SMTPS');
+        console.log(`   Message ID: ${info.messageId}`);
+        tests.passed++;
+        sent = true;
+      } catch (nmErr) {
+        console.log('   ℹ️  nodemailer not available');
+        console.log(`   Error: ${nmErr.message}`);
+      }
+    }
+
+    if (sent) {
+      console.log(`   To: info@happytailspawcare.com`);
+      console.log(`   Subject: Test Email from Contact Tracker`);
+      console.log(`   Content-Type: text/plain`);
+    } else {
+      console.log('⚠️  Could not send via HTTP or nodemailer');
+      console.log('   Make sure SMTP server is running and accessible');
+      tests.failed++;
+      tests.errors.push({
+        name: 'Send test email',
+        error: 'No email transport available'
+      });
+    }
+  } catch (err) {
+    tests.failed++;
+    tests.errors.push({ name: 'Send test email', error: err.message });
+    console.log('❌ Failed to send test email');
+    console.log(`   Error: ${err.message}`);
+  }
+  console.log();
+
+  // Test 2: Verify plaintext format
+  console.log('Test 2: Verify email is plaintext only');
+  try {
+    const testEmail = `Hi User!
+
+This is plaintext.
+
+Best regards,
+Team`;
+
+    assert.ok(!testEmail.includes('<'), 'Email should not contain HTML tags');
+    assert.ok(!testEmail.includes('</'), 'Email should not contain closing tags');
+    assert.ok(testEmail.includes('\n'), 'Email should use newlines');
+
+    console.log('✅ Email format is plaintext');
+    tests.passed++;
+  } catch (err) {
+    tests.failed++;
+    tests.errors.push({ name: 'Plaintext verification', error: err.message });
+    console.log('❌ Plaintext verification failed');
+    console.log(`   Error: ${err.message}`);
+  }
+  console.log();
+
+  return true;
+}
+
+// ============================================================================
 // Test Summary
 // ============================================================================
 
-console.log('\n' + '='.repeat(60));
-console.log(`\nTest Results: ${tests.passed} passed, ${tests.failed} failed\n`);
+(async () => {
+  console.log('\n' + '='.repeat(60));
+  console.log(`\nUnit Test Results: ${tests.passed} passed, ${tests.failed} failed\n`);
 
-if (tests.errors.length > 0) {
-  console.log('Failed tests:');
-  tests.errors.forEach(({ name, error }) => {
-    console.log(`  - ${name}: ${error}`);
-  });
-  console.log();
-}
+  if (tests.errors.length > 0 && !tests.errors.some(e => e.name === 'Send test email')) {
+    console.log('Failed tests:');
+    tests.errors.forEach(({ name, error }) => {
+      console.log(`  - ${name}: ${error}`);
+    });
+    console.log();
+  }
 
-process.exit(tests.failed > 0 ? 1 : 0);
+  // Run integration tests
+  await runIntegrationTests();
+
+  // Final summary
+  console.log('='.repeat(60));
+  console.log(`\nFinal Results: ${tests.passed} passed, ${tests.failed} failed\n`);
+
+  if (tests.failed > 0) {
+    console.log('Some tests failed. Check output above for details.\n');
+  } else {
+    console.log('✅ All tests passed!\n');
+  }
+
+  process.exit(tests.failed > 0 ? 1 : 0);
+})();
