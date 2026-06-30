@@ -127,6 +127,10 @@ async function sendViaSMTPNative(
         user: config.SMTP_USER,
         pass: config.SMTP_PASSWORD,
       },
+      rejectUnauthorized: false,
+      tls: {
+        rejectUnauthorized: false,
+      },
     });
 
     // Use plaintext only

@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('🔄 Processing contacts...');
+//    console.log('🔄 Processing contacts...');
     await processContacts();
 
     return NextResponse.json(
