@@ -10,6 +10,9 @@ out/
 # production
 build/
 
+# compiled contact-processor worker (built on deploy via `npm run build:worker`)
+dist/
+
 # misc
 .DS_Store
 *.pem

@@ -647,10 +647,11 @@ async function markFailed(
 ): Promise<void> {
   const cfg = getConfig();
 
-  // Fetch current row from sheet to get updated attempt count
-  const allRows = await SheetUtils.getTrackerData(cfg.GOOGLE_SHEET_ID, cfg.SHEET_NAME);
-  const currentRow = allRows[rowIndex - 1] as SheetUtils.ContactRow;
-  const attemptCount = parseInt(String(currentRow[6])) || 0;
+  // Use the in-memory row's attempt count instead of re-reading the whole
+  // sheet. Within a pass each row is touched once, and the attempt count is
+  // only bumped on a *successful* dispatch (which never calls markFailed), so
+  // row[6] still matches the sheet here. Saves a full-sheet read per failure.
+  const attemptCount = parseInt(String(row[6])) || 0;
   const now = new Date();
 
   if (attemptCount >= cfg.MAX_ATTEMPTS) {

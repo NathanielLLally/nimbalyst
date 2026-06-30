@@ -61,6 +61,8 @@ ssh -p 2222 "${REMOTE_USER}@${REMOTE_HOST}" << 'REMOTE_SCRIPT'
   git pull
 
   npm run build
+  # Compile the standalone contact-processor worker (dist/worker/...).
+  npm run build:worker
 REMOTE_SCRIPT
 echo "✅ Remote build completed"
 echo -e "${GREEN}✅ Remote build successful${NC}"
@@ -68,17 +70,22 @@ echo ""
 
 # Step 6: Restart services
 echo -e "${YELLOW}Step 5: Restarting services...${NC}"
-echo "Restarting happytailspawcare service..."
-echo "Checking happytailspawcare status..."
-echo ""
-echo "Restarting vapi-processor service..."
-echo "Checking vapi-processor status..."
+echo "Restarting happytailspawcare service and syncing contact-processor units..."
 ssh -p 2222 "${REMOTE_SUDO_USER}@${REMOTE_HOST}" << 'RESTART_SCRIPT'
+  TOP="/home/devel/src/git/nimbalyst/next_shadcn"
+
   sudo systemctl restart happytailspawcare
   sudo systemctl status happytailspawcare --no-pager
 
-  sudo systemctl restart vapi-processor
-  sudo systemctl status vapi-processor --no-pager
+  # Contact processing now runs as its own one-shot timer (htpc-contacts),
+  # not inside the web app. Keep the unit files in sync with the repo and make
+  # sure the retired vapi-processor poller stays disabled.
+  sudo cp "$TOP/deploy/systemd/htpc-contacts.service" /etc/systemd/system/
+  sudo cp "$TOP/deploy/systemd/htpc-contacts.timer" /etc/systemd/system/
+  sudo systemctl daemon-reload
+  sudo systemctl disable --now vapi-processor.service 2>/dev/null || true
+  sudo systemctl enable --now htpc-contacts.timer
+  sudo systemctl status htpc-contacts.timer --no-pager
 RESTART_SCRIPT
 echo "✅ Services restarted successfully"
 echo -e "${GREEN}✅ Services restarted${NC}"

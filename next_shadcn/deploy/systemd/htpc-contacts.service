@@ -1,0 +1,35 @@
+[Unit]
+Description=Happy Tails contact processor (one-shot pass)
+Documentation=https://github.com/NathanielLLally/nimbalyst
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=devel
+Group=devel
+
+Environment=NODE_ENV=production
+Environment=NODE_VERSION_BIN=/home/devel/.nvm/versions/node/v24.5.0/bin
+# DATABASE_URI, GOOGLE_*, VAPI_* etc. — same file the web app uses.
+EnvironmentFile=/home/devel/src/git/nimbalyst/next_shadcn/.env
+WorkingDirectory=/home/devel/src/git/nimbalyst/next_shadcn
+
+# Runs the compiled worker (built by `npm run build:worker` into dist/).
+ExecStart=/home/devel/.nvm/versions/node/v24.5.0/bin/node dist/worker/contact-runner.js
+
+# A single pass must never hang. The runner self-aborts at ~25s; this is the
+# hard backstop so a wedged Google/Vapi call can never outlive one tick.
+TimeoutStartSec=45
+
+# Hardening — the worker only talks to Google/Vapi over the network and writes
+# nothing to local disk, so it gets read-only access and no write paths.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=read-only
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
