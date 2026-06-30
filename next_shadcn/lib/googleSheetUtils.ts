@@ -405,13 +405,32 @@ export async function createContactRow(
 }
 
 /**
- * Update a contact row - atomic operation for data integrity
- * Fetches latest data, updates, and writes back with validation
+ * Convert a 0-based column index to its A1 letter (0 -> A, 11 -> L, 12 -> M).
+ */
+function columnIndexToLetter(index: number): string {
+  let n = index;
+  let letter = '';
+  do {
+    letter = String.fromCharCode(65 + (n % 26)) + letter;
+    n = Math.floor(n / 26) - 1;
+  } while (n >= 0);
+  return letter;
+}
+
+/**
+ * Update specific cells of a contact row.
+ *
+ * Writes ONLY the changed cells, in a single spreadsheets.values.batchUpdate
+ * call — no read-before-write. This is a sparse update: columns not present in
+ * `updates` are left untouched, giving the same end state as the previous
+ * read-merge-rewrite but in one API call instead of two. (Previously every
+ * update cost a full-sheet read plus a full-row write.)
+ *
  * @param sheetId - Google Sheet ID
  * @param rowIndex - 1-based row index
- * @param updates - Partial row updates (sparse object with column indices as keys)
+ * @param updates - Partial row updates (sparse object with 0-based column indices as keys)
  * @param sheetName - Sheet name (default: "Sheet1")
- * @returns Updated row
+ * @returns The applied updates (callers do not depend on the full row)
  */
 export async function updateContactRow(
   sheetId: string,
@@ -423,42 +442,30 @@ export async function updateContactRow(
     const auth = getAuth();
     const sheets = google.sheets({ version: 'v4', auth });
 
-    // 1. Fetch current state
-    const data = await getTrackerData(sheetId, sheetName);
-    const currentRow = data[rowIndex - 1] as ContactRow;
+    // One range per changed cell — no need to fetch the existing row.
+    const data = Object.entries(updates)
+      .map(([key, value]) => {
+        const idx = parseInt(key);
+        if (isNaN(idx)) return null;
+        return {
+          range: `${sheetName}!${columnIndexToLetter(idx)}${rowIndex}`,
+          values: [[value as string | number]],
+        };
+      })
+      .filter(
+        (d): d is { range: string; values: (string | number)[][] } => d !== null
+      );
 
-    if (!currentRow) {
-      throw new Error(`Row ${rowIndex} not found`);
+    if (data.length === 0) {
+      return updates as unknown as ContactRow;
     }
 
-    // 2. Create new row array, applying updates
-    const updatedRow: any[] = (currentRow as unknown as any[]).slice();
-
-    // Apply any updates that were passed in (handle both numeric and string keys)
-    Object.entries(updates).forEach(([key, value]) => {
-      const idx = parseInt(key);
-      if (!isNaN(idx)) {
-        updatedRow[idx] = value;
-      }
-    });
-
-    // 3. Write back atomically
-    const range = `${sheetName}!A${rowIndex}:L${rowIndex}`;
-
-    await sheets.spreadsheets.values.update({
+    await sheets.spreadsheets.values.batchUpdate({
       spreadsheetId: sheetId,
-      range,
-      valueInputOption: 'RAW',
-      requestBody: {
-        values: [[
-          updatedRow[0], updatedRow[1], updatedRow[2], updatedRow[3],
-          updatedRow[4], updatedRow[5], updatedRow[6], updatedRow[7],
-          updatedRow[8], updatedRow[9], updatedRow[10], updatedRow[11],
-        ]],
-      },
+      requestBody: { valueInputOption: 'RAW', data },
     });
 
-    return updatedRow as unknown as ContactRow;
+    return updates as unknown as ContactRow;
   } catch (err) {
     const error = err instanceof Error ? err.message : String(err);
     throw new Error(`Failed to update contact row: ${error}`);

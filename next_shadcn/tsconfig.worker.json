@@ -1,0 +1,22 @@
+{
+  "//": "Standalone build for the contact-processor worker (run via systemd, not Next). Emits CommonJS to dist/ so plain `node` can run it. Type-checking is handled by `next build`; this config transpiles with --noCheck.",
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "lib": ["ES2022", "DOM"],
+    "types": ["node"],
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "noEmitOnError": false,
+    "sourceMap": false,
+    "outDir": "dist",
+    "rootDir": "."
+  },
+  "include": [
+    "worker/**/*.ts",
+    "lib/vapi-contact-tracker.ts",
+    "lib/googleSheetUtils.ts"
+  ]
+}

@@ -1,0 +1,16 @@
+[Unit]
+Description=Run Happy Tails contact processor every 30s
+Documentation=https://github.com/NathanielLLally/nimbalyst
+
+[Timer]
+# First pass shortly after boot (or immediately on enable, since the box has
+# been up a while), then 30s after each pass FINISHES. OnUnitInactiveSec
+# (rather than OnUnitActiveSec) guarantees ticks never overlap — a slow pass
+# just pushes the next one out instead of stacking up.
+OnBootSec=60
+OnUnitInactiveSec=30
+AccuracySec=5s
+Unit=htpc-contacts.service
+
+[Install]
+WantedBy=timers.target

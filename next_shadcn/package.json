@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "NODE_OPTIONS='--max-old-space-size=4096' next build",
+    "build:worker": "tsc -p tsconfig.worker.json --noCheck",
+    "worker": "node dist/worker/contact-runner.js",
     "start": "next start",
     "lint": "next lint"
   },
