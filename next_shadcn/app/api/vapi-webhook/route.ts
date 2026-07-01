@@ -179,7 +179,7 @@ async function processCallReport(report: VapiCallReport): Promise<void> {
     // Try to find and update matching contact
     const matches = await SheetUtils.findContactRows(
       sheetId,
-      10, // Column K: Vapi Call ID
+      11, // Column L: Vapi Call ID (index 10 is Resolved — never matched)
       callId,
       sheetName
     );

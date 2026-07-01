@@ -24,15 +24,16 @@ export interface ContactRow {
   [0]: string; // ID
   [1]: string; // Phone
   [2]: string; // Name
-  [3]: string; // Channel
-  [4]: string; // Status
-  [5]: number; // Attempt Count
-  [6]: string; // Submitted
-  [7]: string; // Last Attempt
-  [8]: string; // Next Retry
-  [9]: string; // Resolved
-  [10]: string; // Vapi Call ID
-  [11]: string; // Notes
+  [3]: string; // Email
+  [4]: string; // Channel
+  [5]: string; // Status
+  [6]: number; // Attempt Count
+  [7]: string; // Submitted
+  [8]: string; // Last Attempt
+  [9]: string; // Next Retry
+  [10]: string; // Resolved
+  [11]: string; // Vapi Call ID
+  [12]: string; // Notes
 }
 
 function getAuth() {
@@ -536,14 +537,15 @@ export async function appendContactNote(
       throw new Error(`Row ${rowIndex} not found`);
     }
 
-    const existing = row[11] || '';
+    const existing = row[12] || '';
     const timestamp = new Date().toISOString().substring(0, 19);
     const newNote = existing
       ? `${existing}\n[${timestamp}] ${note}`
       : `[${timestamp}] ${note}`;
 
-    // Update via atomic operation
-    await updateContactRow(sheetId, rowIndex, { [11]: newNote } as Partial<ContactRow>, sheetName);
+    // Notes live in column M (index 12). Index 11 is the Vapi Call ID —
+    // writing notes there (the old behavior) clobbered the call ID.
+    await updateContactRow(sheetId, rowIndex, { [12]: newNote } as Partial<ContactRow>, sheetName);
   } catch (err) {
     const error = err instanceof Error ? err.message : String(err);
     console.error(`Failed to append contact note: ${error}`);

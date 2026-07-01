@@ -287,6 +287,10 @@ export async function processContacts(): Promise<void> {
             );
             console.log(`⚠️ Contact ${row[0]} exhausted (${attemptCount}/${cfg.MAX_ATTEMPTS} attempts)`);
           }
+        } else if (status === ContactStatus.IN_PROGRESS) {
+          // Poll the live Vapi call and resolve it to SUCCESS/FAILED. Without
+          // this, in-progress calls only ever resolved via the webhook.
+          await pollInProgress(rowIndex, row);
         }
       } catch (err) {
         console.error(`Error processing row ${rowIndex}:`, err);
@@ -313,7 +317,7 @@ export async function dispatchContactDirectly(row: SheetUtils.ContactRow): Promi
   const id = row[0];
   const phone = row[1];
   const name = row[2];
-  const channel = row[3];
+  const channel = row[4];
 
   console.log(`📞 Dispatching ${id} immediately (${phone})`);
 
@@ -416,7 +420,7 @@ async function dispatchContact(
   const id = row[0];
   const phone = row[1];
   const name = row[2];
-  const channel = row[3];
+  const channel = row[4];
   const attemptCount = parseInt(String(row[6])) || 0;
 
   console.log(
@@ -735,10 +739,11 @@ export async function onVapiWebhook(vapiEvent: {
   );
 
   try {
-    // Find row by Vapi Call ID
+    // Find row by Vapi Call ID (column L, index 11). Index 10 is Resolved —
+    // searching there meant the webhook never matched a row.
     const matches = await SheetUtils.findContactRows(
       cfg.GOOGLE_SHEET_ID,
-      10, // Column K (Vapi Call ID)
+      11,
       callId!,
       cfg.SHEET_NAME
     );
