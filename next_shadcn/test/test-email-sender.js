@@ -441,9 +441,12 @@ Happy Tails Paw Care Team`;
             user: config.SMTP_USER,
             pass: config.SMTP_PASSWORD,
           },
-          requireTLS: true,
-          connectionTimeout: 10000,
-          socketTimeout: 10000,
+          rejectUnauthorized: false,
+          tls: {
+            rejectUnauthorized: false,
+          },
+          connectionTimeout: 5000,
+          socketTimeout: 5000,
         });
 
         const info = await transporter.sendMail({
