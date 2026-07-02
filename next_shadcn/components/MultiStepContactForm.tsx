@@ -50,6 +50,7 @@ export function MultiStepContactForm() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const submitting = useRef(false);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target as any;
@@ -88,7 +89,8 @@ export function MultiStepContactForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isStepComplete()) return;
+    if (!isStepComplete() || submitting.current) return;
+    submitting.current = true;
 
     setLoading(true);
     setError(null);
@@ -114,12 +116,14 @@ export function MultiStepContactForm() {
         setSubmitted(false);
         resetForm();
         setLoading(false);
+        submitting.current = false;
       }, 3000);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'An error occurred';
       console.error('❌ Form submission error:', errorMessage);
       setError(errorMessage);
       setLoading(false);
+      submitting.current = false;
     }
   };
 
@@ -367,10 +371,10 @@ export function MultiStepContactForm() {
               ) : (
                 <Button
                   type="submit"
-                  disabled={!isStepComplete()}
+                  disabled={!isStepComplete() || loading}
                   className="gap-2 ml-auto"
                 >
-                  Submit
+                  {loading ? 'Submitting…' : 'Submit'}
                   <Mail className="w-4 h-4" />
                 </Button>
               )}
