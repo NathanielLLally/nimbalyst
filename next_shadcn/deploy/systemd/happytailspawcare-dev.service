@@ -31,7 +31,7 @@ KillSignal=SIGINT
 
 StandardOutput=journal
 StandardError=journal
-SyslogIdentifier=htpc
+SyslogIdentifier=htpc-dev
 
 # Hardening — keep modest because the app writes to ./payload.db and ./media.
 NoNewPrivileges=true

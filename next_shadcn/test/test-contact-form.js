@@ -10,7 +10,8 @@ require('dotenv').config();
 async function testContactFormSubmission() {
   console.log('\n📝 Contact Form Submission Test\n');
 
-  const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+  const port = process.env.NEXT_PORT || 3001;
+  const baseUrl = process.env.BASE_URL || `http://localhost:${port}`;
   const isLocalhost = baseUrl.includes('localhost');
   const endpoint = `${baseUrl}/api/contact`;
 
@@ -46,7 +47,7 @@ async function testContactFormSubmission() {
 
     // Skip reCAPTCHA on localhost by setting host header
     if (isLocalhost) {
-      headers['host'] = 'localhost:3000';
+      headers['host'] = `localhost:${port}`;
       console.log('\n💡 Testing on localhost - reCAPTCHA verification will be skipped\n');
     }
 

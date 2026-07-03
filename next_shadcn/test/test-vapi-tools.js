@@ -19,7 +19,8 @@ async function testVapiTools() {
     console.log('   Add CAL_API_KEY and CAL_EVENT_TYPE_ID to .env for full testing\n');
   }
 
-  const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+  const port = process.env.NEXT_PORT || 3001;
+  const baseUrl = process.env.BASE_URL || `http://localhost:${port}`;
   const endpoint = `${baseUrl}/api/vapi-tools`;
 
   // Test 1: check_availability

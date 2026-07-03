@@ -1,0 +1,14 @@
+
+module my-node 1.0;
+
+require {
+	type init_t;
+	type user_home_t;
+	class file { execute_no_trans map open };
+}
+
+#============= init_t ==============
+allow init_t user_home_t:file { execute_no_trans open };
+
+#!!!! This avc can be allowed using the boolean 'domain_can_mmap_files'
+allow init_t user_home_t:file map;

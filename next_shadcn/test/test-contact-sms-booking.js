@@ -5,7 +5,7 @@
  * Run: node test-contact-sms-booking.js
  *
  * Prerequisites:
- * - Next.js server running on BASE_URL (default: http://localhost:3000)
+ * - Next.js server running on BASE_URL (default: http://localhost:NEXT_PORT, NEXT_PORT defaults to 3001)
  * - TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER configured
  * - CAL_API_KEY, CAL_EVENT_TYPE_ID configured (optional for booking tests)
  */
@@ -380,7 +380,8 @@ async function runIntegrationTests() {
   console.log('\n' + '='.repeat(60));
   console.log('\n📲 Integration Tests (Actual SMS Sending)\n');
 
-  const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+  const port = process.env.NEXT_PORT || 3001;
+  const baseUrl = process.env.BASE_URL || `http://localhost:${port}`;
   const endpoint = `${baseUrl}/api/contact-track`;
 
   // Check prerequisites
