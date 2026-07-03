@@ -5,6 +5,12 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest"
+    "dev": "next dev",
+    "build": "NODE_OPTIONS='--max-old-space-size=4096' next build",
+    "build:worker": "tsc -p tsconfig.worker.json --noCheck",
+    "worker": "node dist/worker/contact-runner.js",
+    "start": "next start",
+    "lint": "next lint"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
