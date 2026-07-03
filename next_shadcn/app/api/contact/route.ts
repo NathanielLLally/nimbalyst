@@ -156,47 +156,51 @@ export async function POST(request: NextRequest) {
     const rowMatch = updatedRange.match(/!A(\d+):/);
     const contactSheetRowIndex = rowMatch ? parseInt(rowMatch[1]) : null;
 
-    // Create tracking entry for Vapi dispatch
-    try {
-      const { id: contactId, row } = await onFormSubmit({
-        phone: phoneValidation.formatted!,
-        fullName: data.fullName,
-        email: data.email,
-        company: data.company,
-        challenge: data.challenge,
-      });
-
-      console.log(`✅ Tracking entry created: ${contactId}`);
-
-      // Update contact sheet with tracking ID
-      if (contactSheetRowIndex) {
-        try {
-          await sheets.spreadsheets.values.update({
-            spreadsheetId: process.env.GOOGLE_SHEET_ID,
-            range: `contact!L${contactSheetRowIndex}`,
-            valueInputOption: 'RAW',
-            requestBody: {
-              values: [[contactId]],
-            },
-          });
-          console.log(`✅ Updated contact sheet row ${contactSheetRowIndex} with tracking ID`);
-        } catch (updateErr) {
-          const updateErrMsg = updateErr instanceof Error ? updateErr.message : String(updateErr);
-          console.warn('⚠️ Failed to update contact sheet with tracking ID:', updateErrMsg);
-        }
-      }
-
-      // Dispatch to Vapi
+    // Create tracking entry for Vapi dispatch (skip in production)
+    if (process.env.NODE_ENV !== 'production') {
       try {
-        await dispatchContactDirectly(row);
-        console.log('✅ Contact dispatched to Vapi:', contactId);
-      } catch (dispatchError) {
-        const errMsg = dispatchError instanceof Error ? dispatchError.message : String(dispatchError);
-        console.warn('⚠️ Dispatch failed:', errMsg);
+        const { id: contactId, row } = await onFormSubmit({
+          phone: phoneValidation.formatted!,
+          fullName: data.fullName,
+          email: data.email,
+          company: data.company,
+          challenge: data.challenge,
+        });
+
+        console.log(`✅ Tracking entry created: ${contactId}`);
+
+        // Update contact sheet with tracking ID
+        if (contactSheetRowIndex) {
+          try {
+            await sheets.spreadsheets.values.update({
+              spreadsheetId: process.env.GOOGLE_SHEET_ID,
+              range: `contact!L${contactSheetRowIndex}`,
+              valueInputOption: 'RAW',
+              requestBody: {
+                values: [[contactId]],
+              },
+            });
+            console.log(`✅ Updated contact sheet row ${contactSheetRowIndex} with tracking ID`);
+          } catch (updateErr) {
+            const updateErrMsg = updateErr instanceof Error ? updateErr.message : String(updateErr);
+            console.warn('⚠️ Failed to update contact sheet with tracking ID:', updateErrMsg);
+          }
+        }
+
+        // Dispatch to Vapi
+        try {
+          await dispatchContactDirectly(row);
+          console.log('✅ Contact dispatched to Vapi:', contactId);
+        } catch (dispatchError) {
+          const errMsg = dispatchError instanceof Error ? dispatchError.message : String(dispatchError);
+          console.warn('⚠️ Dispatch failed:', errMsg);
+        }
+      } catch (trackingErr) {
+        const errMsg = trackingErr instanceof Error ? trackingErr.message : String(trackingErr);
+        console.warn('⚠️ Failed to create tracking entry:', errMsg);
       }
-    } catch (trackingErr) {
-      const errMsg = trackingErr instanceof Error ? trackingErr.message : String(trackingErr);
-      console.warn('⚠️ Failed to create tracking entry:', errMsg);
+    } else {
+      console.log('⏭️  Skipping contact tracker in production');
     }
 
     console.log('✨ Form submission completed successfully');

@@ -96,7 +96,9 @@ export function MultiStepContactForm() {
     setError(null);
 
     try {
-      console.log('📝 Submitting form...');
+      const isProduction = process.env.NODE_ENV === 'production';
+      console.log(`📝 Submitting form${isProduction ? ' (contact tracker disabled in production)' : ''}...`);
+
       const token = await (window as any).grecaptcha.execute(process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY, { action: 'submit' });
       console.log('🔐 reCAPTCHA token obtained');
 
