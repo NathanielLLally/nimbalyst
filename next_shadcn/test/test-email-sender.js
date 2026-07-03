@@ -7,6 +7,7 @@
  * Tests the SMTP email sender with local mail server
  */
 
+const crypto = require('crypto');
 require('dotenv').config();
 const assert = require('assert');
 
@@ -376,53 +377,12 @@ async function runIntegrationTests() {
     const messageId = `<${Date.now()}.${Math.random().toString(36).substring(7)}@${config.SMTP_HOST}>`;
     const plaintext = `Hello!
 
-This is a test email from the contact tracking system.
-
-Test timestamp: ${new Date().toISOString()}
-From: ${config.FROM_NAME} <${config.FROM_EMAIL}>
-Message ID: ${messageId}
-
-This email is plaintext only (no HTML).
+  We are reaching out to check and make sure you have everything you wanted from us.  Let us know if we can do anything else.  Have a wonderful day!
 
 Best regards,
-Happy Tails Paw Care Team`;
+  Happy Tails Paw Care Team`;
 
-    const message = `From: ${config.FROM_NAME} <${config.FROM_EMAIL}>\r\n` +
-      `To: info@happytailspawcare.com\r\n` +
-      `Subject: Test Email from Contact Tracker\r\n` +
-      `Message-ID: ${messageId}\r\n` +
-      `Content-Type: text/plain; charset=utf-8\r\n` +
-      `\r\n` +
-      `${plaintext}\r\n`;
-
-    // Try to send via HTTP endpoint first
     let sent = false;
-    try {
-      const response = await fetch(`http://${config.SMTP_HOST}:${config.SMTP_PORT}/send`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Basic ${Buffer.from(`${config.SMTP_USER}:${config.SMTP_PASSWORD}`).toString('base64')}`,
-        },
-        body: JSON.stringify({
-          from: config.FROM_EMAIL,
-          to: 'info@happytailspawcare.com',
-          subject: 'Test Email from Contact Tracker',
-          message,
-          text: plaintext,
-        }),
-      });
-
-      if (response.ok) {
-        sent = true;
-        console.log('✅ Email sent via HTTP endpoint');
-        tests.passed++;
-      }
-    } catch (httpErr) {
-      console.log('   ℹ️  HTTP endpoint not available, attempting raw SMTP...');
-    }
-
-    if (!sent) {
       // Fallback to nodemailer attempt (will fail gracefully if not installed)
       try {
         const nodemailer = require('nodemailer');
@@ -436,7 +396,7 @@ Happy Tails Paw Care Team`;
         const transporter = nodemailer.createTransport({
           host: config.SMTP_HOST,
           port: port,
-          secure: secure,
+          secure: secure,  // false for STARTTLS, true for direct TLS on 465
           auth: {
             user: config.SMTP_USER,
             pass: config.SMTP_PASSWORD,
@@ -449,22 +409,40 @@ Happy Tails Paw Care Team`;
           socketTimeout: 5000,
         });
 
+        // Test the connection
+transporter.verify((error, success) => {
+  if (error) {
+    console.error('SMTP connection failed:', error);
+  } else {
+    console.log('SMTP connection successful:', success);
+  }
+});
+
+
+    const uuid = crypto.randomUUID();
         const info = await transporter.sendMail({
           from: `${config.FROM_NAME} <${config.FROM_EMAIL}>`,
           to: 'info@happytailspawcare.com',
-          subject: 'Test Email from Contact Tracker',
+          subject: 'About the recently developed Contact Tracker',
           text: plaintext,
+          list: {
+            help: "postmaster@happytailspawcare.com?subject=help",
+            unsubscribe: {
+              url: `https://mail.happytailspawcare.com/?unsubscribe=${uuid}`,
+              comment: "Unsubscribe",
+            }
+          }
         });
 
         console.log('✅ Email sent via nodemailer SMTPS');
         console.log(`   Message ID: ${info.messageId}`);
+        console.log(`   UUID: ${uuid}`);
         tests.passed++;
         sent = true;
       } catch (nmErr) {
         console.log('   ℹ️  nodemailer connection failed');
         console.log(`   Error: ${nmErr.message}`);
       }
-    }
 
     if (sent) {
       console.log(`   To: info@happytailspawcare.com`);
