@@ -1,0 +1,49 @@
+[Unit]
+Description=Happy Tails Paw Care Next.js Shadcn
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=devel
+Group=devel
+
+# nvm-installed Node lives outside the systemd default PATH, so we point at
+# it explicitly. If you upgrade Node via nvm, update the path here too
+# (or symlink /usr/local/bin/node → the nvm node).
+Environment=NODE_VERSION_BIN=/home/devel/.nvm/versions/node/v24.5.0/bin
+Environment=PATH=/home/devel/.nvm/versions/node/v24.5.0/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+Environment=NODE_ENV=development
+Environment=NEXT_TELEMETRY_DISABLED=1
+
+# DATABASE_URI, PAYLOAD_SECRET, NEXT_PUBLIC_SERVER_URL etc.
+EnvironmentFile=/home/devel/src/git/nimbalyst/next_shadcn/.env
+WorkingDirectory=/home/devel/src/git/nimbalyst/next_shadcn/
+# Run the compiled production build. Build with `npm run build` first
+# (it's not done here because builds are slow and shouldn't gate every restart).
+ExecStart=/home/devel/.nvm/versions/node/v24.5.0/bin/node node_modules/next/dist/bin/next start
+
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=20
+KillSignal=SIGINT
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=htpc
+
+# Hardening — keep modest because the app writes to ./payload.db and ./media.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=read-only
+ReadWritePaths=/home/devel/src/git/nimbalyst/next_shadcn/
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target
