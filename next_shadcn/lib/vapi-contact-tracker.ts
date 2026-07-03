@@ -11,6 +11,9 @@
  */
 
 import * as SheetUtils from './googleSheetUtils';
+import * as crypto from 'crypto';
+import { startOfDay, setHours } from 'date-fns';
+import { toZonedTime } from 'date-fns-tz';
 
 // ============================================================================
 // Configuration from Environment Variables
@@ -131,6 +134,101 @@ interface VapiStatus {
 }
 
 // ============================================================================
+// Schedule Planning Helper
+// ============================================================================
+
+/**
+ * Calculate earliest and latest call times (10am–4pm) in the lead's timezone
+ * Returns Unix timestamps in milliseconds for Vapi schedulePlan
+ */
+function calculateScheduleWindow(timezone: string): {
+  earliestAtMs: number;
+  latestAtMs: number;
+} | null {
+  try {
+    const now = new Date();
+    // Convert current UTC time to the lead's timezone to get "today" in their zone
+    const zonedNow = toZonedTime(now, timezone);
+
+    // Create 10am and 4pm in the lead's timezone
+    const earliestTime = setHours(zonedNow, 10);
+    const latestTime = setHours(zonedNow, 16); // 4pm is 16:00
+
+    // Convert back to UTC timestamps
+    const earliestMs = earliestTime.getTime();
+    const latestMs = latestTime.getTime();
+
+    // If the times have already passed today, use tomorrow's window
+    if (latestMs < now.getTime()) {
+      const tomorrow = new Date(zonedNow);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      const tomorrowEarliest = setHours(tomorrow, 10);
+      const tomorrowLatest = setHours(tomorrow, 16);
+
+      return {
+        earliestAtMs: tomorrowEarliest.getTime(),
+        latestAtMs: tomorrowLatest.getTime(),
+      };
+    }
+
+    // If before 10am, move earliest to tomorrow at 10am if needed
+    if (earliestMs < now.getTime()) {
+      const tomorrow = new Date(zonedNow);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowEarliest = setHours(tomorrow, 10);
+
+      return {
+        earliestAtMs: tomorrowEarliest.getTime(),
+        latestAtMs: latestMs,
+      };
+    }
+
+    return {
+      earliestAtMs: earliestMs,
+      latestAtMs: latestMs,
+    };
+  } catch (err) {
+    console.error(`Failed to calculate schedule window for timezone ${timezone}:`, err);
+    return null;
+  }
+}
+
+// ============================================================================
+// HMAC Signature Helper
+// ============================================================================
+
+/**
+ * Generate HMAC-SHA512 signature for API requests
+ * Format: timestamp.body where both timestamp and signature are base64 encoded
+ */
+function generateHmacSignature(
+  payload: object
+): { signature: string; timestamp: string } | null {
+  const secret = process.env.VAPI_HMAC_PSK;
+  if (!secret) {
+    return null;
+  }
+
+  const timestamp = Math.floor(Date.now() / 1000).toString();
+  const body = JSON.stringify(payload);
+  const message = `${timestamp}.${body}`;
+
+  try {
+    const secretBuffer = Buffer.from(secret, 'base64');
+    const signature = crypto
+      .createHmac('sha512', secretBuffer)
+      .update(message)
+      .digest('base64');
+
+    return { signature, timestamp };
+  } catch (err) {
+    console.error('Failed to generate HMAC signature:', err);
+    return null;
+  }
+}
+
+// ============================================================================
 // Configuration Helpers
 // ============================================================================
 
@@ -187,7 +285,8 @@ async function loadCallMachineMessages(): Promise<Map<number, string>> {
  */
 export async function onFormSubmit(
   formData: FormData,
-  channel: Channel = Channel.VOICE
+  channel: Channel = Channel.VOICE,
+  timezone?: string
 ): Promise<{ id: string; row: SheetUtils.ContactRow }> {
   const cfg = getConfig();
   const now = new Date();
@@ -207,6 +306,7 @@ export async function onFormSubmit(
     '', // K: Resolved
     '', // L: Vapi Call ID
     `Challenge: ${formData.challenge} | Company: ${formData.company}`, // M: Notes
+    timezone || 'UTC', // N: Timezone
   ];
 
   try {
@@ -318,6 +418,7 @@ export async function dispatchContactDirectly(row: SheetUtils.ContactRow): Promi
   const phone = row[1];
   const name = row[2];
   const channel = row[4];
+  const timezone = row[13] as string | undefined; // N: Timezone
 
   console.log(`📞 Dispatching ${id} immediately (${phone})`);
 
@@ -328,7 +429,7 @@ export async function dispatchContactDirectly(row: SheetUtils.ContactRow): Promi
 
     const messages = await getCallMachineMessages();
     const callMachineMessage = messages.get(1);
-    const vapiResponse = await makeVapiCall(phone as string, name as string, channel as string, 1, callMachineMessage);
+    const vapiResponse = await makeVapiCall(phone as string, name as string, channel as string, 1, callMachineMessage, timezone);
 
     if (!vapiResponse.success) {
       throw new Error(vapiResponse.error || 'Unknown Vapi error');
@@ -422,6 +523,7 @@ async function dispatchContact(
   const name = row[2];
   const channel = row[4];
   const attemptCount = parseInt(String(row[6])) || 0;
+  const timezone = row[13] as string | undefined; // N: Timezone
 
   console.log(
     `📞 Dispatching ${id} (attempt ${attemptCount + 1}/${cfg.MAX_ATTEMPTS})`
@@ -430,7 +532,7 @@ async function dispatchContact(
   try {
     const messages = await getCallMachineMessages();
     const callMachineMessage = messages.get(attemptCount + 1);
-    const vapiResponse = await makeVapiCall(phone, name, channel, attemptCount + 1, callMachineMessage);
+    const vapiResponse = await makeVapiCall(phone, name, channel, attemptCount + 1, callMachineMessage, timezone);
 
     if (!vapiResponse.success) {
       throw new Error(vapiResponse.error || 'Unknown Vapi error');
@@ -474,12 +576,13 @@ export async function makeVapiCall(
   name: string,
   channel: string,
   attemptNumber: number = 1,
-  callMachineMessage?: string
+  callMachineMessage?: string,
+  timezone?: string
 ): Promise<VapiResponse> {
   const cfg = getConfig();
   const url = 'https://api.vapi.ai/call';
 
-  const payload = {
+  const payload: Record<string, any> = {
     phoneNumberId: cfg.VAPI_PHONE_NUMBER_ID,
     customerPhoneNumber: phone,
     assistantId: cfg.VAPI_ASSISTANT_ID,
@@ -493,17 +596,37 @@ export async function makeVapiCall(
     },
   };
 
+  // Add scheduling constraints if timezone is provided
+  if (timezone) {
+    const scheduleWindow = calculateScheduleWindow(timezone);
+    if (scheduleWindow) {
+      payload.schedulePlan = {
+        earliestAtMs: scheduleWindow.earliestAtMs,
+        latestAtMs: scheduleWindow.latestAtMs,
+      };
+    }
+  }
+
   if (process.env.DEBUG) {
     console.log('🔍 DEBUG: Outgoing Vapi payload:', JSON.stringify(payload, null, 2));
   }
 
   try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Authorization': cfg.VAPI_API_KEY,
+    };
+
+    // Add HMAC signature if PSK is configured
+    const hmac = generateHmacSignature(payload);
+    if (hmac) {
+      headers['x-timestamp'] = hmac.timestamp;
+      headers['x-signature'] = hmac.signature;
+    }
+
     const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': cfg.VAPI_API_KEY,
-      },
+      headers,
       body: JSON.stringify(payload),
     });
 

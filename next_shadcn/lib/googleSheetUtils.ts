@@ -34,6 +34,7 @@ export interface ContactRow {
   [10]: string; // Resolved
   [11]: string; // Vapi Call ID
   [12]: string; // Notes
+  [13]?: string; // Timezone
 }
 
 function getAuth() {

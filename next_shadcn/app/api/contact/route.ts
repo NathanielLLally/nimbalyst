@@ -159,13 +159,17 @@ export async function POST(request: NextRequest) {
     // Create tracking entry for Vapi dispatch (skip in production)
     if (process.env.NODE_ENV !== 'production') {
       try {
-        const { id: contactId, row } = await onFormSubmit({
-          phone: phoneValidation.formatted!,
-          fullName: data.fullName,
-          email: data.email,
-          company: data.company,
-          challenge: data.challenge,
-        });
+        const { id: contactId, row } = await onFormSubmit(
+          {
+            phone: phoneValidation.formatted!,
+            fullName: data.fullName,
+            email: data.email,
+            company: data.company,
+            challenge: data.challenge,
+          },
+          undefined,
+          userTimezone
+        );
 
         console.log(`✅ Tracking entry created: ${contactId}`);
 
