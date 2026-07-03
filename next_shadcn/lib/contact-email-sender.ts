@@ -99,16 +99,6 @@ async function sendViaSMTPNative(
       },
     });
 
-    if (debug) {
-        // Test the connection
-transporter.verify((error, success) => {
-  if (error) {
-    console.error('SMTP connection failed:', error);
-  } else {
-    console.log('SMTP connection successful:', success);
-  }
-});
-    }
     // Use plaintext only
     const plaintext = text || html.replace(/<[^>]*>/g, '');
 
@@ -135,6 +125,7 @@ transporter.verify((error, success) => {
     console.warn(`⚠️  nodemailer error: ${errMsg}`);
     //console.warn(', attempting raw SMTPS`);
     //return sendViaRawSMTPS(config, to, subject, html, text, messageId);
+    return { success: false, error: `nodemailer failed: ${errMsg}` };
   }
 }
 
