@@ -22,7 +22,7 @@ EnvironmentFile=/home/devel/src/git/nimbalyst/next_shadcn/.env
 WorkingDirectory=/home/devel/src/git/nimbalyst/next_shadcn/
 # Run the compiled production build. Build with `npm run build` first
 # (it's not done here because builds are slow and shouldn't gate every restart).
-ExecStart=/home/devel/.nvm/versions/node/v24.5.0/bin/node node_modules/next/dist/bin/next start
+ExecStart=/home/devel/.nvm/versions/node/v24.5.0/bin/node node_modules/next/dist/bin/next dev -p 3001
 
 Restart=on-failure
 RestartSec=5

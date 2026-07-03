@@ -5,7 +5,9 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "dev": "next dev",
+    "test:integration": "node test/run-integration-tests.js",
+    "test:all": "vitest run && npm run test:integration",
+    "dev": "next dev -p 3001",
     "build": "NODE_OPTIONS='--max-old-space-size=4096' next build",
     "build:worker": "tsc -p tsconfig.worker.json --noCheck",
     "worker": "node dist/worker/contact-runner.js",
