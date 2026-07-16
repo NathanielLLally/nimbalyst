@@ -1,0 +1,9 @@
+[Unit]
+Description=External site watchdog check for yourdomain.com
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=watchdog
+ExecStart=/usr/local/bin/site-watchdog.sh
