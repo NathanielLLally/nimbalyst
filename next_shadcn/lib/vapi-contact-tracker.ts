@@ -261,7 +261,7 @@ const AREA_CODE_TIMEZONE_MAP: Record<string, string> = {
  * Infer timezone from phone number's area code
  * E.164 format: +1[areacode][number]
  */
-function inferTimezoneFromPhone(phone: string): string | null {
+export function inferTimezoneFromPhone(phone: string): string | null {
   try {
     // Extract area code from E.164 format: +1 [areacode] [number]
     // Example: +16464507917 -> area code is 646

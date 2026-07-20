@@ -168,7 +168,7 @@ export async function POST(request: NextRequest) {
             challenge: data.challenge,
           },
           undefined,
-          userTimezone
+          data.timezone
         );
 
         console.log(`✅ Tracking entry created: ${contactId}`);

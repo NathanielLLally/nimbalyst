@@ -166,4 +166,5 @@ main() {
   exit 1
 }
 
-main
+#main
+notify "notify from hawkeye" 0
