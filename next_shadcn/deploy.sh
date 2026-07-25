@@ -38,9 +38,6 @@ scp -P 2222 "$TOP/.env" "${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_PATH}/"
 echo -e "${GREEN}✅ .env copied to remote${NC}"
 echo ""
 
-# Step 4: Clean up local temp .env
-sudo rm /tmp/.env
-
 # Step 5: Remote deployment
 echo -e "${YELLOW}Step 4: Running remote build and deployment...${NC}"
 echo "Pulling latest code..."
