@@ -16,6 +16,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ result: `Booked for ${booking.start}` })
     }
 
+    if (name === 'cancel_booking') {
+      const result = await cancelBooking(parameters.email, parameters.reason);
+      return NextResponse.json({ result: result })';
+    }
+
     return NextResponse.json(
       { error: `Unknown tool: ${name}` },
       { status: 400 }
@@ -59,6 +64,51 @@ async function getCalAvailability(timezone: string) {
     const errMsg = error instanceof Error ? error.message : String(error)
     throw new Error(`Failed to get availability: ${errMsg}`)
   }
+}
+
+async function cancelBooking(email: string, reason?: string) {
+  // 1. Look up upcoming bookings for this attendee
+  const lookupRes = await fetch(
+    `https://api.cal.com/v2/bookings?attendeeEmail=${encodeURIComponent(email)}&status=upcoming`,
+    { headers: { Authorization: `Bearer ${process.env.CAL_API_KEY}` } }
+  );
+  const lookup = await lookupRes.json();
+  const bookings = lookup.data ?? [];
+
+  if (bookings.length === 0) {
+    return { success: false, message: 'No upcoming booking found for that email.' };
+  }
+
+  // If they have multiple upcoming bookings, cancel the soonest one
+  const booking = bookings.sort(
+    (a: any, b: any) => new Date(a.start).getTime() - new Date(b.start).getTime()
+  )[0];
+
+  // 2. Cancel it
+  const cancelRes = await fetch(
+    `https://api.cal.com/v2/bookings/${booking.uid}/cancel`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.CAL_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        cancellationReason: reason || 'Cancelled by lead via voice agent',
+      }),
+    }
+  );
+
+  if (!cancelRes.ok) {
+    const err = await cancelRes.text();
+    return { success: false, message: `Cancellation failed: ${err}` };
+  }
+
+  return {
+    success: true,
+    message: `Cancelled booking originally scheduled for ${booking.start}.`,
+    cancelledStart: booking.start,
+  };
 }
 
 async function createCalBooking(params: any) {
