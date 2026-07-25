@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
 
     if (name === 'cancel_booking') {
       const result = await cancelBooking(parameters.email, parameters.reason);
-      return NextResponse.json({ result: result })';
+      return NextResponse.json({ result: result })
     }
 
     return NextResponse.json(
