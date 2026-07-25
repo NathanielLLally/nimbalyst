@@ -32,16 +32,9 @@ git push
 echo -e "${GREEN}✅ Local changes pushed${NC}"
 echo ""
 
-# Step 2: Copy .env to temporary location and change permissions
-echo -e "${YELLOW}Step 2: Preparing .env file...${NC}"
-sudo cp "$TOP/.env" /tmp/.env
-sudo chown "${REMOTE_USER}:${REMOTE_USER}" /tmp/.env
-echo -e "${GREEN}✅ .env prepared${NC}"
-echo ""
-
 # Step 3: Copy .env to remote server
 echo -e "${YELLOW}Step 3: Copying .env to remote server...${NC}"
-scp -P 2222 /tmp/.env "${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_PATH}/"
+scp -P 2222 "$TOP/.env" "${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_PATH}/"
 echo -e "${GREEN}✅ .env copied to remote${NC}"
 echo ""
 
