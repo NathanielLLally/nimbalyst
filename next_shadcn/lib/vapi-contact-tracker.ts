@@ -767,7 +767,7 @@ export async function makeVapiCall(
   try {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'Authorization': cfg.VAPI_API_KEY,
+      'Authorization': `Bearer ${cfg.VAPI_API_KEY}`,
     };
 
     // Add HMAC signature if PSK is configured
@@ -783,12 +783,18 @@ export async function makeVapiCall(
       body: JSON.stringify(payload),
     });
 
-    const data = await response.json();
+    const rawBody = await response.text();
+    let data: any = {};
+    try {
+      data = rawBody ? JSON.parse(rawBody) : {};
+    } catch {
+      data = { message: rawBody };
+    }
 
     if (!response.ok) {
       return {
         success: false,
-        error: data.message || `HTTP ${response.status}`,
+        error: data.message || rawBody || `HTTP ${response.status}`,
       };
     }
 
@@ -858,14 +864,20 @@ async function getVapiCallStatus(callId: string): Promise<VapiStatus> {
     const response = await fetch(url, {
       method: 'GET',
       headers: {
-        'Authorization': cfg.VAPI_API_KEY,
+        'Authorization': `Bearer ${cfg.VAPI_API_KEY}`,
       },
     });
 
-    const data = await response.json();
+    const rawBody = await response.text();
+    let data: any = {};
+    try {
+      data = rawBody ? JSON.parse(rawBody) : {};
+    } catch {
+      data = { message: rawBody };
+    }
 
     if (!response.ok) {
-      throw new Error(data.message || `HTTP ${response.status}`);
+      throw new Error(data.message || rawBody || `HTTP ${response.status}`);
     }
 
     return {
