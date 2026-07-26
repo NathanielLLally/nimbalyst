@@ -383,22 +383,37 @@ export async function createContactRow(
 ): Promise<SheetResponse> {
   const auth = getAuth();
   const sheets = google.sheets({ version: 'v4', auth });
-  const range = `${sheetName}!A:L`;
 
   try {
-    const response = await sheets.spreadsheets.values.append({
+    // Determine the next empty row explicitly, then write with a fixed A:N
+    // range. We deliberately do NOT use values.append here: append relies on
+    // Google's "table detection" to pick the target column, which drifts the
+    // record off column A and desyncs it from the absolute-column sparse
+    // updates in updateContactRow (status→F, next-retry→J, etc.). Pinning the
+    // range to A{n}:N{n} guarantees the record always starts at column A.
+    const existing = await sheets.spreadsheets.values.get({
+      spreadsheetId: sheetId,
+      range: sheetName,
+    });
+    const nextRow = (existing.data.values?.length || 0) + 1;
+    const range = `${sheetName}!A${nextRow}:N${nextRow}`;
+
+    // Pad/truncate to exactly the 14 columns (A–N) of the tracker schema.
+    const normalized = Array.from({ length: 14 }, (_, i) => row[i] ?? '');
+
+    const response = await sheets.spreadsheets.values.update({
       spreadsheetId: sheetId,
       range,
       valueInputOption: 'RAW',
-      requestBody: { values: [row] },
+      requestBody: { values: [normalized] },
     });
 
     return {
       spreadsheetId: response.data.spreadsheetId!,
-      updatedRange: response.data.updates?.updatedRange || range,
-      updatedRows: response.data.updates?.updatedRows,
-      updatedColumns: response.data.updates?.updatedColumns,
-      updatedCells: response.data.updates?.updatedCells,
+      updatedRange: response.data.updatedRange || range,
+      updatedRows: response.data.updatedRows,
+      updatedColumns: response.data.updatedColumns,
+      updatedCells: response.data.updatedCells,
     };
   } catch (err) {
     const error = err instanceof Error ? err.message : String(err);
@@ -580,11 +595,12 @@ export async function batchUpdateContacts(
       }
       const updatedRow = { ...currentRow, ...upd } as ContactRow;
       return {
-        range: `${sheetName}!A${rowIndex}:L${rowIndex}`,
+        range: `${sheetName}!A${rowIndex}:N${rowIndex}`,
         values: [[
           updatedRow[0], updatedRow[1], updatedRow[2], updatedRow[3],
           updatedRow[4], updatedRow[5], updatedRow[6], updatedRow[7],
           updatedRow[8], updatedRow[9], updatedRow[10], updatedRow[11],
+          updatedRow[12] ?? '', updatedRow[13] ?? '',
         ]],
       };
     });

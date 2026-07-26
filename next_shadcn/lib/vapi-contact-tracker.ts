@@ -5,9 +5,9 @@
  * Vapi call dispatch, polling, and retry logic using Google Sheets for persistence.
  *
  * Configuration: Read from environment variables
- * Sheet structure (13 columns):
+ * Sheet structure (14 columns):
  * A: ID | B: Phone | C: Name | D: Email | E: Channel (voice/sms) | F: Status | G: Attempt Count
- * H: Submitted | I: Last Attempt | J: Next Retry | K: Resolved | L: Vapi Call ID | M: Notes
+ * H: Submitted | I: Last Attempt | J: Next Retry | K: Resolved | L: Vapi Call ID | M: Notes | N: Timezone
  */
 
 import * as SheetUtils from './googleSheetUtils';
