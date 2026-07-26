@@ -281,11 +281,11 @@ export function inferTimezoneFromPhone(phone: string): string | null {
 
 /**
  * Calculate earliest and latest call times (10am–4pm) in the lead's timezone
- * Returns Unix timestamps in milliseconds for Vapi schedulePlan
+ * Returns ISO 8601 date-time strings for Vapi schedulePlan (earliestAt/latestAt)
  */
 function calculateScheduleWindow(timezone: string): {
-  earliestAtMs: number;
-  latestAtMs: number;
+  earliestAt: string;
+  latestAt: string;
 } | null {
   try {
     const now = new Date();
@@ -296,7 +296,6 @@ function calculateScheduleWindow(timezone: string): {
     const earliestTime = setHours(zonedNow, 10);
     const latestTime = setHours(zonedNow, 16); // 4pm is 16:00
 
-    // Convert back to UTC timestamps
     const earliestMs = earliestTime.getTime();
     const latestMs = latestTime.getTime();
 
@@ -309,8 +308,8 @@ function calculateScheduleWindow(timezone: string): {
       const tomorrowLatest = setHours(tomorrow, 16);
 
       return {
-        earliestAtMs: tomorrowEarliest.getTime(),
-        latestAtMs: tomorrowLatest.getTime(),
+        earliestAt: tomorrowEarliest.toISOString(),
+        latestAt: tomorrowLatest.toISOString(),
       };
     }
 
@@ -321,14 +320,14 @@ function calculateScheduleWindow(timezone: string): {
       const tomorrowEarliest = setHours(tomorrow, 10);
 
       return {
-        earliestAtMs: tomorrowEarliest.getTime(),
-        latestAtMs: latestMs,
+        earliestAt: tomorrowEarliest.toISOString(),
+        latestAt: latestTime.toISOString(),
       };
     }
 
     return {
-      earliestAtMs: earliestMs,
-      latestAtMs: latestMs,
+      earliestAt: earliestTime.toISOString(),
+      latestAt: latestTime.toISOString(),
     };
   } catch (err) {
     console.error(`Failed to calculate schedule window for timezone ${timezone}:`, err);
@@ -754,8 +753,8 @@ export async function makeVapiCall(
     const scheduleWindow = calculateScheduleWindow(timezone);
     if (scheduleWindow) {
       payload.schedulePlan = {
-        earliestAtMs: scheduleWindow.earliestAtMs,
-        latestAtMs: scheduleWindow.latestAtMs,
+        earliestAt: scheduleWindow.earliestAt,
+        latestAt: scheduleWindow.latestAt,
       };
     }
   }
