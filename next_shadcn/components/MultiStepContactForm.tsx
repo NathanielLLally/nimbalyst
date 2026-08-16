@@ -27,9 +27,38 @@ const steps = [
 ];
 
 export function MultiStepContactForm() {
+  const recaptchaContainerRef = useRef<HTMLDivElement>(null);
+  const recaptchaWidgetId = useRef<number | null>(null);
+
   useEffect(() => {
+    const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
+
+    const renderBadge = () => {
+      const grecaptcha = (window as any).grecaptcha;
+      if (!grecaptcha?.render || !recaptchaContainerRef.current) return;
+      // Guard against double-render (React strict mode / re-loads).
+      if (recaptchaWidgetId.current !== null || recaptchaContainerRef.current.childElementCount > 0) return;
+      recaptchaWidgetId.current = grecaptcha.render(recaptchaContainerRef.current, {
+        sitekey: siteKey,
+        size: 'invisible',
+        badge: 'inline',
+      });
+    };
+
+    // Explicit rendering lets us place the v3 badge inside the form instead of
+    // Google's default floating bottom-right badge.
+    const existing = document.getElementById('recaptcha-script') as HTMLScriptElement | null;
+    if (existing) {
+      (window as any).grecaptcha?.ready?.(renderBadge);
+      return;
+    }
+
     const script = document.createElement('script');
-    script.src = `https://www.google.com/recaptcha/api.js?render=${process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY}`;
+    script.id = 'recaptcha-script';
+    script.src = 'https://www.google.com/recaptcha/api.js?render=explicit';
+    script.async = true;
+    script.defer = true;
+    script.onload = () => (window as any).grecaptcha?.ready?.(renderBadge);
     document.head.appendChild(script);
   }, []);
 
@@ -99,7 +128,11 @@ export function MultiStepContactForm() {
       const isProduction = process.env.NODE_ENV === 'production';
       console.log(`📝 Submitting form${isProduction ? ' (contact tracker disabled in production)' : ''}...`);
 
-      const token = await (window as any).grecaptcha.execute(process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY, { action: 'submit' });
+      const grecaptcha = (window as any).grecaptcha;
+      if (recaptchaWidgetId.current === null) {
+        throw new Error('reCAPTCHA is still loading, please try again');
+      }
+      const token = await grecaptcha.execute(recaptchaWidgetId.current, { action: 'submit' });
       console.log('🔐 reCAPTCHA token obtained');
 
       const response = await fetch('/api/contact', {
@@ -402,6 +435,11 @@ export function MultiStepContactForm() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* reCAPTCHA v3 inline badge (rendered here inside the form card instead of
+          floating bottom-right on the page). Kept outside AnimatePresence so the
+          widget survives the submit → success → reset cycle. */}
+      <div ref={recaptchaContainerRef} className="flex justify-center" />
       </div>
     </div>
   );
