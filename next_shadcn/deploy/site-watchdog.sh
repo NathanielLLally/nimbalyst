@@ -64,10 +64,12 @@ notify() {
 
   echo "$(date '+%Y-%m-%d %H:%M:%S') $msg" >> "$LOG_FILE"
 
+  host=$(hostname -f)
+
   if [[ -n "$DISCORD_WEBHOOK_URL" ]]; then
     local content="$msg"
     if [[ -n "$DISCORD_MENTION_USER_ID" && "$priority" -ge "$DISCORD_MENTION_ON_PRIORITY" ]]; then
-      content="<@${DISCORD_MENTION_USER_ID}> $msg"
+      content="<@${DISCORD_MENTION_USER_ID}>$host: $msg"
     fi
     # Escape double quotes/backslashes for valid JSON
     content=$(printf '%s' "$content" | sed 's/\\/\\\\/g; s/"/\\"/g')
@@ -166,5 +168,6 @@ main() {
   exit 1
 }
 
-#main
-notify "notify from hawkeye" 0
+#host=$(hostname -f)
+#notify "notify $host" 0
+main
