@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { google } from 'googleapis';
 import { onFormSubmit, dispatchContactDirectly } from '@/lib/vapi-contact-tracker';
+import { sendEmail } from '@/lib/contact-email-sender';
+
+const CONTACT_NOTIFICATION_EMAIL = 'www@happytailspawcare.com';
 
 interface ContactFormData {
   fullName: string;
@@ -150,6 +153,38 @@ export async function POST(request: NextRequest) {
       requestBody: { values },
     });
     console.log('✅ Form data saved to contact sheet');
+
+    // Notify the business of the new lead by email (always, regardless of environment)
+    try {
+      const notificationText = `New contact form submission
+
+Name: ${data.fullName}
+Email: ${data.email}
+Phone: ${data.phone}
+Company: ${data.company}
+Website: ${data.website}
+Business Type: ${data.businessType}
+Challenge: ${data.challenge}
+Message: ${data.message}
+Receive Messages: ${data.receiveMessages ? 'Yes' : 'No'}
+Submitted: ${localTimestamp} (${userTimezone})`;
+
+      const notificationResult = await sendEmail(
+        CONTACT_NOTIFICATION_EMAIL,
+        `New Contact Form Submission - ${data.fullName}`,
+        notificationText,
+        notificationText
+      );
+
+      if (notificationResult.success) {
+        console.log(`✅ Notification email sent to ${CONTACT_NOTIFICATION_EMAIL}`);
+      } else {
+        console.warn(`⚠️ Notification email failed: ${notificationResult.error}`);
+      }
+    } catch (emailErr) {
+      const emailErrMsg = emailErr instanceof Error ? emailErr.message : String(emailErr);
+      console.warn('⚠️ Failed to send notification email:', emailErrMsg);
+    }
 
     // Extract row number from the append response (e.g., "contact!A2:L2" -> row 2)
     const updatedRange = appendResponse.data.updates?.updatedRange || '';
