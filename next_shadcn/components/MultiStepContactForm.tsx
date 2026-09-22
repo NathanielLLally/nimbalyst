@@ -29,22 +29,22 @@ const steps = [
 export function MultiStepContactForm() {
   const recaptchaContainerRef = useRef<HTMLDivElement>(null);
   const recaptchaWidgetId = useRef<number | null>(null);
+  const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
 
+  const renderBadge = () => {
+    const grecaptcha = (window as any).grecaptcha;
+    if (!grecaptcha?.render || !recaptchaContainerRef.current) return;
+    // Guard against double-render (React strict mode / re-loads).
+    if (recaptchaWidgetId.current !== null || recaptchaContainerRef.current.childElementCount > 0) return;
+    recaptchaWidgetId.current = grecaptcha.render(recaptchaContainerRef.current, {
+      sitekey: siteKey,
+      size: 'invisible',
+      badge: 'inline',
+    });
+  };
+
+  // Load the reCAPTCHA script
   useEffect(() => {
-    const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
-
-    const renderBadge = () => {
-      const grecaptcha = (window as any).grecaptcha;
-      if (!grecaptcha?.render || !recaptchaContainerRef.current) return;
-      // Guard against double-render (React strict mode / re-loads).
-      if (recaptchaWidgetId.current !== null || recaptchaContainerRef.current.childElementCount > 0) return;
-      recaptchaWidgetId.current = grecaptcha.render(recaptchaContainerRef.current, {
-        sitekey: siteKey,
-        size: 'invisible',
-        badge: 'inline',
-      });
-    };
-
     // Explicit rendering lets us place the v3 badge inside the form instead of
     // Google's default floating bottom-right badge.
     const existing = document.getElementById('recaptcha-script') as HTMLScriptElement | null;
@@ -63,6 +63,16 @@ export function MultiStepContactForm() {
   }, []);
 
   const [currentStep, setCurrentStep] = useState(0);
+
+  // Render badge when we reach the final step and the container is mounted
+  useEffect(() => {
+    if (currentStep === 2) {
+      // Use setTimeout to ensure the DOM is updated and ref is ready
+      const timer = setTimeout(renderBadge, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [currentStep]);
+
   const [formData, setFormData] = useState<FormData>({
     fullName: '',
     email: '',
