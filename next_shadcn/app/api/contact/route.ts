@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { google } from 'googleapis';
 import { onFormSubmit, dispatchContactDirectly } from '@/lib/vapi-contact-tracker';
-import { sendEmail } from '@/lib/contact-email-sender';
+import { sendEmail } from '#lib/contact-email-sender';
+import { formatContactSubmissionEmail } from '#lib/format-contact-submission-email';
 
 const CONTACT_NOTIFICATION_EMAIL = 'www@happytailspawcare.com';
 
@@ -155,26 +156,40 @@ export async function POST(request: NextRequest) {
     console.log('✅ Form data saved to contact sheet');
 
     // Notify the business of the new lead by email (always, regardless of environment)
+    // This is a transactional email with form data and request metadata
     try {
-      const notificationText = `New contact form submission
+      // Temporarily override FROM_EMAIL and FROM_NAME for this transactional email
+      const originalFromEmail = process.env.FROM_EMAIL;
+      const originalFromName = process.env.FROM_NAME;
+      process.env.FROM_EMAIL = 'noreply@happytailspawcare.com';
+      process.env.FROM_NAME = 'Happy Tails Paw Care';
 
-Name: ${data.fullName}
-Email: ${data.email}
-Phone: ${data.phone}
-Company: ${data.company}
-Website: ${data.website}
-Business Type: ${data.businessType}
-Challenge: ${data.challenge}
-Message: ${data.message}
-Receive Messages: ${data.receiveMessages ? 'Yes' : 'No'}
-Submitted: ${localTimestamp} (${userTimezone})`;
+      const notificationText = formatContactSubmissionEmail(
+        {
+          ...data,
+          timezone: userTimezone,
+          submittedAt: submittedAtStr,
+        },
+        request
+      );
 
       const notificationResult = await sendEmail(
         CONTACT_NOTIFICATION_EMAIL,
         `New Contact Form Submission - ${data.fullName}`,
-        notificationText,
         notificationText
       );
+
+      // Restore original FROM_EMAIL and FROM_NAME
+      if (originalFromEmail) {
+        process.env.FROM_EMAIL = originalFromEmail;
+      } else {
+        delete process.env.FROM_EMAIL;
+      }
+      if (originalFromName) {
+        process.env.FROM_NAME = originalFromName;
+      } else {
+        delete process.env.FROM_NAME;
+      }
 
       if (notificationResult.success) {
         console.log(`✅ Notification email sent to ${CONTACT_NOTIFICATION_EMAIL}`);

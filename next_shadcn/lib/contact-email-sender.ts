@@ -1,8 +1,12 @@
 /**
  * Contact Email Sender
  *
- * Sends emails via local SMTP mail server with SASL authentication
+ * Sends emails via local SMTP mail server with SASL authentication or client certificates
  */
+
+import nodemailer from 'nodemailer';
+import fs from 'fs';
+import path from 'path';
 
 interface EmailConfig {
   SMTP_HOST: string;
@@ -13,11 +17,28 @@ interface EmailConfig {
   FROM_NAME: string;
 }
 
-interface EmailRequest {
-  to: string;
-  subject: string;
-  html: string;
-  text?: string;
+/**
+ * Matches an HTML tag or comment. Deliberately narrower than `<[^>]*>` so that
+ * ordinary prose keeps working: `price < 100 and rating > 4` and
+ * `<info@happytailspawcare.com>` are plaintext, not markup.
+ */
+const HTML_TAG_PATTERN = /<\/?[a-z][a-z0-9-]*(?:\s[^<>]*)?\/?>|<!--/i;
+
+/**
+ * Guard the plaintext-only contract.
+ *
+ * Passing markup is a caller mistake rather than a delivery failure, so this
+ * throws instead of returning `{ success: false }` — the caller has a bug to
+ * fix, and silently stripping or sending the tags would hide it.
+ */
+function assertPlaintext(body: string): void {
+  const match = body.match(HTML_TAG_PATTERN);
+
+  if (match) {
+    throw new Error(
+      `Email body must be plaintext, found HTML: ${match[0]}`
+    );
+  }
 }
 
 function getEmailConfig(): EmailConfig {
@@ -39,24 +60,49 @@ function getEmailConfig(): EmailConfig {
 }
 
 /**
- * Send email via local SMTP server
+ * Load client certificates if they exist.
+ * Used for certificate-based SMTP authentication to bypass fail2ban.
+ * Paths can be set via SMTP_CERT_FILE and SMTP_KEY_FILE env vars,
+ * or defaults to test-client.* in the project root.
+ */
+function loadClientCertificates(): { cert: Buffer; key: Buffer } | null {
+  try {
+    const certFile = process.env.SMTP_CERT_FILE || 'test-client.crt';
+    const keyFile = process.env.SMTP_KEY_FILE || 'test-client.key';
+
+    // Try absolute paths first, then relative to cwd
+    const certPath = path.isAbsolute(certFile) ? certFile : path.join(process.cwd(), certFile);
+    const keyPath = path.isAbsolute(keyFile) ? keyFile : path.join(process.cwd(), keyFile);
+
+    if (!fs.existsSync(certPath) || !fs.existsSync(keyPath)) {
+      return null;
+    }
+
+    const cert = fs.readFileSync(certPath);
+    const key = fs.readFileSync(keyPath);
+    return { cert, key };
+  } catch (err) {
+    // Certificates are optional; fail silently and fall back to password auth
+    return null;
+  }
+}
+
+/**
+ * Send a plaintext email via local SMTP server
+ *
+ * @throws if `body` contains HTML — this sender is plaintext only.
  */
 export async function sendEmail(
   to: string,
   subject: string,
-  html: string,
-  text?: string
+  body: string
 ): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  assertPlaintext(body);
+
   try {
     const config = getEmailConfig();
 
-    // Use plaintext, or fallback to html if no text provided
-    const plaintext = text || html.replace(/<[^>]*>/g, '');
-
-    // Build SMTP message
-    //const messageId = `<${Date.now()}.${Math.random().toString(36).substring(7)}@${config.SMTP_HOST}>`;
-      // Fallback: Try SMTP via native connection
-      return sendViaSMTPNative(config, to, subject, html, text || html);
+    return sendViaSMTPNative(config, to, subject, body);
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err);
     console.error(`❌ Failed to send email:`, errMsg);
@@ -71,43 +117,56 @@ async function sendViaSMTPNative(
   config: EmailConfig,
   to: string,
   subject: string,
-  html: string,
-  text: string
+  body: string
 ): Promise<{ success: boolean; messageId?: string; error?: string }> {
   const debug = false;
 
   try {
-    // Try to use nodemailer if available
-    const nodemailer = require('nodemailer');
+    // `secure` selects the connection mode, not whether the session is encrypted:
+    //   true  -> implicit TLS; handshake starts immediately (port 465 / SMTPS)
+    //   false -> connect in plaintext, then upgrade via STARTTLS (ports 587, 25)
+    //
+    // Sending a TLS ClientHello to a STARTTLS port makes postfix log the raw
+    // handshake bytes as "improper command pipelining", which the
+    // postfix[mode=aggressive] fail2ban filter bans on sight.
+    const secure = config.SMTP_PORT === 465;
 
-    // Use SMTPS (SMTP over SSL/TLS)
-    // Port 465 = implicit TLS (secure: true)
-    // Port 587 = STARTTLS (secure: false)
-    const secure = config.SMTP_PORT === 465 || config.SMTP_PORT === 25 ? false : true;
+    // Try to load client certificates for certificate-based auth (avoids fail2ban)
+    const certs = loadClientCertificates();
+    const tlsConfig: any = {
+      rejectUnauthorized: false,
+    };
 
-    const transporter = nodemailer.createTransport({
+    // If client certs are available, use them; password auth becomes optional
+    if (certs) {
+      tlsConfig.cert = certs.cert;
+      tlsConfig.key = certs.key;
+    }
+
+    // The client certificate is presented during the TLS handshake and is
+    // independent of SASL. Credentials are always sent: blanking the password
+    // would not skip AUTH, it would send an empty one — a failed auth, which is
+    // exactly what the postfix-sasl fail2ban jail counts.
+    const transportConfig: any = {
       host: config.SMTP_HOST,
       port: config.SMTP_PORT,
       secure: secure,
+      rejectUnauthorized: false,
+      tls: tlsConfig,
       auth: {
         user: config.SMTP_USER,
         pass: config.SMTP_PASSWORD,
       },
-      rejectUnauthorized: false,
-      tls: {
-        rejectUnauthorized: false,
-      },
-    });
+    };
 
-    // Use plaintext only
-    const plaintext = text || html.replace(/<[^>]*>/g, '');
+    const transporter = nodemailer.createTransport(transportConfig);
 
     const useruuid = crypto.randomUUID();
     const info = await transporter.sendMail({
       from: `${config.FROM_NAME} <${config.FROM_EMAIL}>`,
       to,
       subject,
-      text: plaintext,
+      text: body,
           list: {
             help: "postmaster@happytailspawcare.com?subject=help",
             unsubscribe: {
@@ -231,12 +290,7 @@ Feel free to reach out at any time if you have questions or would like to discus
 Best regards,
 Happy Tails Paw Care Team`;
 
-  return sendEmail(
-    email,
-    'Following Up - Let\'s Schedule a Call',
-    textContent,
-    textContent
-  );
+  return sendEmail(email, 'Following Up - Let\'s Schedule a Call', textContent);
 }
 
 /**
@@ -262,12 +316,7 @@ In the meantime:
 Best regards,
 Happy Tails Paw Care Team`;
 
-  return sendEmail(
-    email,
-    `We Got Your Message - ${challenge}`,
-    textContent,
-    textContent
-  );
+  return sendEmail(email, `We Got Your Message - ${challenge}`, textContent);
 }
 
 export default {
