@@ -177,6 +177,8 @@ export function MultiStepContactForm() {
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       submittedAt: new Date().toISOString(),
     });
+    // Reset reCAPTCHA widget ID so it can be re-rendered on the next form submission
+    recaptchaWidgetId.current = null;
   };
 
   return (
@@ -378,6 +380,11 @@ export function MultiStepContactForm() {
                     Check this box to receive messages from our sales team. Message frequency varies, and data rates may apply.
                   </label>
                 </div>
+
+                {/* reCAPTCHA v3 inline badge (only on last page) */}
+                <div className="flex justify-center pt-4">
+                  <div ref={recaptchaContainerRef} />
+                </div>
               </div>
             )}
 
@@ -435,11 +442,6 @@ export function MultiStepContactForm() {
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* reCAPTCHA v3 inline badge (rendered here inside the form card instead of
-          floating bottom-right on the page). Kept outside AnimatePresence so the
-          widget survives the submit → success → reset cycle. */}
-      <div ref={recaptchaContainerRef} className="flex justify-center" />
       </div>
     </div>
   );
