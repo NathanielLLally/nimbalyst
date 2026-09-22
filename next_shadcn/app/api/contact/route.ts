@@ -155,51 +155,59 @@ export async function POST(request: NextRequest) {
     });
     console.log('✅ Form data saved to contact sheet');
 
-    // Notify the business of the new lead by email (always, regardless of environment)
-    // This is a transactional email with form data and request metadata
-    try {
-      // Temporarily override FROM_EMAIL and FROM_NAME for this transactional email
-      const originalFromEmail = process.env.FROM_EMAIL;
-      const originalFromName = process.env.FROM_NAME;
-      process.env.FROM_EMAIL = 'noreply@happytailspawcare.com';
-      process.env.FROM_NAME = 'Happy Tails Paw Care';
+    // Notify the business of the new lead by email (fire-and-forget, non-blocking)
+    // This is a transactional email with form data and request metadata. We don't
+    // wait for it so the user's form response comes back quickly — mail sending
+    // can take seconds, and user-facing latency matters more than synchronous
+    // confirmation. Email errors are logged but don't fail the form submission.
+    const emailTask = (async () => {
+      try {
+        // Capture env vars
+        const originalFromEmail = process.env.FROM_EMAIL;
+        const originalFromName = process.env.FROM_NAME;
 
-      const notificationText = formatContactSubmissionEmail(
-        {
-          ...data,
-          timezone: userTimezone,
-          submittedAt: submittedAtStr,
-        },
-        request
-      );
+        // Temporarily override FROM_EMAIL and FROM_NAME for this transactional email
+        process.env.FROM_EMAIL = 'noreply@happytailspawcare.com';
+        process.env.FROM_NAME = 'Happy Tails Paw Care';
 
-      const notificationResult = await sendEmail(
-        CONTACT_NOTIFICATION_EMAIL,
-        `New Contact Form Submission - ${data.fullName}`,
-        notificationText
-      );
+        const notificationText = formatContactSubmissionEmail(
+          {
+            ...data,
+            timezone: userTimezone,
+            submittedAt: submittedAtStr,
+          },
+          request
+        );
 
-      // Restore original FROM_EMAIL and FROM_NAME
-      if (originalFromEmail) {
-        process.env.FROM_EMAIL = originalFromEmail;
-      } else {
-        delete process.env.FROM_EMAIL;
+        const notificationResult = await sendEmail(
+          CONTACT_NOTIFICATION_EMAIL,
+          `New Contact Form Submission - ${data.fullName}`,
+          notificationText
+        );
+
+        // Restore original FROM_EMAIL and FROM_NAME
+        if (originalFromEmail) {
+          process.env.FROM_EMAIL = originalFromEmail;
+        } else {
+          delete process.env.FROM_EMAIL;
+        }
+        if (originalFromName) {
+          process.env.FROM_NAME = originalFromName;
+        } else {
+          delete process.env.FROM_NAME;
+        }
+
+        if (notificationResult.success) {
+          console.log(`✅ Notification email sent to ${CONTACT_NOTIFICATION_EMAIL}`);
+        } else {
+          console.warn(`⚠️ Notification email failed: ${notificationResult.error}`);
+        }
+      } catch (emailErr) {
+        const emailErrMsg = emailErr instanceof Error ? emailErr.message : String(emailErr);
+        console.warn('⚠️ Failed to send notification email:', emailErrMsg);
       }
-      if (originalFromName) {
-        process.env.FROM_NAME = originalFromName;
-      } else {
-        delete process.env.FROM_NAME;
-      }
-
-      if (notificationResult.success) {
-        console.log(`✅ Notification email sent to ${CONTACT_NOTIFICATION_EMAIL}`);
-      } else {
-        console.warn(`⚠️ Notification email failed: ${notificationResult.error}`);
-      }
-    } catch (emailErr) {
-      const emailErrMsg = emailErr instanceof Error ? emailErr.message : String(emailErr);
-      console.warn('⚠️ Failed to send notification email:', emailErrMsg);
-    }
+    })();
+    // Don't await emailTask — let it run in the background
 
     // Extract row number from the append response (e.g., "contact!A2:L2" -> row 2)
     const updatedRange = appendResponse.data.updates?.updatedRange || '';
