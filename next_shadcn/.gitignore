@@ -19,6 +19,11 @@ dist/
 .env*
 !.env.example
 
+# SMTP client cert/key used for certificate-based mail auth (see
+# lib/contact-email-sender.ts). Generated per-deployment; never commit it.
+test-client.crt
+test-client.key
+
 # vercel
 .vercel
 

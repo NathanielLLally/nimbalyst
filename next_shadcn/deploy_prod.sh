@@ -52,6 +52,11 @@ ssh -p 2222 "${REMOTE_USER}@${REMOTE_HOST}" << 'REMOTE_SCRIPT'
   cd "$TOP"
   git pull
 
+  # Install dependencies before building: a pull that adds a package (e.g. a new
+  # @types/* devDependency) otherwise fails the build with a missing-module or
+  # missing-declaration type error, since node_modules is stale.
+  npm install
+
   npm run build
   # Compile the standalone contact-processor worker (dist/worker/...).
   npm run build:worker
