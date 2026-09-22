@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronRight, ChevronLeft, Mail, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -31,7 +31,7 @@ export function MultiStepContactForm() {
   const recaptchaWidgetId = useRef<number | null>(null);
   const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
 
-  const renderBadge = () => {
+  const renderBadge = useCallback(() => {
     const grecaptcha = (window as any).grecaptcha;
     if (!grecaptcha?.render || !recaptchaContainerRef.current) return;
     // Guard against double-render (React strict mode / re-loads).
@@ -41,7 +41,18 @@ export function MultiStepContactForm() {
       size: 'invisible',
       badge: 'inline',
     });
-  };
+  }, [siteKey]);
+
+  // Callback ref: fires when the container DOM node attaches to the tree.
+  // This ensures renderBadge runs AFTER the animated form has mounted,
+  // not during the exit animation of the previous step.
+  const handleContainerRef = useCallback((node: HTMLDivElement | null) => {
+    recaptchaContainerRef.current = node;
+    if (node) {
+      // Container is now mounted; render the badge
+      (window as any).grecaptcha?.ready?.(renderBadge);
+    }
+  }, [renderBadge]);
 
   // Load the reCAPTCHA script
   useEffect(() => {
@@ -49,6 +60,7 @@ export function MultiStepContactForm() {
     // Google's default floating bottom-right badge.
     const existing = document.getElementById('recaptcha-script') as HTMLScriptElement | null;
     if (existing) {
+      // Script already loaded; if we're on step 2, render now
       (window as any).grecaptcha?.ready?.(renderBadge);
       return;
     }
@@ -60,18 +72,9 @@ export function MultiStepContactForm() {
     script.defer = true;
     script.onload = () => (window as any).grecaptcha?.ready?.(renderBadge);
     document.head.appendChild(script);
-  }, []);
+  }, [renderBadge]);
 
   const [currentStep, setCurrentStep] = useState(0);
-
-  // Render badge when we reach the final step and the container is mounted
-  useEffect(() => {
-    if (currentStep === 2) {
-      // Use setTimeout to ensure the DOM is updated and ref is ready
-      const timer = setTimeout(renderBadge, 0);
-      return () => clearTimeout(timer);
-    }
-  }, [currentStep]);
 
   const [formData, setFormData] = useState<FormData>({
     fullName: '',
@@ -393,7 +396,7 @@ export function MultiStepContactForm() {
 
                 {/* reCAPTCHA v3 inline badge (only on last page) */}
                 <div className="flex justify-center pt-4">
-                  <div ref={recaptchaContainerRef} />
+                  <div ref={handleContainerRef} />
                 </div>
               </div>
             )}
