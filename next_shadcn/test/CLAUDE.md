@@ -1,3 +1,13 @@
+---
+description: Rules for writing and formatting unit tests
+paths:
+  - "test/**"
+  - "**/__tests__/**/*"
+  - "**/*.test.*"
+  - "**/*.spec.*"
+  - "test/**/*"
+---
+
 ## Testing Conventions
 
 ### 🛠️ Execution Commands

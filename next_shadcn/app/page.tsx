@@ -15,14 +15,13 @@ import ContactWithGlobe from "@/components/contact-with-globe";
 import { CardHoverLift } from "@/components/hover-lift";
 import GridLines from "@/components/aicanvas/grid-lines";
 import {
-  ArrowRight, Star, Mail, Phone, Headphones, CheckCircle, Facebook, Instagram, Linkedin, Twitter,
+  ArrowRight, Mail, Megaphone, PhoneCall, PhoneForwarded, CalendarCheck, FileX, RotateCcw, MapPin, Phone, Headphones, CheckCircle, Facebook, Instagram, Linkedin, Twitter,
 } from "lucide-react";
 
 const stats = [
-  { value: "500+", label: "Pet Businesses Served" },
-  { value: "3.2×",  label: "Average Lead Increase" },
-  { value: "98%",  label: "Client Retention Rate" },
-  { value: "4.9★", label: "Average Rating" },
+  { value: "$0",       label: "Setup Fees" },
+  { value: "< 60 sec", label: "Lead Response Time" },
+  { value: "Pay Per",  label: "Qualified Lead" },
 ];
 
 
@@ -32,22 +31,17 @@ const steps = [
   { num: "03", title: "Grow & Optimize",   desc: "We continuously refine based on real data to keep your calendar full." },
 ];
 
-const testimonials = [
-  {
-    quote: "Within 3 months my grooming salon went from 20 to 60+ weekly clients. These guys actually get pet businesses.",
-    name: "Sarah M.",
-    role: "Owner, Fluffy Cuts Grooming",
-  },
-  {
-    quote: "I was skeptical, but they proved me wrong. My daycare is fully booked 6 weeks out.",
-    name: "James T.",
-    role: "Founder, Happy Paws Daycare",
-  },
-  {
-    quote: "The SEO work alone paid for itself in the first month. Now I get calls every single day.",
-    name: "Linda K.",
-    role: "Veterinarian, Paws & Claws Clinic",
-  },
+const leadFlow = [
+  { when: "0 sec",         icon: Megaphone,      title: "A pet owner responds to your ad",           desc: "They tap your ad looking for grooming, daycare, training, or vet care." },
+  { when: "< 60 sec",      icon: PhoneCall,      title: "We call them",                              desc: "We confirm what they need, where they are, and that they're ready to book." },
+  { when: "Minutes later", icon: PhoneForwarded, title: "Live transfer",                             desc: "The qualified pet owner is connected straight to your phone." },
+  { when: "You",           icon: CalendarCheck,  title: "Field the call or book the appointment",    desc: "You talk to someone who's ready to book. You only pay for leads that qualify." },
+];
+
+const promises = [
+  { icon: FileX,     title: "No Contracts",        desc: "Stay because it works, not because you're locked in." },
+  { icon: RotateCcw, title: "Bad Leads Credited",  desc: "Wrong number, wrong area, or not a real customer? You don't pay for it." },
+  { icon: MapPin,    title: "Exclusive Territory", desc: "Your leads are yours. We never sell them to the business down the street." },
 ];
 
 export default function Home() {
@@ -67,7 +61,7 @@ export default function Home() {
       {/* Stats bar */}
       <section className="border-y border-border/40 bg-card/30 py-10">
         <div className="mx-auto max-w-6xl px-4 md:px-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 text-center">
             {stats.map((s) => (
               <div key={s.label}>
                 <p className="text-3xl font-extrabold text-primary">{s.value}</p>
@@ -139,31 +133,50 @@ export default function Home() {
       {/* Dog and cats parallax section */}
       <section className="relative h-96 overflow-hidden" style={{ backgroundImage: 'url(/dog_and_cats.png)', backgroundSize: 'cover', backgroundPosition: 'bottom center', backgroundAttachment: 'fixed', opacity: 0.8 }} id="services-bg" />
 
-      {/* Testimonials */}
-      <section id="testimonials" className="py-20 bg-card/20">
+      {/* Lead walkthrough */}
+      <section id="lead-flow" className="py-20 bg-card/20">
         <div className="mx-auto max-w-6xl px-4 md:px-6">
           <div className="text-center mb-14">
             <Badge variant="outline" className="border-primary/40 text-primary mb-4 px-4 py-1 text-xs tracking-widest uppercase font-mono">
-              Testimonials
+              How a Lead Reaches You
             </Badge>
             <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight">
-              Pet businesses that are fully booked
+              From ad click to your phone in minutes
+            </h2>
+          </div>
+          <ol className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {leadFlow.map((step) => (
+              <li key={step.when} className="flex flex-col gap-4 rounded-2xl border border-border/40 bg-background p-6">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="font-mono text-xs uppercase tracking-widest text-primary">{step.when}</span>
+                  <step.icon className="w-5 h-5 text-primary" aria-hidden="true" />
+                </div>
+                <h3 className="text-lg font-extrabold text-foreground">{step.title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">{step.desc}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
+      {/* Promises */}
+      <section id="promises" className="py-20">
+        <div className="mx-auto max-w-6xl px-4 md:px-6">
+          <div className="text-center mb-14">
+            <Badge variant="outline" className="border-primary/40 text-primary mb-4 px-4 py-1 text-xs tracking-widest uppercase font-mono">
+              Our Promises
+            </Badge>
+            <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight">
+              What you can count on
             </h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {testimonials.map((t) => (
-              <Card key={t.name} className="bg-card/60 backdrop-blur border-border/60">
-                <CardContent className="pt-6 flex flex-col h-full">
-                  <div className="flex gap-0.5 mb-4">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <Star key={i} className="w-4 h-4 fill-primary text-primary" />
-                    ))}
-                  </div>
-                  <p className="text-sm text-muted-foreground leading-relaxed mb-6 flex-1">"{t.quote}"</p>
-                  <div>
-                    <p className="text-sm font-semibold">{t.name}</p>
-                    <p className="text-xs text-muted-foreground">{t.role}</p>
-                  </div>
+            {promises.map((p) => (
+              <Card key={p.title} className="bg-card/60 backdrop-blur border-border/60">
+                <CardContent className="pt-6 flex flex-col gap-4">
+                  <p.icon className="w-8 h-8 text-primary" aria-hidden="true" />
+                  <h3 className="text-xl font-extrabold text-foreground">{p.title}</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{p.desc}</p>
                 </CardContent>
               </Card>
             ))}

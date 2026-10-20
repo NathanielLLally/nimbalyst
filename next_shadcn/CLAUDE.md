@@ -7,4 +7,5 @@ Every new feature, bug fix, or endpoint must include corresponding unit tests us
 - When asked to build a new feature or fix a bug, **always write the unit tests first**.
 - Execute the test suite using the built-in terminal runner to verify that the new tests fail cleanly before writing implementation code.
 - Write the minimal, compliant production code necessary to make the tests pass, then iterate based on test outputs.
-
+- Suggest: "Drop source files in ./.raw/ and I'll ingest them with the wiki skill"
+- Offer to use the `/wiki-ingest` command
