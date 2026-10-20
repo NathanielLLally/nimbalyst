@@ -12,10 +12,9 @@ import { FAQ } from "@/components/FAQ";
 import LogoCloudMarquee from "@/components/logo-cloud-marquee";
 //import LogoCloudDemo from "@/components/shadcn-space/blocks/logo-cloud-01/logo-cloud"
 import ContactWithGlobe from "@/components/contact-with-globe";
-import { CardHoverLift } from "@/components/hover-lift";
 import GridLines from "@/components/aicanvas/grid-lines";
 import {
-  ArrowRight, Mail, Megaphone, PhoneCall, PhoneForwarded, CalendarCheck, FileX, RotateCcw, MapPin, Phone, Headphones, CheckCircle, Facebook, Instagram, Linkedin, Twitter,
+  ArrowRight, Mail, Megaphone, PhoneCall, PhoneForwarded, CalendarCheck, FileX, RotateCcw, MapPin, Phone, Headphones, Facebook, Instagram, Linkedin, Twitter,
 } from "lucide-react";
 
 const stats = [
@@ -25,11 +24,6 @@ const stats = [
 ];
 
 
-const steps = [
-  { num: "01", title: "Audit & Strategy",  desc: "We analyze your current marketing, local competition, and growth opportunities." },
-  { num: "02", title: "Build & Launch",    desc: "We build your marketing infrastructure — website, campaigns, and automation." },
-  { num: "03", title: "Grow & Optimize",   desc: "We continuously refine based on real data to keep your calendar full." },
-];
 
 const leadFlow = [
   { when: "0 sec",         icon: Megaphone,      title: "A pet owner responds to your ad",           desc: "They tap your ad looking for grooming, daycare, training, or vet care." },
@@ -96,49 +90,12 @@ export default function Home() {
       {/* Services */}
       <Services />
 
-      {/* How it works */}
-      <section id="how-it-works" className="py-24">
+      {/* How it works: lead walkthrough */}
+      <section id="how-it-works" className="py-20 bg-card/20">
         <div className="mx-auto max-w-6xl px-4 md:px-6">
           <div className="text-center mb-14">
             <Badge variant="outline" className="border-primary/40 text-primary mb-4 px-4 py-1 text-xs tracking-widest uppercase font-mono">
-              Process
-            </Badge>
-            <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight">
-              How it works
-            </h2>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {steps.map((step) => (
-              <CardHoverLift key={step.num} className="bg-background border border-border/40 rounded-2xl p-8 hover:border-primary/40 transition-colors">
-                <div className="flex flex-col gap-6 h-full">
-                  <div className="flex items-center gap-4">
-                    <div className="text-4xl font-extrabold text-primary">{step.num}</div>
-                    <div className="h-12 w-1 bg-gradient-to-b from-primary to-primary/20 rounded-full"></div>
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-extrabold text-foreground mb-3">{step.title}</h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed">{step.desc}</p>
-                  </div>
-                  <div className="flex items-center gap-2 text-primary pt-4 border-t border-border/20">
-                    <CheckCircle className="w-4 h-4" />
-                    <span className="text-xs font-semibold uppercase tracking-widest">Key milestone</span>
-                  </div>
-                </div>
-              </CardHoverLift>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Dog and cats parallax section */}
-      <section className="relative h-96 overflow-hidden" style={{ backgroundImage: 'url(/dog_and_cats.png)', backgroundSize: 'cover', backgroundPosition: 'bottom center', backgroundAttachment: 'fixed', opacity: 0.8 }} id="services-bg" />
-
-      {/* Lead walkthrough */}
-      <section id="lead-flow" className="py-20 bg-card/20">
-        <div className="mx-auto max-w-6xl px-4 md:px-6">
-          <div className="text-center mb-14">
-            <Badge variant="outline" className="border-primary/40 text-primary mb-4 px-4 py-1 text-xs tracking-widest uppercase font-mono">
-              How a Lead Reaches You
+              How It Works
             </Badge>
             <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight">
               From ad click to your phone in minutes
@@ -158,6 +115,9 @@ export default function Home() {
           </ol>
         </div>
       </section>
+
+      {/* Dog and cats parallax section */}
+      <section className="relative h-96 overflow-hidden" style={{ backgroundImage: 'url(/dog_and_cats.png)', backgroundSize: 'cover', backgroundPosition: 'bottom center', backgroundAttachment: 'fixed', opacity: 0.8 }} id="services-bg" />
 
       {/* Promises */}
       <section id="promises" className="py-20">

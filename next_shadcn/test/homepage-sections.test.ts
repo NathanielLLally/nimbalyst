@@ -21,8 +21,31 @@ describe('homepage testimonials replacement', () => {
 });
 
 describe('lead walkthrough section', () => {
-  it('Given the homepage, When it renders, Then it has a lead-flow section', () => {
-    expect(page).toContain('id="lead-flow"');
+  it('Given the homepage, When it renders, Then the walkthrough is the how-it-works section', () => {
+    expect(page).toMatch(/<section id="how-it-works"[^>]*>[\s\S]*?From ad click to your phone[\s\S]*?<\/section>/);
+  });
+
+  it('Given the homepage, When it renders, Then there is exactly one how-it-works section', () => {
+    expect(page.match(/id="how-it-works"/g)).toHaveLength(1);
+  });
+
+  it('Given the homepage, When it renders, Then the separate lead-flow anchor is gone', () => {
+    expect(page).not.toContain('id="lead-flow"');
+  });
+
+  it.each(['const steps', 'Audit & Strategy', 'Build & Launch', 'Grow & Optimize', 'Key milestone'])(
+    'Given the old agency process, When the homepage renders, Then it does not include "%s"',
+    (text) => {
+      expect(page).not.toContain(text);
+    },
+  );
+
+  it('Given the homepage, When it renders, Then the walkthrough comes before the pet parallax image', () => {
+    expect(page.indexOf('id="how-it-works"')).toBeLessThan(page.indexOf('dog_and_cats.png'));
+  });
+
+  it('Given the navbar, When it renders, Then it does not call the process "proven"', () => {
+    expect(navbar).not.toMatch(/proven process/i);
   });
 
   it.each([

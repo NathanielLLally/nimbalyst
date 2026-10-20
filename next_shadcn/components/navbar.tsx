@@ -47,7 +47,7 @@ const services: ServiceSection[] = [
   {
     category: 'QUICK LINKS',
     items: [
-      { title: 'How It Works',  icon: HelpCircle,    desc: 'Our proven process',                             href: '/#how-it-works' },
+      { title: 'How It Works',  icon: HelpCircle,    desc: 'From ad click to your phone',                    href: '/#how-it-works' },
       { title: 'FAQs',          icon: HelpCircle,    desc: 'Common questions answered',                      href: '/#faq' },
       { title: 'Our Promises',  icon: MessageSquare, desc: 'No contracts, bad leads credited',               href: '/#promises' },
       { title: 'Contact',       icon: BookOpen,      desc: 'Get started with a free audit',                  href: '/#contact' },
