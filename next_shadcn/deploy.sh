@@ -25,6 +25,7 @@ if [ -n "$DEPLOY_HOST" ] && [ "$CURRENT_HOST" = "$DEPLOY_HOST" ]; then
   echo -e "${YELLOW}Running on deploy host ($CURRENT_HOST) — skipping SSH${NC}"
 else
   IS_DEPLOY_HOST=false
+  echo -e "${YELLOW}Running on host ($CURRENT_HOST) — deploy with SSH to ${DEPLOY_HOST} ${NC}"
 fi
 
 echo -e "${YELLOW}=== Starting Deploy ===${NC}"
