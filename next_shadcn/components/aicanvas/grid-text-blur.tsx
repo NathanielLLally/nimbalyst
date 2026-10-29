@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useLayoutEffect, useRef } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence } from 'motion/react'
 
 const WORDS = ['We', 'Fetch', 'the', 'Clients', 'You', 'Handle', 'the', 'Pets']
 const ACCENTED = new Set([1, 7])

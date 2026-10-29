@@ -86,9 +86,17 @@ export function MultiStepContactForm() {
     challenge: '',
     message: '',
     receiveMessages: false,
-    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-    submittedAt: new Date().toISOString(),
+    timezone: '',
+    submittedAt: '',
   });
+
+  useEffect(() => {
+    setFormData((prev) => ({
+      ...prev,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      submittedAt: new Date().toISOString(),
+    }));
+  }, []);
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -190,7 +198,7 @@ export function MultiStepContactForm() {
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       submittedAt: new Date().toISOString(),
     });
-    // Reset reCAPTCHA widget ID so it can be re-rendered on the next form submission
+    // Reset reCAPTCHA widget ID (resetForm only runs client-side, so Intl is safe here) so it can be re-rendered on the next form submission
     recaptchaWidgetId.current = null;
   };
 
