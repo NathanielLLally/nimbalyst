@@ -57,7 +57,7 @@ echo -e "${YELLOW}Step 4: Running build and deployment...${NC}"
 echo "Pulling latest code..."
 echo "Building application..."
 if [ "$IS_DEPLOY_HOST" = true ]; then
-  sudo -u "$REMOTE_USER" bash -c "
+  sudo -u "$REMOTE_USER" SSH_AUTH_SOCK=$SSH_AUTH_SOCK bash -c "
     set -e
     cd '$REMOTE_PATH'
     git pull
