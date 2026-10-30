@@ -404,6 +404,11 @@ export function MultiStepContactForm() {
               </div>
             )}
 
+            {/* Error message */}
+            {error && (
+              <p className="text-sm text-red-500 dark:text-red-400">{error}</p>
+            )}
+
             {/* Navigation */}
             <div className="flex gap-3 pt-4">
               <Button
