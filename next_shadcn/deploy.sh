@@ -94,8 +94,8 @@ echo "Restarting happytailspawcare service and syncing contact-processor units..
 if [ "$IS_DEPLOY_HOST" = true ]; then
   TOP="$REMOTE_PATH"
 
-  sudo systemctl restart happytailspawcare
-  sudo systemctl status happytailspawcare --no-pager
+  sudo systemctl restart happytailspawcare-dev
+  sudo systemctl status happytailspawcare-dev --no-pager
 
   # Contact processing now runs as its own one-shot timer (htpc-contacts),
   # not inside the web app. Keep the unit files in sync with the repo and make
@@ -110,8 +110,8 @@ else
   ssh -p 2222 "${REMOTE_SUDO_USER}@${REMOTE_HOST}" << 'RESTART_SCRIPT'
   TOP="/home/devel/src/git/nimbalyst/next_shadcn"
 
-  sudo systemctl restart happytailspawcare
-  sudo systemctl status happytailspawcare --no-pager
+  sudo systemctl restart happytailspawcare-dev
+  sudo systemctl status happytailspawcare-dev --no-pager
 
   # Contact processing now runs as its own one-shot timer (htpc-contacts),
   # not inside the web app. Keep the unit files in sync with the repo and make
