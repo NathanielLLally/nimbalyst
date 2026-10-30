@@ -369,11 +369,11 @@ export function MultiStepContactForm() {
               <div className="flex flex-col gap-4">
                 <div className="flex flex-col gap-2">
                   <label className="text-xs font-semibold tracking-widest uppercase text-white">
-                    Tell us more
+                    What are your current challenges?
                   </label>
                   <textarea
                     name="message"
-                    placeholder="Share any additional details or goals you'd like to discuss..."
+                    placeholder="We could use more clients"
                     rows={5}
                     value={formData.message}
                     onChange={handleInputChange}
