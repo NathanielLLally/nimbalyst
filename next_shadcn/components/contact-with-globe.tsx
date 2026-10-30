@@ -54,7 +54,7 @@ export default function ContactWithGlobe({
           <motion.div
             initial={{ opacity: 0, y: -12 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
+            viewport={{ once: false }}
             transition={{ duration: 0.8, ease: smoothEase }}
             className="inline-flex items-center px-4 py-1.5 rounded-full bg-rose-500/10 border border-rose-400/30"
           >
@@ -64,7 +64,7 @@ export default function ContactWithGlobe({
           <motion.h2
             initial={{ opacity: 0, y: 14 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
+            viewport={{ once: false }}
             transition={{ duration: 0.9, delay: 0.15, ease: smoothEase }}
             className="text-4xl md:text-5xl lg:text-6xl font-bold text-zinc-900 dark:text-white"
           >
@@ -74,7 +74,7 @@ export default function ContactWithGlobe({
           <motion.p
             initial={{ opacity: 0, y: 14 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
+            viewport={{ once: false }}
             transition={{ duration: 0.9, delay: 0.3, ease: smoothEase }}
             className="text-base text-zinc-500 dark:text-zinc-400 max-w-md"
           >
@@ -87,7 +87,7 @@ export default function ContactWithGlobe({
           <motion.div
             initial={{ opacity: 0, y: 28 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
+            viewport={{ once: false }}
             transition={{ duration: 1.0, delay: 0.2, ease: smoothEase }}
             className="flex flex-col gap-6"
           >
@@ -107,7 +107,7 @@ export default function ContactWithGlobe({
                   href={href}
                   initial={{ opacity: 0, x: -12 }}
                   whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
+                  viewport={{ once: false }}
                   transition={{ duration: 0.5, delay: 0.3 + i * 0.1, ease: smoothEase }}
                   className="group flex items-center gap-3 w-fit text-sm text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors duration-200"
                 >
@@ -135,7 +135,7 @@ export default function ContactWithGlobe({
           <motion.div
             initial={{ opacity: 0, y: 28 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
+            viewport={{ once: false }}
             transition={{ duration: 1.0, delay: 0.35, ease: smoothEase }}
           >
             <MultiStepContactForm />

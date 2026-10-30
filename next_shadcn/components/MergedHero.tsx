@@ -25,11 +25,15 @@ export function MergedHero({
   subtext = 'Pet business growth, handled.',
 }: MergedHeroProps) {
   const [showCTA, setShowCTA] = useState(false);
+  // Trigger animations via prop-change after hydration rather than relying on
+  // the mount-time animation path, which fails in some dev/SSR configurations.
+  const [mounted, setMounted] = useState(false);
 
   // Initialize parallax effect
   useParallax('merged-hero-bg');
 
   useEffect(() => {
+    setMounted(true);
     const t = setTimeout(() => setShowCTA(true), SHOW_BUTTON_AT(words));
     return () => clearTimeout(t);
   }, [words]);
@@ -61,7 +65,9 @@ export function MergedHero({
             <motion.span
               key={i}
               initial={{ opacity: 0, y: 22, filter: 'blur(14px)' }}
-              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+              animate={mounted
+                ? { opacity: 1, y: 0, filter: 'blur(0px)' }
+                : { opacity: 0, y: 22, filter: 'blur(14px)' }}
               transition={{
                 duration: DURATION / 1000,
                 delay: (i * STAGGER) / 1000,
@@ -83,7 +89,7 @@ export function MergedHero({
         <motion.p
           key="sub"
           initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
+          animate={mounted ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }}
           transition={{
             duration: 0.55,
             delay: (LAST_WORD_END(words) + 200) / 1000,
