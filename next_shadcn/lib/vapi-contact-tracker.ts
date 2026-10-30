@@ -283,10 +283,14 @@ export function inferTimezoneFromPhone(phone: string): string | null {
  * Calculate earliest and latest call times (10am–4pm) in the lead's timezone
  * Returns ISO 8601 date-time strings for Vapi schedulePlan (earliestAt/latestAt)
  */
-function calculateScheduleWindow(timezone: string): {
+export function calculateScheduleWindow(timezone: string): {
   earliestAt: string;
   latestAt: string;
 } | null {
+  if (process.env.HTPC_IGNORE_SCHEDULE === 'true') {
+    return null;
+  }
+
   try {
     const now = new Date();
     // Convert current UTC time to the lead's timezone to get "today" in their zone
@@ -299,32 +303,24 @@ function calculateScheduleWindow(timezone: string): {
     const earliestMs = earliestTime.getTime();
     const latestMs = latestTime.getTime();
 
-    // If the times have already passed today, use tomorrow's window
-    if (latestMs < now.getTime()) {
+    const nowMs = now.getTime();
+
+    // Currently in the calling window (10am–4pm local) — dispatch immediately
+    if (earliestMs <= nowMs && nowMs < latestMs) {
+      return null;
+    }
+
+    // Past 4pm today — schedule for tomorrow's calling window
+    if (nowMs >= latestMs) {
       const tomorrow = new Date(zonedNow);
       tomorrow.setDate(tomorrow.getDate() + 1);
-
-      const tomorrowEarliest = setHours(tomorrow, 10);
-      const tomorrowLatest = setHours(tomorrow, 16);
-
       return {
-        earliestAt: tomorrowEarliest.toISOString(),
-        latestAt: tomorrowLatest.toISOString(),
+        earliestAt: setHours(tomorrow, 10).toISOString(),
+        latestAt: setHours(tomorrow, 16).toISOString(),
       };
     }
 
-    // If before 10am, move earliest to tomorrow at 10am if needed
-    if (earliestMs < now.getTime()) {
-      const tomorrow = new Date(zonedNow);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      const tomorrowEarliest = setHours(tomorrow, 10);
-
-      return {
-        earliestAt: tomorrowEarliest.toISOString(),
-        latestAt: latestTime.toISOString(),
-      };
-    }
-
+    // Before 10am today — schedule for today's calling window
     return {
       earliestAt: earliestTime.toISOString(),
       latestAt: latestTime.toISOString(),
@@ -844,6 +840,11 @@ async function pollInProgress(
       }
     } else if (status.status === 'failed') {
       await markFailed(rowIndex, row, status.error || 'Vapi call failed');
+    } else if (status.status === 'scheduled' && process.env.HTPC_IGNORE_SCHEDULE === 'true') {
+      // Call was queued with a future schedulePlan but scheduling is now bypassed.
+      // Mark failed so the retry loop re-dispatches immediately without a schedule window.
+      console.log(`🔄 ${id} is scheduled but HTPC_IGNORE_SCHEDULE is set — re-queuing`);
+      await markFailed(rowIndex, row, 'Rescheduled: schedule bypass active');
     }
     // If still 'queued' or 'in-progress', wait for next poll
   } catch (err) {

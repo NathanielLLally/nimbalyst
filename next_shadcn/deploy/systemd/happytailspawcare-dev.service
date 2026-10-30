@@ -17,6 +17,7 @@ Environment=PATH=/home/devel/.nvm/versions/node/v24.5.0/bin:/usr/local/sbin:/usr
 Environment=NODE_ENV=production
 Environment=NEXT_TELEMETRY_DISABLED=1
 Environment=HTPC_CONTACT_TRACKER_ENABLED=true
+Environment=HTPC_IGNORE_SCHEDULE=true
 
 # DATABASE_URI, PAYLOAD_SECRET, NEXT_PUBLIC_SERVER_URL etc.
 EnvironmentFile=/home/devel/src/git/nimbalyst/next_shadcn/.env
