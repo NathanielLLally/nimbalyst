@@ -229,7 +229,7 @@ export function MultiStepContactForm() {
         {!submitted ? (
           <motion.form
             key={currentStep}
-            initial={{ opacity: 0, x: 20 }}
+            initial={false}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.3 }}
@@ -446,7 +446,7 @@ export function MultiStepContactForm() {
         ) : (
           <motion.div
             key="success"
-            initial={{ opacity: 0, scale: 0.9 }}
+            initial={false}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
             className="flex flex-col items-center justify-center gap-4 py-12"

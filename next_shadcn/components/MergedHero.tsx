@@ -1,6 +1,5 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { useParallax } from '@/lib/use-parallax';
 
 interface MergedHeroProps {
@@ -23,14 +22,7 @@ export function MergedHero({
   accentedWords = [1, words.length - 1],
   subtext = 'Pet business growth, handled.',
 }: MergedHeroProps) {
-  const [showCTA, setShowCTA] = useState(false);
-
   useParallax('merged-hero-bg');
-
-  useEffect(() => {
-    const t = setTimeout(() => setShowCTA(true), SHOW_BUTTON_AT(words));
-    return () => clearTimeout(t);
-  }, [words]);
 
   return (
     <section className="relative min-h-screen overflow-hidden dark">
@@ -87,19 +79,18 @@ export function MergedHero({
 
         {/* CTA Button */}
         <div className="flex h-10 items-center justify-center">
-          {showCTA && (
-            <button
-              onClick={() => {
-                document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' });
-              }}
-              className="relative rounded-full bg-gradient-to-r from-violet-500 to-indigo-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 transition-opacity hover:opacity-90"
-              style={{
-                animation: 'word-blur-in 0.35s ease-out both',
-              }}
-            >
-              Get Started
-            </button>
-          )}
+          <button
+            onClick={() => {
+              document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' });
+            }}
+            className="relative rounded-full bg-gradient-to-r from-violet-500 to-indigo-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 transition-opacity hover:opacity-90"
+            style={{
+              animation: `word-blur-in 0.35s ease-out both`,
+              animationDelay: `${SHOW_BUTTON_AT(words) / 1000}s`,
+            }}
+          >
+            Get Started
+          </button>
         </div>
       </div>
     </section>

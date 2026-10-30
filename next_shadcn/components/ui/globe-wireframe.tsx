@@ -158,7 +158,7 @@ export default function GlobeWireframe({
   const [rotation, setRotation] = useState<[number, number]>(initialRotation);
   const [isDragging, setIsDragging] = useState(false);
   const [lastMouse, setLastMouse] = useState([0, 0]);
-  const [isVisible, setIsVisible] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
   const rotationInterval = useRef<NodeJS.Timeout | null>(null);
   const rotationAnimFrame = useRef<number | null>(null);
   const rotationStartTime = useRef<number | null>(null);
