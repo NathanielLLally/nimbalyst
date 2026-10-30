@@ -45,7 +45,7 @@ echo ""
 # Step 3: Copy .env to remote server
 echo -e "${YELLOW}Step 3: Copying .env to remote server...${NC}"
 if [ "$IS_DEPLOY_HOST" = true ]; then
-  sudo rsync -a "$TOP/.env" "$REMOTE_PATH/"
+  sudo rsync -a --chown="${REMOTE_USER}:${REMOTE_USER}" "$TOP/.env" "$REMOTE_PATH/"
 else
   scp -P 2222 "$TOP/.env" "${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_PATH}/"
 fi
@@ -57,18 +57,14 @@ echo -e "${YELLOW}Step 4: Running build and deployment...${NC}"
 echo "Pulling latest code..."
 echo "Building application..."
 if [ "$IS_DEPLOY_HOST" = true ]; then
-  set -e
-  cd "$REMOTE_PATH"
-  git pull
-
-  # Install dependencies before building: a pull that adds a package (e.g. a new
-  # @types/* devDependency) otherwise fails the build with a missing-module or
-  # missing-declaration type error, since node_modules is stale.
-  npm install
-
-  npm run build
-  # Compile the standalone contact-processor worker (dist/worker/...).
-  npm run build:worker
+  sudo -u "$REMOTE_USER" bash -c "
+    set -e
+    cd '$REMOTE_PATH'
+    git pull
+    npm install
+    npm run build
+    npm run build:worker
+  "
 else
   ssh -p 2222 "${REMOTE_USER}@${REMOTE_HOST}" << 'REMOTE_SCRIPT'
   set -e
