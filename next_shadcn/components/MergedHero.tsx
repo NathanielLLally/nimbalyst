@@ -84,9 +84,6 @@ export function MergedHero({
               document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' });
             }}
             className="relative rounded-full bg-gradient-to-r from-violet-500 to-indigo-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 transition-opacity hover:opacity-90"
-            style={{
-              animation: `word-blur-in 0.35s ease-out ${SHOW_BUTTON_AT(words) / 1000}s both`,
-            }}
           >
             Get Started
           </button>

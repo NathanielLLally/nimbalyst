@@ -225,9 +225,7 @@ export default function GlobeWireframe({
   useEffect(() => {
     const loadWorldData = async () => {
       try {
-        const response = await fetch(
-          'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json',
-        );
+        const response = await fetch('/countries-110m.json');
         const world = (await response.json()) as WorldAtlasTopology;
         const countries = feature(world, world.objects.countries)
           .features as GeoFeature[];

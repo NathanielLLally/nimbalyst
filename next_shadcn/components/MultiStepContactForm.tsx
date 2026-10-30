@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { AnimatePresence } from 'motion/react';
 import { ChevronRight, ChevronLeft, Mail, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -227,12 +227,7 @@ export function MultiStepContactForm() {
 
       <AnimatePresence mode="wait">
         {!submitted ? (
-          <motion.form
-            key={currentStep}
-            initial={false}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.3 }}
+          <form
             onSubmit={handleSubmit}
             className="flex flex-col gap-6"
           >
@@ -442,13 +437,9 @@ export function MultiStepContactForm() {
                 </Button>
               )}
             </div>
-          </motion.form>
+          </form>
         ) : (
-          <motion.div
-            key="success"
-            initial={false}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
+          <div
             className="flex flex-col items-center justify-center gap-4 py-12"
           >
             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
@@ -460,7 +451,7 @@ export function MultiStepContactForm() {
             <p className="text-sm text-zinc-500 dark:text-zinc-400 text-center max-w-xs">
               We'll get back to you within 24 hours with a personalized strategy.
             </p>
-          </motion.div>
+          </div>
         )}
       </AnimatePresence>
       </div>
