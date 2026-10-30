@@ -126,7 +126,7 @@ interface VapiResponse {
 }
 
 interface VapiStatus {
-  status: 'queued' | 'in-progress' | 'completed' | 'failed';
+  status: 'queued' | 'in-progress' | 'completed' | 'failed' | 'scheduled';
   endedReason?: string;
   error?: string;
   transcript?: string;
