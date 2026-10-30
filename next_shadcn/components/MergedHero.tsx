@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
 import { useParallax } from '@/lib/use-parallax';
 
 interface MergedHeroProps {
@@ -25,15 +24,10 @@ export function MergedHero({
   subtext = 'Pet business growth, handled.',
 }: MergedHeroProps) {
   const [showCTA, setShowCTA] = useState(false);
-  // Trigger animations via prop-change after hydration rather than relying on
-  // the mount-time animation path, which fails in some dev/SSR configurations.
-  const [mounted, setMounted] = useState(false);
 
-  // Initialize parallax effect
   useParallax('merged-hero-bg');
 
   useEffect(() => {
-    setMounted(true);
     const t = setTimeout(() => setShowCTA(true), SHOW_BUTTON_AT(words));
     return () => clearTimeout(t);
   }, [words]);
@@ -59,68 +53,53 @@ export function MergedHero({
           <div className="h-40 w-80 rounded-full bg-primary/20 blur-3xl" />
         </div>
 
-        {/* Animated words */}
+        {/* Animated words — CSS keyframe animation, no framer-motion dependency */}
         <div className="relative flex flex-wrap justify-center gap-x-[0.4em] gap-y-1">
           {words.map((word, i) => (
-            <motion.span
+            <span
               key={i}
-              initial={{ opacity: 0, y: 22, filter: 'blur(14px)' }}
-              animate={mounted
-                ? { opacity: 1, y: 0, filter: 'blur(0px)' }
-                : { opacity: 0, y: 22, filter: 'blur(14px)' }}
-              transition={{
-                duration: DURATION / 1000,
-                delay: (i * STAGGER) / 1000,
-                ease: [0.21, 0.47, 0.32, 0.98],
-              }}
               className={
                 accentedWords.includes(i)
                   ? 'bg-gradient-to-r from-violet-400 to-indigo-400 bg-clip-text text-4xl tracking-tight text-transparent'
                   : 'text-4xl tracking-tight text-white'
               }
-              style={{ fontFamily: 'var(--font-playfair)' }}
+              style={{
+                fontFamily: 'var(--font-playfair)',
+                animation: `word-blur-in ${DURATION / 1000}s cubic-bezier(0.21, 0.47, 0.32, 0.98) both`,
+                animationDelay: `${(i * STAGGER) / 1000}s`,
+              }}
             >
               {word}
-            </motion.span>
+            </span>
           ))}
         </div>
 
         {/* Subtext */}
-        <motion.p
-          key="sub"
-          initial={{ opacity: 0, y: 8 }}
-          animate={mounted ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }}
-          transition={{
-            duration: 0.55,
-            delay: (LAST_WORD_END(words) + 200) / 1000,
-            ease: 'easeOut',
-          }}
+        <p
           className="relative text-base text-zinc-300"
+          style={{
+            animation: `word-blur-in 0.55s ease-out both`,
+            animationDelay: `${(LAST_WORD_END(words) + 200) / 1000}s`,
+          }}
         >
           {subtext}
-        </motion.p>
+        </p>
 
         {/* CTA Button */}
         <div className="flex h-10 items-center justify-center">
-          <AnimatePresence>
-            {showCTA && (
-              <motion.button
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 6 }}
-                transition={{ duration: 0.35, ease: 'easeOut' }}
-                whileHover={{ scale: 1.04 }}
-                whileTap={{ scale: 0.97 }}
-                onClick={() => {
-                  const contactSection = document.getElementById('contact');
-                  contactSection?.scrollIntoView({ behavior: 'smooth' });
-                }}
-                className="relative rounded-full bg-gradient-to-r from-violet-500 to-indigo-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 transition-opacity hover:opacity-90"
-              >
-                Get Started
-              </motion.button>
-            )}
-          </AnimatePresence>
+          {showCTA && (
+            <button
+              onClick={() => {
+                document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="relative rounded-full bg-gradient-to-r from-violet-500 to-indigo-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 transition-opacity hover:opacity-90"
+              style={{
+                animation: 'word-blur-in 0.35s ease-out both',
+              }}
+            >
+              Get Started
+            </button>
+          )}
         </div>
       </div>
     </section>
