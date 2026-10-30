@@ -121,9 +121,7 @@ export default function ContactWithGlobe({
 
             <div className="relative overflow-hidden h-52">
               <GlobeWireframe
-                width={300}
-                height={300}
-                className="absolute top-0 left-0"
+                className="w-full aspect-square max-w-full absolute top-0 left-0"
                 variant="wireframesolid"
                 autoRotate
                 autoRotateSpeed={0.45}
