@@ -214,8 +214,8 @@ export async function POST(request: NextRequest) {
     const rowMatch = updatedRange.match(/!A(\d+):/);
     const contactSheetRowIndex = rowMatch ? parseInt(rowMatch[1]) : null;
 
-    // Create tracking entry for Vapi dispatch (skip in production)
-    if (process.env.NODE_ENV !== 'production') {
+    // Create tracking entry for Vapi dispatch (only when explicitly enabled)
+    if (process.env.HTPC_CONTACT_TRACKER_ENABLED === 'true') {
       try {
         const { id: contactId, row } = await onFormSubmit(
           {

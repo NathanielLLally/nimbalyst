@@ -110,6 +110,8 @@ else
   ssh -p 2222 "${REMOTE_SUDO_USER}@${REMOTE_HOST}" << 'RESTART_SCRIPT'
   TOP="/home/devel/src/git/nimbalyst/next_shadcn"
 
+  sudo cp "$TOP/deploy/systemd/happytailspawcare-dev.service" /etc/systemd/system/
+  sudo systemctl daemon-reload
   sudo systemctl restart happytailspawcare-dev
   sudo systemctl status happytailspawcare-dev --no-pager
 
