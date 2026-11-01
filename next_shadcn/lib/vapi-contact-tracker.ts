@@ -567,6 +567,8 @@ export async function dispatchContactDirectly(row: SheetUtils.ContactRow): Promi
   const name = row[2];
   const channel = row[4];
   const timezone = row[13] as string | undefined; // N: Timezone
+  const notes = String(row[12] ?? '');
+  const company = notes.match(/Company:\s*(.+?)(?:\s*\||$)/)?.[1]?.trim();
 
   console.log(`📞 Dispatching ${id} immediately (${phone})`);
 
@@ -577,7 +579,7 @@ export async function dispatchContactDirectly(row: SheetUtils.ContactRow): Promi
 
     const messages = await getCallMachineMessages();
     const callMachineMessage = messages.get(1);
-    const vapiResponse = await makeVapiCall(phone as string, name as string, channel as string, 1, callMachineMessage, timezone);
+    const vapiResponse = await makeVapiCall(phone as string, name as string, channel as string, 1, callMachineMessage, timezone, company);
 
     if (!vapiResponse.success) {
       throw new Error(vapiResponse.error || 'Unknown Vapi error');
@@ -672,6 +674,8 @@ async function dispatchContact(
   const channel = row[4];
   const attemptCount = parseInt(String(row[6])) || 0;
   const timezone = row[13] as string | undefined; // N: Timezone
+  const notes = String(row[12] ?? '');
+  const company = notes.match(/Company:\s*(.+?)(?:\s*\||$)/)?.[1]?.trim();
 
   console.log(
     `📞 Dispatching ${id} (attempt ${attemptCount + 1}/${cfg.MAX_ATTEMPTS})`
@@ -680,7 +684,7 @@ async function dispatchContact(
   try {
     const messages = await getCallMachineMessages();
     const callMachineMessage = messages.get(attemptCount + 1);
-    const vapiResponse = await makeVapiCall(phone, name, channel, attemptCount + 1, callMachineMessage, timezone);
+    const vapiResponse = await makeVapiCall(phone, name, channel, attemptCount + 1, callMachineMessage, timezone, company);
 
     if (!vapiResponse.success) {
       throw new Error(vapiResponse.error || 'Unknown Vapi error');
@@ -725,7 +729,8 @@ export async function makeVapiCall(
   channel: string,
   attemptNumber: number = 1,
   callMachineMessage?: string,
-  timezone?: string
+  timezone?: string,
+  company?: string
 ): Promise<VapiResponse> {
   const cfg = getConfig();
   const url = 'https://api.vapi.ai/call';
@@ -738,6 +743,8 @@ export async function makeVapiCall(
       ...(callMachineMessage && { voicemailMessage: callMachineMessage }),
       variableValues: {
         customerName: name,
+        fullName: name,
+        company: company ?? '',
         channel,
         attemptNumber,
       },
