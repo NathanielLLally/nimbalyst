@@ -46,38 +46,144 @@ function formatTimestampInTimezone(isoString: string, timezone: string): string 
   }
 }
 
+// Per-value validation cache. Re-submitting with an unchanged email/phone
+// reuses the prior result instead of repeating the slow mxCheck / paid Twilio
+// network calls — so a check only re-runs when that field's text changed.
+// Module-scoped with a short TTL; keyed by the raw input value.
+const VALIDATION_CACHE_TTL_MS = 10 * 60 * 1000;
+type EmailValidationResult = { email: string; mxError: string; mxServer: string | null } | null;
+type PhoneValidationResult = { formatted?: string; errorBody?: unknown };
+const emailValidationCache = new Map<string, { result: EmailValidationResult; ts: number }>();
+const phoneValidationCache = new Map<string, { result: PhoneValidationResult; ts: number }>();
+
+function getCached<T>(cache: Map<string, { result: T; ts: number }>, key: string): T | undefined {
+  const hit = cache.get(key);
+  if (hit && Date.now() - hit.ts < VALIDATION_CACHE_TTL_MS) return hit.result;
+  if (hit) cache.delete(key);
+  return undefined;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const data: ContactFormData = await request.json();
     console.log('📝 Form submission received:', { name: data.fullName, email: data.email, phone: data.phone, company: data.company });
 
-    // MX-level email verification via mxCheck.pl
+    // Validate email and phone together (in parallel) so that if both are wrong
+    // the user is shown — and can fix — both at once, instead of one at a time.
     const scriptPath = path.join(process.cwd(), 'scripts', 'mxCheck.pl');
-    try {
-      console.log(`📧 Calling mxCheck.pl for ${data.email}...`);
-      const { stdout } = await execFileAsync('perl', [scriptPath, '--email', data.email], { timeout: 30000 });
-      const mxResults = JSON.parse(stdout);
-      const mxResult = mxResults[0];
-      console.log(`📧 mxCheck.pl returned: verified=${mxResult?.verified ? 1 : 0} mx=${mxResult?.mx_server ?? '-'} error=${mxResult?.error ?? '-'}`);
-      if (!mxResult?.verified) {
-        console.error(`❌ MX verification failed: email=${data.email} error=${mxResult?.error ?? 'unverified'}`);
-        return NextResponse.json(
-          {
-            error: 'Invalid Email',
-            emailValidation: {
-              email: data.email,
-              mxError: mxResult?.error ?? 'unverified',
-              mxServer: mxResult?.mx_server ?? null,
-            },
-          },
-          { status: 400 }
-        );
+
+    // MX-level email verification via mxCheck.pl. Returns the emailValidation
+    // payload on failure, or null when the address verifies.
+    const runEmailCheck = async (): Promise<EmailValidationResult> => {
+      try {
+        console.log(`📧 Calling mxCheck.pl for ${data.email}...`);
+        const { stdout } = await execFileAsync('perl', [scriptPath, '--email', data.email], { timeout: 30000 });
+        const mxResults = JSON.parse(stdout);
+        const mxResult = mxResults[0];
+        console.log(`📧 mxCheck.pl returned: verified=${mxResult?.verified ? 1 : 0} mx=${mxResult?.mx_server ?? '-'} error=${mxResult?.error ?? '-'}`);
+        if (!mxResult?.verified) {
+          console.error(`❌ MX verification failed: email=${data.email} error=${mxResult?.error ?? 'unverified'}`);
+          return { email: data.email, mxError: mxResult?.error ?? 'unverified', mxServer: mxResult?.mx_server ?? null };
+        }
+        return null;
+      } catch (mxErr) {
+        const errMsg = mxErr instanceof Error ? mxErr.message : String(mxErr);
+        console.error('❌ mxCheck.pl call failed:', errMsg);
+        return { email: data.email, mxError: errMsg, mxServer: null };
       }
-    } catch (mxErr) {
-      const errMsg = mxErr instanceof Error ? mxErr.message : String(mxErr);
-      console.error('❌ mxCheck.pl call failed:', errMsg);
-      return NextResponse.json({ error: 'Invalid Email' }, { status: 400 });
+    };
+
+    // Only re-run the check when the email text changed (cache miss).
+    const validateEmail = async (): Promise<EmailValidationResult> => {
+      const cached = getCached(emailValidationCache, data.email ?? '');
+      if (cached !== undefined) {
+        console.log(`📧 mxCheck cache hit for ${data.email} — skipping check`);
+        return cached;
+      }
+      const result = await runEmailCheck();
+      emailValidationCache.set(data.email ?? '', { result, ts: Date.now() });
+      return result;
+    };
+
+    // Validate phone with libphonenumber-js, then confirm it's a real, reachable
+    // line via Twilio Lookup v2. Default region US (the form is a US pet-care
+    // business); an explicit +country code still parses correctly. Returns the
+    // E.164 number on success, or a phoneValidation error payload on failure.
+    const runPhoneCheck = async (): Promise<PhoneValidationResult> => {
+      const parsedPhone = parsePhoneNumberFromString(data.phone ?? '', 'US');
+      if (!parsedPhone || !parsedPhone.isValid()) {
+        console.log(`❌ Phone number failed libphonenumber-js validation: ${data.phone}`);
+        return { errorBody: { phone: data.phone, detail: 'Not a valid phone number' } };
+      }
+      const e164Phone = parsedPhone.number; // E.164, e.g. +15551234567
+
+      const twilioSid = process.env.TWILIO_ACCOUNT_SID;
+      const twilioToken = process.env.TWILIO_AUTH_TOKEN;
+      // line_type_intelligence enriches the lookup with carrier/line-type data
+      // (mobile, landline, voip, nonFixedVoip) so VoIP/burner numbers can be
+      // distinguished from real reachable lines.
+      const lookupFields = 'line_type_intelligence';
+      const lookupUrl = `https://lookups.twilio.com/v2/PhoneNumbers/${encodeURIComponent(e164Phone)}?Fields=${lookupFields}`;
+      try {
+        console.log(`📞 Calling Twilio Lookup for ${e164Phone}: ${lookupUrl}`);
+        const lookupResponse = await fetch(lookupUrl, {
+          headers: {
+            Authorization: 'Basic ' + Buffer.from(`${twilioSid}:${twilioToken}`).toString('base64'),
+          },
+        });
+        const lookupData = await lookupResponse.json().catch(() => ({}));
+        // Full result logged for the record — may be persisted downstream.
+        console.log(
+          `📞 Twilio Lookup returned status=${lookupResponse.status} valid=${lookupData?.valid ?? '-'} lineType=${lookupData?.line_type_intelligence?.type ?? '-'}`
+        );
+        console.log('📞 Twilio Lookup full result:', JSON.stringify(lookupData));
+
+        // Twilio returns 200 with { valid: true } for a good number; a 404 (and a
+        // 200 with valid:false) means the number isn't a real, routable line.
+        if (!lookupResponse.ok || lookupData?.valid === false) {
+          console.error(`❌ Twilio Lookup rejected ${e164Phone}: status=${lookupResponse.status}`, lookupData);
+          return { errorBody: { phone: e164Phone, twilioStatus: lookupResponse.status, twilio: lookupData } };
+        }
+        return { formatted: e164Phone };
+      } catch (lookupErr) {
+        const errMsg = lookupErr instanceof Error ? lookupErr.message : String(lookupErr);
+        console.error('❌ Twilio Lookup call failed:', errMsg);
+        return { errorBody: { phone: e164Phone, twilio: { error: errMsg } } };
+      }
+    };
+
+    // Only re-run the check (incl. the Twilio call) when the phone text changed.
+    const validatePhone = async (): Promise<PhoneValidationResult> => {
+      const cached = getCached(phoneValidationCache, data.phone ?? '');
+      if (cached !== undefined) {
+        console.log(`📞 Twilio Lookup cache hit for ${data.phone} — skipping check`);
+        return cached;
+      }
+      const result = await runPhoneCheck();
+      phoneValidationCache.set(data.phone ?? '', { result, ts: Date.now() });
+      return result;
+    };
+
+    const [emailValidation, phoneResult] = await Promise.all([validateEmail(), validatePhone()]);
+    if (emailValidation || phoneResult.errorBody) {
+      const body: {
+        error: string;
+        emailValidation?: typeof emailValidation;
+        phoneValidation?: unknown;
+      } = {
+        error:
+          emailValidation && phoneResult.errorBody
+            ? 'Invalid Email and Phone Number'
+            : emailValidation
+              ? 'Invalid Email'
+              : 'Invalid Phone Number',
+      };
+      if (emailValidation) body.emailValidation = emailValidation;
+      if (phoneResult.errorBody) body.phoneValidation = phoneResult.errorBody;
+      return NextResponse.json(body, { status: 400 });
     }
+
+    const phoneValidation = { valid: true as const, formatted: phoneResult.formatted! };
 
     // Verify reCAPTCHA token
     const host = request.headers.get('host') || '';
@@ -104,69 +210,6 @@ export async function POST(request: NextRequest) {
     } else {
       console.log('⏭️  Skipping reCAPTCHA verification (localhost)');
     }
-
-    // Validate phone number with libphonenumber-js, then confirm it's a real,
-    // reachable line via Twilio Lookup v2. Default region US (the form is a
-    // US pet-care business); an explicit +country code still parses correctly.
-    const parsedPhone = parsePhoneNumberFromString(data.phone ?? '', 'US');
-    if (!parsedPhone || !parsedPhone.isValid()) {
-      console.log(`❌ Phone number failed libphonenumber-js validation: ${data.phone}`);
-      return NextResponse.json(
-        {
-          error: 'Invalid Phone Number',
-          phoneValidation: { phone: data.phone, detail: 'Not a valid phone number' },
-        },
-        { status: 400 }
-      );
-    }
-    const e164Phone = parsedPhone.number; // E.164, e.g. +15551234567
-
-    const twilioSid = process.env.TWILIO_ACCOUNT_SID;
-    const twilioToken = process.env.TWILIO_AUTH_TOKEN;
-    // line_type_intelligence enriches the lookup with carrier/line-type data
-    // (mobile, landline, voip, nonFixedVoip) so VoIP/burner numbers can be
-    // distinguished from real reachable lines.
-    const lookupFields = 'line_type_intelligence';
-    const lookupUrl = `https://lookups.twilio.com/v2/PhoneNumbers/${encodeURIComponent(e164Phone)}?Fields=${lookupFields}`;
-    try {
-      console.log(`📞 Calling Twilio Lookup for ${e164Phone}: ${lookupUrl}`);
-      const lookupResponse = await fetch(lookupUrl, {
-        headers: {
-          Authorization: 'Basic ' + Buffer.from(`${twilioSid}:${twilioToken}`).toString('base64'),
-        },
-      });
-      const lookupData = await lookupResponse.json().catch(() => ({}));
-      // Full result logged for the record — may be persisted downstream.
-      console.log(
-        `📞 Twilio Lookup returned status=${lookupResponse.status} valid=${lookupData?.valid ?? '-'} lineType=${lookupData?.line_type_intelligence?.type ?? '-'}`
-      );
-      console.log('📞 Twilio Lookup full result:', JSON.stringify(lookupData));
-
-      // Twilio returns 200 with { valid: true } for a good number; a 404 (and a
-      // 200 with valid:false) means the number isn't a real, routable line.
-      if (!lookupResponse.ok || lookupData?.valid === false) {
-        console.error(`❌ Twilio Lookup rejected ${e164Phone}: status=${lookupResponse.status}`, lookupData);
-        return NextResponse.json(
-          {
-            error: 'Invalid Phone Number',
-            phoneValidation: { phone: e164Phone, twilioStatus: lookupResponse.status, twilio: lookupData },
-          },
-          { status: 400 }
-        );
-      }
-    } catch (lookupErr) {
-      const errMsg = lookupErr instanceof Error ? lookupErr.message : String(lookupErr);
-      console.error('❌ Twilio Lookup call failed:', errMsg);
-      return NextResponse.json(
-        {
-          error: 'Invalid Phone Number',
-          phoneValidation: { phone: e164Phone, twilio: { error: errMsg } },
-        },
-        { status: 400 }
-      );
-    }
-
-    const phoneValidation = { valid: true as const, formatted: e164Phone };
 
     // Initialize Google Sheets API
     const auth = new google.auth.GoogleAuth({

@@ -207,30 +207,29 @@ export function MultiStepContactForm() {
       if (!response.ok) {
         const body = await response.json().catch(() => ({}));
         if (isStale()) return;
-        if (body.emailValidation) {
-          const { email, mxError, mxServer } = body.emailValidation;
-          // "no mx record for hostname ..." means the domain itself is bad;
-          // anything else is a rejected mailbox at a valid domain.
-          const isDomainError = typeof mxError === 'string' && mxError.startsWith('no mx record for hostname');
-          setEmailError({
-            email,
-            mode: isDomainError ? 'domain' : 'username',
-            detail: isDomainError
-              ? 'wrong domain name'
-              : `unknown username says ${mxServer ?? 'mail server'}`,
-          });
-          // Email field lives on step 0 — send the user back so they can fix it.
-          setCurrentStep(0);
-          setLoading(false);
-          submitting.current = false;
-          return;
-        }
-        if (body.phoneValidation) {
-          // Show "Invalid Phone Number" plus whatever the Twilio lookup returned.
-          const pv = body.phoneValidation;
-          const twilioOutput = pv.twilio !== undefined ? JSON.stringify(pv.twilio, null, 2) : pv.detail;
-          setPhoneError(twilioOutput ? String(twilioOutput) : null);
-          // Phone field lives on step 0 — send the user back so they can fix it.
+        // Email and/or phone can both fail in one response — surface whichever
+        // are present so the user can fix them together.
+        if (body.emailValidation || body.phoneValidation) {
+          if (body.emailValidation) {
+            const { email, mxError, mxServer } = body.emailValidation;
+            // "no mx record for hostname ..." means the domain itself is bad;
+            // anything else is a rejected mailbox at a valid domain.
+            const isDomainError = typeof mxError === 'string' && mxError.startsWith('no mx record for hostname');
+            setEmailError({
+              email,
+              mode: isDomainError ? 'domain' : 'username',
+              detail: isDomainError
+                ? 'wrong domain name'
+                : `unknown username says ${mxServer ?? 'mail server'}`,
+            });
+          }
+          if (body.phoneValidation) {
+            // Show "Invalid Phone Number" plus whatever the Twilio lookup returned.
+            const pv = body.phoneValidation;
+            const twilioOutput = pv.twilio !== undefined ? JSON.stringify(pv.twilio, null, 2) : pv.detail;
+            setPhoneError(twilioOutput ? String(twilioOutput) : null);
+          }
+          // Both fields live on step 0 — send the user back so they can fix them.
           setCurrentStep(0);
           setLoading(false);
           submitting.current = false;
@@ -478,40 +477,40 @@ export function MultiStepContactForm() {
               </div>
             )}
 
-            {/* Error message */}
-            {emailError ? (
-              (() => {
-                const atIdx = emailError.email.lastIndexOf('@');
-                const local = emailError.email.slice(0, atIdx);
-                const domain = emailError.email.slice(atIdx + 1);
-                return (
-                  <p className="text-sm font-semibold text-red-700 dark:text-red-600">
-                    Invalid Email: &quot;
-                    {emailError.mode === 'domain' ? (
-                      <>
-                        <span className="text-blue-500">{local}</span>
-                        <span className="text-white">@</span>
-                        <span className="text-red-700 underline decoration-black">{domain}</span>
-                      </>
-                    ) : (
-                      <>
-                        <span className="text-red-700 underline decoration-black">{local}</span>
-                        <span className="text-white">@</span>
-                        <span className="text-blue-500">{domain}</span>
-                      </>
-                    )}
-                    &quot;, {emailError.detail}
-                  </p>
-                );
-              })()
-            ) : phoneError ? (
+            {/* Error messages — email and phone can both show at once. */}
+            {emailError && (() => {
+              const atIdx = emailError.email.lastIndexOf('@');
+              const local = emailError.email.slice(0, atIdx);
+              const domain = emailError.email.slice(atIdx + 1);
+              return (
+                <p className="text-sm font-semibold text-red-700 dark:text-red-600">
+                  Invalid Email: &quot;
+                  {emailError.mode === 'domain' ? (
+                    <>
+                      <span className="text-blue-500">{local}</span>
+                      <span className="text-white">@</span>
+                      <span className="text-red-700 underline decoration-black">{domain}</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-red-700 underline decoration-black">{local}</span>
+                      <span className="text-white">@</span>
+                      <span className="text-blue-500">{domain}</span>
+                    </>
+                  )}
+                  &quot;, {emailError.detail}
+                </p>
+              );
+            })()}
+            {phoneError && (
               <div className="text-sm font-semibold text-red-700 dark:text-red-600">
                 <p>Invalid Phone Number</p>
                 <pre className="mt-1 whitespace-pre-wrap break-words font-mono text-xs font-normal">{phoneError}</pre>
               </div>
-            ) : error ? (
+            )}
+            {!emailError && !phoneError && error && (
               <p className="text-sm font-semibold text-red-700 dark:text-red-600">{error}</p>
-            ) : null}
+            )}
 
             {/* Navigation */}
             <div className="flex gap-3 pt-4">
