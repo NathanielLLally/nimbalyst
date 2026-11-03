@@ -495,13 +495,16 @@ export function MultiStepContactForm() {
                     Check this box to receive messages from our sales team. Message frequency varies, and data rates may apply.
                   </label>
                 </div>
-
-                {/* reCAPTCHA v3 inline badge (only on last page) */}
-                <div className="flex justify-center pt-4">
-                  <div ref={handleContainerRef} />
-                </div>
               </div>
             )}
+
+            {/* reCAPTCHA v3 inline badge. Mounted once at form scope and only
+                hidden (display:none) off the last step — never unmounted — so
+                the rendered widget's DOM node survives step navigation and its
+                widget id stays valid for grecaptcha.execute() at submit time. */}
+            <div className={`flex justify-center pt-4 ${currentStep === 2 ? '' : 'hidden'}`}>
+              <div ref={handleContainerRef} />
+            </div>
 
             {/* Error messages — email and phone can both show at once. */}
             {emailError && (() => {
