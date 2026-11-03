@@ -61,10 +61,10 @@ async function testVapiTools() {
     if (response.ok && data.result) {
       console.log('✅ check_availability passed');
       console.log('   Result:', data.result);
-      // "Available times (<timezone>): <slot>, <slot>, ..."
-      const slots = data.result.match(/^Available times \([^)]+\): (.+)$/);
-      if (slots) {
-        firstSlot = slots[1].split(', ')[0];
+      // "Exact datetimes: today at 7 PM = 2026-11-03T19:00:00.000-05:00; ..."
+      const exact = data.result.match(/= (\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}[+-]\d{2}:\d{2})/);
+      if (exact) {
+        firstSlot = exact[1];
       }
     } else if (data.error?.includes('410')) {
       console.log('⚠️  check_availability - Cal.com API returned 410 Gone');

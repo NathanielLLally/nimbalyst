@@ -80,9 +80,11 @@ describe('POST /api/vapi-tools check_availability', () => {
     const result = await firstResult(res);
 
     // Then: the agent gets real availability back, not a "none found" fallback
-    expect(result.result).toBe(
-      'Available times (America/New_York): 2026-11-04T09:00:00.000-05:00, 2026-11-04T10:00:00.000-05:00, 2026-11-05T09:00:00.000-05:00'
-    );
+    expect(
+      ['2026-11-04T09:00:00.000-05:00', '2026-11-04T10:00:00.000-05:00', '2026-11-05T09:00:00.000-05:00'].every(
+        (slot) => result.result.includes(slot)
+      )
+    ).toBe(true);
   });
 
   it('should_report_no_availability_when_cal_returns_no_slots', async () => {
@@ -118,7 +120,7 @@ describe('POST /api/vapi-tools check_availability', () => {
     const result = await firstResult(await POST(toolCallRequest('check_availability', {})));
 
     // Then
-    expect(result.result).toBe('Available times (America/New_York): 2026-11-04T09:00:00.000-05:00');
+    expect(result.result).toMatch(/^Available times \(America\/New_York\): /);
   });
 
   it('should_name_requested_timezone_in_result', async () => {
@@ -133,7 +135,7 @@ describe('POST /api/vapi-tools check_availability', () => {
     );
 
     // Then
-    expect(result.result).toBe('Available times (America/Chicago): 2026-11-04T08:00:00.000-06:00');
+    expect(result.result).toMatch(/^Available times \(America\/Chicago\): /);
   });
 
   it('should_query_v2_slots_endpoint_for_configured_event_type', async () => {
@@ -456,7 +458,7 @@ describe('POST /api/vapi-tools Vapi tool-calls contract', () => {
     expect(result).toEqual({
       toolCallId: 'toolcall_2',
       name: 'check_availability',
-      result: 'Available times (America/New_York): 2026-11-04T09:00:00.000-05:00',
+      result: expect.stringMatching(/^Available times \(America\/New_York\): [\s\S]*2026-11-04T09:00:00\.000-05:00/),
     });
   });
 
@@ -759,9 +761,7 @@ describe('/api/vapi-tools logs what the assistant was told', () => {
     await POST(toolCallRequest('check_availability', {}));
 
     // Then
-    expect(log.mock.calls.flat().join(' ')).toContain(
-      'result="Available times (America/New_York): 2026-11-04T09:00:00.000-05:00"'
-    );
+    expect(log.mock.calls.flat().join(' ')).toContain('result="Available times (America/New_York): ');
   });
 
   it('should_truncate_long_results_in_log_line', async () => {
@@ -781,5 +781,102 @@ describe('/api/vapi-tools logs what the assistant was told', () => {
       length: 200,
       endsWithEllipsis: true,
     });
+  });
+});
+
+describe('/api/vapi-tools check_availability reads naturally', () => {
+  const fetchMock = vi.fn();
+
+  beforeEach(() => {
+    vi.stubGlobal('fetch', fetchMock);
+    vi.stubEnv('CAL_API_KEY', 'test-key');
+    vi.stubEnv('CAL_EVENT_TYPE_ID', '123');
+    vi.stubEnv('VAPI_WEBHOOK_SECRET', 'test-secret');
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    // Tuesday, November 3 2026, 10:00 AM in New York
+    vi.setSystemTime(new Date('2026-11-03T15:00:00Z'));
+  });
+
+  afterEach(() => {
+    fetchMock.mockReset();
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+  });
+
+  async function availability(slots: string[], timezone = 'America/New_York') {
+    const byDate: Record<string, { start: string }[]> = {};
+    for (const start of slots) (byDate[start.slice(0, 10)] ??= []).push({ start });
+    fetchMock.mockResolvedValueOnce(calResponse({ status: 'success', data: byDate }));
+    const result = await firstResult(await POST(toolCallRequest('check_availability', { timezone })));
+    return result.result as string;
+  }
+
+  const TODAY_AND_TOMORROW = [
+    '2026-11-03T19:00:00.000-05:00',
+    '2026-11-04T12:00:00.000-05:00',
+    '2026-11-04T13:30:00.000-05:00',
+    '2026-11-04T15:00:00.000-05:00',
+  ];
+
+  it('should_say_today_and_tomorrow_with_times_grouped_by_day', async () => {
+    // When
+    const result = await availability(TODAY_AND_TOMORROW);
+
+    // Then
+    expect(result.split('\n')[0]).toBe(
+      'Available times (America/New_York): today at 7 PM; tomorrow (Wednesday, November 4) at 12 PM, 1:30 PM, or 3 PM.'
+    );
+  });
+
+  it('should_name_weekday_and_date_beyond_tomorrow', async () => {
+    // When
+    const result = await availability(['2026-11-05T10:00:00.000-05:00']);
+
+    // Then
+    expect(result.split('\n')[0]).toBe('Available times (America/New_York): Thursday, November 5 at 10 AM.');
+  });
+
+  it('should_return_only_data_with_no_directions_for_the_assistant', async () => {
+    // Given: how times are offered belongs to the system prompt, not the tool
+    // When
+    const result = await availability(TODAY_AND_TOMORROW);
+
+    // Then
+    expect(result.split('\n').map((line) => line.split(':')[0])).toEqual(['Available times (America/New_York)', 'Exact datetimes']);
+  });
+
+  it('should_list_exact_datetime_for_each_spoken_time', async () => {
+    // When
+    const result = await availability(TODAY_AND_TOMORROW);
+
+    // Then
+    expect(result).toContain(
+      'Exact datetimes: today at 7 PM = 2026-11-03T19:00:00.000-05:00; tomorrow at 12 PM = 2026-11-04T12:00:00.000-05:00; tomorrow at 1:30 PM = 2026-11-04T13:30:00.000-05:00; tomorrow at 3 PM = 2026-11-04T15:00:00.000-05:00'
+    );
+  });
+
+  it('should_decide_today_in_the_callers_timezone', async () => {
+    // Given: 10 PM Nov 3 in New York, already Nov 4 in UTC
+    vi.setSystemTime(new Date('2026-11-04T03:00:00Z'));
+
+    // When
+    const result = await availability(['2026-11-04T12:00:00.000-05:00']);
+
+    // Then
+    expect(result.split('\n')[0]).toBe(
+      'Available times (America/New_York): tomorrow (Wednesday, November 4) at 12 PM.'
+    );
+  });
+
+  it('should_read_times_in_the_requested_timezone', async () => {
+    // When
+    const result = await availability(['2026-11-04T08:00:00.000-06:00'], 'America/Chicago');
+
+    // Then
+    expect(result.split('\n')[0]).toBe(
+      'Available times (America/Chicago): tomorrow (Wednesday, November 4) at 8 AM.'
+    );
   });
 });

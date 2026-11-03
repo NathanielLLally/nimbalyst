@@ -91,7 +91,7 @@ async function handleToolCalls(req: NextRequest) {
       try {
         const raw = await runTool(name, parameters)
         const result = typeof raw === 'string' ? raw : JSON.stringify(raw)
-        console.log(`${label} → ok (${Date.now() - startedAt}ms) result="${truncate(result, 200)}"`)
+        console.log(`${label} → ok (${Date.now() - startedAt}ms) result="${truncate(result.replace(/\n/g, ' | '), 200)}"`)
         return { name, toolCallId: toolCall.id, result }
       } catch (error) {
         const errMsg = error instanceof Error ? error.message : String(error)
@@ -127,7 +127,7 @@ async function runTool(name: string, parameters: any) {
     const slots = await getCalAvailability(timezone)
     return slots.length === 0
       ? `No availability found (${timezone})`
-      : `Available times (${timezone}): ${slots.join(', ')}`
+      : describeSlots(slots, timezone)
   }
 
   if (name === 'book_meeting') {
@@ -137,11 +137,13 @@ async function runTool(name: string, parameters: any) {
     }
     const timezone = parameters.timezone || DEFAULT_TIMEZONE
     const booking = await createCalBooking({ ...parameters, timezone })
-    const localStart = new Intl.DateTimeFormat('en-US', {
-      timeZone: timezone,
-      dateStyle: 'full',
-      timeStyle: 'short',
-    }).format(new Date(booking.start))
+    const localStart = plainSpaces(
+      new Intl.DateTimeFormat('en-US', {
+        timeZone: timezone,
+        dateStyle: 'full',
+        timeStyle: 'short',
+      }).format(new Date(booking.start))
+    )
     return `Booked for ${localStart} (${timezone})`
   }
 
@@ -150,6 +152,60 @@ async function runTool(name: string, parameters: any) {
   }
 
   throw new Error(`Unknown tool: ${name}`)
+}
+
+// Newer ICU puts a narrow no-break space before AM/PM; keep plain spaces for TTS
+function plainSpaces(text: string) {
+  return text.replace(/[  ]/g, ' ')
+}
+
+function joinWithOr(items: string[]) {
+  if (items.length <= 2) return items.join(' or ')
+  return `${items.slice(0, -1).join(', ')}, or ${items[items.length - 1]}`
+}
+
+/**
+ * Spoken-style availability ("today at 7 PM; tomorrow (Wednesday, November 4)
+ * at 12 PM or 1:30 PM") plus the exact datetimes book_meeting needs. Data only:
+ * how to offer the times is up to the assistant's system prompt. Days are
+ * judged in the caller's timezone.
+ */
+function describeSlots(slots: string[], timezone: string, now = new Date()) {
+  const dateKey = (d: Date) =>
+    new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(d)
+  const weekdayDate = (d: Date) =>
+    new Intl.DateTimeFormat('en-US', { timeZone: timezone, weekday: 'long', month: 'long', day: 'numeric' }).format(d)
+  const spokenTime = (d: Date) =>
+    plainSpaces(
+      new Intl.DateTimeFormat('en-US', { timeZone: timezone, hour: 'numeric', minute: '2-digit' }).format(d)
+    ).replace(':00', '')
+
+  const today = dateKey(now)
+  // Step from today's calendar date, not now + 24h, so DST changes can't skip a day
+  const tomorrowDate = new Date(`${today}T00:00:00Z`)
+  tomorrowDate.setUTCDate(tomorrowDate.getUTCDate() + 1)
+  const tomorrow = tomorrowDate.toISOString().slice(0, 10)
+
+  const days: { key: string; label: string; spoken: string; slots: { time: string; iso: string }[] }[] = []
+  for (const iso of slots) {
+    const d = new Date(iso)
+    const key = dateKey(d)
+    let day = days.find((x) => x.key === key)
+    if (!day) {
+      const label = key === today ? 'today' : key === tomorrow ? 'tomorrow' : weekdayDate(d)
+      const spoken = key === tomorrow ? `tomorrow (${weekdayDate(d)})` : label
+      day = { key, label, spoken, slots: [] }
+      days.push(day)
+    }
+    day.slots.push({ time: spokenTime(d), iso })
+  }
+
+  const spoken = days.map((day) => `${day.spoken} at ${joinWithOr(day.slots.map((s) => s.time))}`).join('; ')
+  const exact = days
+    .flatMap((day) => day.slots.map((s) => `${day.label} at ${s.time} = ${s.iso}`))
+    .join('; ')
+
+  return [`Available times (${timezone}): ${spoken}.`, `Exact datetimes: ${exact}.`].join('\n')
 }
 
 // Cal.com versions each endpoint family separately
