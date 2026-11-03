@@ -34,6 +34,16 @@ interface EmailValidationError {
   detail: string;
 }
 
+// Progressively format digits into the (###) ###-#### mask as the user types.
+// Non-digits are ignored and input is capped at 10 digits (US).
+function formatPhoneMask(input: string): string {
+  const digits = input.replace(/\D/g, '').slice(0, 10);
+  if (digits.length === 0) return '';
+  if (digits.length < 4) return `(${digits}`;
+  if (digits.length < 7) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+}
+
 // Reject if a promise hasn't settled within `ms`. Without this a hung
 // grecaptcha.execute() leaves the submit button stuck on "Submitting…" forever,
 // since nothing after the await (including the finally reset) ever runs.
@@ -155,6 +165,15 @@ export function MultiStepContactForm() {
       setPhoneError(null);
       cancelPendingSubmit();
     }
+  };
+
+  // Phone field: apply the (###) ###-#### mask as the user types.
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const masked = formatPhoneMask(e.target.value);
+    setFormData((prev) => ({ ...prev, phone: masked }));
+    setError(null);
+    setPhoneError(null);
+    cancelPendingSubmit();
   };
 
   // Check if current step is complete
@@ -302,7 +321,7 @@ export function MultiStepContactForm() {
   };
 
   return (
-    <div className="relative rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 sm:p-8 flex flex-col gap-8 overflow-hidden">
+    <div className="relative rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-background p-6 sm:p-8 flex flex-col gap-8 overflow-hidden">
       <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 opacity-60 pointer-events-none">
         <Image
           src="/dog_shake.png"
@@ -348,7 +367,7 @@ export function MultiStepContactForm() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-2 sm:col-span-1">
                   <label className="text-xs font-semibold tracking-widest uppercase text-white">
-                    Full Name
+                    👤 Name
                   </label>
                   <input
                     type="text"
@@ -357,12 +376,12 @@ export function MultiStepContactForm() {
                     value={formData.fullName}
                     onChange={handleInputChange}
                     required
-                    className="w-full bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-800 dark:text-zinc-200 placeholder:text-black dark:placeholder:text-black outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
+                    className="w-full bg-black/10 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-100 placeholder:text-[#f8f6f0] outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
                   />
                 </div>
                 <div className="flex flex-col gap-2 sm:col-span-1">
                   <label className="text-xs font-semibold tracking-widest uppercase text-white">
-                    Email
+                    ✉️ Email
                   </label>
                   <input
                     type="email"
@@ -371,21 +390,22 @@ export function MultiStepContactForm() {
                     value={formData.email}
                     onChange={handleInputChange}
                     required
-                    className="w-full bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-800 dark:text-zinc-200 placeholder:text-black dark:placeholder:text-black outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
+                    className="w-full bg-black/10 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-100 placeholder:text-[#f8f6f0] outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
                   />
                 </div>
                 <div className="flex flex-col gap-2 sm:col-span-2">
                   <label className="text-xs font-semibold tracking-widest uppercase text-white">
-                    Phone Number
+                    <span className="text-blue-500">📞</span> Phone
                   </label>
                   <input
                     type="tel"
                     name="phone"
-                    placeholder="(555) 123-4567"
+                    inputMode="tel"
+                    placeholder="(###) ###-####"
                     value={formData.phone}
-                    onChange={handleInputChange}
+                    onChange={handlePhoneChange}
                     required
-                    className="w-full bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-800 dark:text-zinc-200 placeholder:text-black dark:placeholder:text-black outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
+                    className="w-full bg-black/10 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-100 placeholder:text-[#f8f6f0] outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
                   />
                 </div>
               </div>
@@ -405,7 +425,7 @@ export function MultiStepContactForm() {
                     value={formData.company}
                     onChange={handleInputChange}
                     required
-                    className="w-full bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-800 dark:text-zinc-200 placeholder:text-black dark:placeholder:text-black outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
+                    className="w-full bg-black/10 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-100 placeholder:text-[#f8f6f0] outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
                   />
                 </div>
                 <div className="flex flex-col gap-2">
@@ -419,7 +439,7 @@ export function MultiStepContactForm() {
                     value={formData.website}
                     onChange={handleInputChange}
                     required
-                    className="w-full bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-800 dark:text-zinc-200 placeholder:text-black dark:placeholder:text-black outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
+                    className="w-full bg-black/10 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-100 placeholder:text-[#f8f6f0] outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
                   />
                 </div>
                 <div className="flex flex-col gap-2">
@@ -431,7 +451,7 @@ export function MultiStepContactForm() {
                     value={formData.businessType}
                     onChange={handleInputChange}
                     required
-                    className="w-full bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-800 dark:text-zinc-200 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
+                    className="w-full bg-black/10 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-100 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
                   >
                     <option value="">Select your business type</option>
                     <option value="grooming">Grooming Salon</option>
@@ -450,7 +470,7 @@ export function MultiStepContactForm() {
                     value={formData.challenge}
                     onChange={handleInputChange}
                     required
-                    className="w-full bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-800 dark:text-zinc-200 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
+                    className="w-full bg-black/10 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-100 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
                   >
                     <option value="">Select your main challenge</option>
                     <option value="leads">Getting more leads</option>
@@ -477,7 +497,7 @@ export function MultiStepContactForm() {
                     value={formData.message}
                     onChange={handleInputChange}
                     required
-                    className="w-full bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-3 text-sm text-zinc-800 dark:text-zinc-200 placeholder:text-black dark:placeholder:text-black outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 resize-none transition-all duration-200"
+                    className="w-full bg-black/10 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-3 text-sm text-zinc-100 placeholder:text-[#f8f6f0] outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 resize-none transition-all duration-200"
                   />
                 </div>
 
@@ -506,23 +526,25 @@ export function MultiStepContactForm() {
               <div ref={handleContainerRef} />
             </div>
 
-            {/* Error messages — email and phone can both show at once. */}
+            {/* Error messages — styled like the rose "Get Started" label
+                (rose text on a translucent rose pill with a rounded border).
+                Email and phone can both show at once. */}
             {emailError && (() => {
               const atIdx = emailError.email.lastIndexOf('@');
               const local = emailError.email.slice(0, atIdx);
               const domain = emailError.email.slice(atIdx + 1);
               return (
-                <p className="text-sm font-semibold text-red-700 dark:text-red-600">
+                <p className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-4 py-2 text-sm font-medium text-rose-500">
                   Invalid Email: &quot;
                   {emailError.mode === 'domain' ? (
                     <>
                       <span className="text-blue-500">{local}</span>
                       <span className="text-white">@</span>
-                      <span className="text-red-700 underline decoration-black">{domain}</span>
+                      <span className="text-rose-500 underline decoration-white">{domain}</span>
                     </>
                   ) : (
                     <>
-                      <span className="text-red-700 underline decoration-black">{local}</span>
+                      <span className="text-rose-500 underline decoration-white">{local}</span>
                       <span className="text-white">@</span>
                       <span className="text-blue-500">{domain}</span>
                     </>
@@ -532,13 +554,13 @@ export function MultiStepContactForm() {
               );
             })()}
             {phoneError && (
-              <div className="text-sm font-semibold text-red-700 dark:text-red-600">
+              <div className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-4 py-2 text-sm font-medium text-rose-500">
                 <p>Invalid Phone Number</p>
                 <pre className="mt-1 whitespace-pre-wrap break-words font-mono text-xs font-normal">{phoneError}</pre>
               </div>
             )}
             {!emailError && !phoneError && error && (
-              <p className="text-sm font-semibold text-red-700 dark:text-red-600">{error}</p>
+              <p className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-4 py-2 text-sm font-medium text-rose-500">{error}</p>
             )}
 
             {/* Navigation */}

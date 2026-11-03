@@ -140,64 +140,27 @@ export async function POST(request: NextRequest) {
       return result;
     };
 
-    // Validate phone with libphonenumber-js, then confirm it's a real, reachable
-    // line via Twilio Lookup v2. Default region US (the form is a US pet-care
+    // Validate the phone number with libphonenumber-js only — if it parses as a
+    // valid number it's accepted. Default region US (the form is a US pet-care
     // business); an explicit +country code still parses correctly. Returns the
     // E.164 number on success, or a phoneValidation error payload on failure.
-    const runPhoneCheck = async (): Promise<PhoneValidationResult> => {
-      const parsedPhone = parsePhoneNumberFromString(data.phone ?? '', 'US');
-      if (!parsedPhone || !parsedPhone.isValid()) {
-        console.log(`❌ Phone number failed libphonenumber-js validation: ${data.phone}`);
-        return { errorBody: { phone: data.phone, detail: 'Not a valid phone number' } };
-      }
-      const e164Phone = parsedPhone.number; // E.164, e.g. +15551234567
-
-      const twilioSid = process.env.TWILIO_ACCOUNT_SID;
-      const twilioToken = process.env.TWILIO_AUTH_TOKEN;
-      // line_type_intelligence enriches the lookup with carrier/line-type data
-      // (mobile, landline, voip, nonFixedVoip) so VoIP/burner numbers can be
-      // distinguished from real reachable lines.
-      const lookupFields = 'line_type_intelligence';
-      const lookupUrl = `https://lookups.twilio.com/v2/PhoneNumbers/${encodeURIComponent(e164Phone)}?Fields=${lookupFields}`;
-      try {
-        console.log(`📞 Calling Twilio Lookup for ${e164Phone}: ${lookupUrl}`);
-        // Bound the call — without a timeout a network stall hangs this route
-        // (undici waits ~300s), which hangs the client's submit button with it.
-        const lookupResponse = await fetch(lookupUrl, {
-          headers: {
-            Authorization: 'Basic ' + Buffer.from(`${twilioSid}:${twilioToken}`).toString('base64'),
-          },
-          signal: AbortSignal.timeout(10000),
-        });
-        const lookupData = await lookupResponse.json().catch(() => ({}));
-        // Full result logged for the record — may be persisted downstream.
-        console.log(
-          `📞 Twilio Lookup returned status=${lookupResponse.status} valid=${lookupData?.valid ?? '-'} lineType=${lookupData?.line_type_intelligence?.type ?? '-'}`
-        );
-        console.log('📞 Twilio Lookup full result:', JSON.stringify(lookupData));
-
-        // Twilio returns 200 with { valid: true } for a good number; a 404 (and a
-        // 200 with valid:false) means the number isn't a real, routable line.
-        if (!lookupResponse.ok || lookupData?.valid === false) {
-          console.error(`❌ Twilio Lookup rejected ${e164Phone}: status=${lookupResponse.status}`, lookupData);
-          return { errorBody: { phone: e164Phone, twilioStatus: lookupResponse.status, twilio: lookupData } };
-        }
-        return { formatted: e164Phone };
-      } catch (lookupErr) {
-        const errMsg = lookupErr instanceof Error ? lookupErr.message : String(lookupErr);
-        console.error('❌ Twilio Lookup call failed:', errMsg);
-        return { errorBody: { phone: e164Phone, twilio: { error: errMsg } } };
-      }
-    };
-
-    // Only re-run the check (incl. the Twilio call) when the phone text changed.
     const validatePhone = async (): Promise<PhoneValidationResult> => {
       const cached = getCached(phoneValidationCache, data.phone ?? '');
       if (cached !== undefined) {
-        console.log(`📞 Twilio Lookup cache hit for ${data.phone} — skipping check`);
+        console.log(`📞 phone validation cache hit for ${data.phone} — skipping check`);
         return cached;
       }
-      const result = await runPhoneCheck();
+
+      const parsedPhone = parsePhoneNumberFromString(data.phone ?? '', 'US');
+      let result: PhoneValidationResult;
+      if (!parsedPhone || !parsedPhone.isValid()) {
+        console.log(`❌ Phone number failed libphonenumber-js validation: ${data.phone}`);
+        result = { errorBody: { phone: data.phone, detail: 'Not a valid phone number' } };
+      } else {
+        console.log(`📞 Phone number valid: ${parsedPhone.number}`);
+        result = { formatted: parsedPhone.number }; // E.164, e.g. +15551234567
+      }
+
       phoneValidationCache.set(data.phone ?? '', { result, ts: Date.now() });
       return result;
     };
