@@ -68,6 +68,33 @@ export async function POST(request: NextRequest) {
     const data: ContactFormData = await request.json();
     console.log('📝 Form submission received:', { name: data.fullName, email: data.email, phone: data.phone, company: data.company });
 
+    // Verify reCAPTCHA first — this gates the slower, paid email/phone checks
+    // behind the bot score so automated submissions can't trigger them.
+    const host = request.headers.get('host') || '';
+    const isLocalhost = host.includes('localhost') || host.includes('127.0.0.1');
+
+    if (!isLocalhost) {
+      console.log('🔍 Verifying reCAPTCHA...');
+      const recaptchaResponse = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${data.recaptchaToken}`,
+      });
+
+      const recaptchaData = await recaptchaResponse.json();
+      console.log('✅ reCAPTCHA verification result:', { success: recaptchaData.success, score: recaptchaData.score });
+
+      if (!recaptchaData.success || recaptchaData.score < 0.5) {
+        console.log('❌ reCAPTCHA verification failed');
+        return NextResponse.json(
+          { error: 'reCAPTCHA verification failed' },
+          { status: 400 }
+        );
+      }
+    } else {
+      console.log('⏭️  Skipping reCAPTCHA verification (localhost)');
+    }
+
     // Validate email and phone together (in parallel) so that if both are wrong
     // the user is shown — and can fix — both at once, instead of one at a time.
     const scriptPath = path.join(process.cwd(), 'scripts', 'mxCheck.pl');
@@ -184,32 +211,6 @@ export async function POST(request: NextRequest) {
     }
 
     const phoneValidation = { valid: true as const, formatted: phoneResult.formatted! };
-
-    // Verify reCAPTCHA token
-    const host = request.headers.get('host') || '';
-    const isLocalhost = host.includes('localhost') || host.includes('127.0.0.1');
-
-    if (!isLocalhost) {
-      console.log('🔍 Verifying reCAPTCHA...');
-      const recaptchaResponse = await fetch('https://www.google.com/recaptcha/api/siteverify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: `secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${data.recaptchaToken}`,
-      });
-
-      const recaptchaData = await recaptchaResponse.json();
-      console.log('✅ reCAPTCHA verification result:', { success: recaptchaData.success, score: recaptchaData.score });
-
-      if (!recaptchaData.success || recaptchaData.score < 0.5) {
-        console.log('❌ reCAPTCHA verification failed');
-        return NextResponse.json(
-          { error: 'reCAPTCHA verification failed' },
-          { status: 400 }
-        );
-      }
-    } else {
-      console.log('⏭️  Skipping reCAPTCHA verification (localhost)');
-    }
 
     // Initialize Google Sheets API
     const auth = new google.auth.GoogleAuth({

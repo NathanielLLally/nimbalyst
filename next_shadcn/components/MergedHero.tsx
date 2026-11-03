@@ -77,16 +77,23 @@ export function MergedHero({
           {subtext}
         </p>
 
-        {/* CTA Button */}
+        {/* CTA Button — a real anchor so it still works without JavaScript.
+            With JS we intercept it for a smooth scroll; without JS the browser
+            follows the hash link to the contact section. */}
         <div className="flex h-10 items-center justify-center">
-          <button
-            onClick={() => {
-              document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' });
+          <a
+            href="/#contact"
+            onClick={(e) => {
+              const target = document.getElementById('contact');
+              if (target) {
+                e.preventDefault();
+                target.scrollIntoView({ behavior: 'smooth' });
+              }
             }}
             className="relative rounded-full bg-gradient-to-r from-violet-500 to-indigo-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 transition-opacity hover:opacity-90"
           >
             Get Started
-          </button>
+          </a>
         </div>
       </div>
     </section>

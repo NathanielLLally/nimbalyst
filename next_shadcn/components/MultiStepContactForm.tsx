@@ -231,8 +231,6 @@ export function MultiStepContactForm() {
           }
           // Both fields live on step 0 — send the user back so they can fix them.
           setCurrentStep(0);
-          setLoading(false);
-          submitting.current = false;
           return;
         }
         throw new Error(body.error || 'Failed to submit form');
@@ -243,16 +241,21 @@ export function MultiStepContactForm() {
       setTimeout(() => {
         setSubmitted(false);
         resetForm();
-        setLoading(false);
-        submitting.current = false;
       }, 3000);
     } catch (err) {
       if (isStale()) return;
       const errorMessage = err instanceof Error ? err.message : 'An error occurred';
       console.error('❌ Form submission error:', errorMessage);
       setError(errorMessage);
-      setLoading(false);
-      submitting.current = false;
+    } finally {
+      // Always clear the submit state when this request settles — unless it was
+      // superseded (user edited a field or started another submit), in which
+      // case the newer flow owns the state and we must not clobber it. This is
+      // what prevents the button from getting stuck on "Submitting…".
+      if (!isStale()) {
+        setLoading(false);
+        submitting.current = false;
+      }
     }
   };
 
