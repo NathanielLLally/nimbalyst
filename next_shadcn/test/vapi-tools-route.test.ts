@@ -613,3 +613,119 @@ describe('/api/vapi-tools 401 diagnostics', () => {
     });
   });
 });
+
+describe('/api/vapi-tools tool call logging', () => {
+  const fetchMock = vi.fn();
+  let log: ReturnType<typeof vi.spyOn>;
+  let error: ReturnType<typeof vi.spyOn>;
+  let warn: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    vi.stubGlobal('fetch', fetchMock);
+    vi.stubEnv('CAL_API_KEY', 'test-key');
+    vi.stubEnv('CAL_EVENT_TYPE_ID', '123');
+    vi.stubEnv('VAPI_WEBHOOK_SECRET', 'test-secret');
+    log = vi.spyOn(console, 'log').mockImplementation(() => {});
+    error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    fetchMock.mockReset();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+  });
+
+  function withHeaders(req: Request, headers: Record<string, string>) {
+    for (const [k, v] of Object.entries(headers)) req.headers.set(k, v);
+    return req as any;
+  }
+
+  const logged = (spy: ReturnType<typeof vi.spyOn>) => spy.mock.calls.flat().join(' ');
+
+  it('should_log_successful_check_availability_with_source_ip', async () => {
+    // Given
+    fetchMock.mockResolvedValueOnce(calResponse({ status: 'success', data: {} }));
+
+    // When
+    await POST(
+      withHeaders(toolCallRequest('check_availability', {}), { 'X-Real-IP': '203.0.113.7' })
+    );
+
+    // Then
+    expect(logged(log)).toMatch(/Vapi tool check_availability id=toolcall_1 ip=203\.0\.113\.7 → ok/);
+  });
+
+  it('should_log_successful_book_meeting_with_source_ip', async () => {
+    // Given
+    fetchMock.mockResolvedValueOnce(
+      calResponse({ status: 'success', data: { start: '2026-11-04T17:00:00.000Z' } })
+    );
+
+    // When
+    await POST(
+      withHeaders(
+        toolCallRequest('book_meeting', {
+          email: 'jane@acme.com',
+          datetime: '2026-11-04T17:00:00.000Z',
+        }),
+        { 'X-Real-IP': '203.0.113.7' }
+      )
+    );
+
+    // Then
+    expect(logged(log)).toMatch(/Vapi tool book_meeting id=toolcall_1 ip=203\.0\.113\.7 → ok/);
+  });
+
+  it('should_log_failed_tool_call_with_source_ip_and_reason', async () => {
+    // Given
+    fetchMock.mockResolvedValueOnce(new Response('boom', { status: 500 }));
+
+    // When
+    await POST(
+      withHeaders(toolCallRequest('check_availability', {}), { 'X-Real-IP': '203.0.113.7' })
+    );
+
+    // Then
+    expect(logged(error)).toMatch(
+      /Vapi tool check_availability id=toolcall_1 ip=203\.0\.113\.7 → error: Failed to get availability/
+    );
+  });
+
+  it('should_use_proxy_appended_forwarded_for_entry_when_no_real_ip', async () => {
+    // Given: the leftmost entry is client-supplied and can be spoofed
+    fetchMock.mockResolvedValueOnce(calResponse({ status: 'success', data: {} }));
+
+    // When
+    await POST(
+      withHeaders(toolCallRequest('check_availability', {}), {
+        'X-Forwarded-For': '6.6.6.6, 198.51.100.4',
+      })
+    );
+
+    // Then
+    expect(logged(log)).toContain('ip=198.51.100.4');
+  });
+
+  it('should_log_unknown_ip_when_no_proxy_headers', async () => {
+    // Given
+    fetchMock.mockResolvedValueOnce(calResponse({ status: 'success', data: {} }));
+
+    // When
+    await POST(toolCallRequest('check_availability', {}));
+
+    // Then
+    expect(logged(log)).toContain('ip=unknown');
+  });
+
+  it('should_log_source_ip_on_unauthorized_request', async () => {
+    // When
+    await POST(
+      withHeaders(toolCallRequest('check_availability', {}, null), { 'X-Real-IP': '203.0.113.9' })
+    );
+
+    // Then
+    expect(logged(warn)).toContain('ip=203.0.113.9');
+  });
+});

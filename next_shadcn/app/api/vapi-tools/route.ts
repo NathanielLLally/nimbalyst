@@ -54,9 +54,21 @@ export async function POST(req: NextRequest) {
   return withCors(req, await handleToolCalls(req))
 }
 
+// nginx sets X-Real-IP to the connecting address. Without it, take the last
+// X-Forwarded-For entry (the one the proxy appended); earlier entries come
+// from the client and can be spoofed.
+function sourceIp(req: NextRequest) {
+  const realIp = req.headers.get('x-real-ip')?.trim()
+  if (realIp) return realIp
+  const forwarded = req.headers.get('x-forwarded-for')?.split(',').pop()?.trim()
+  return forwarded || 'unknown'
+}
+
 async function handleToolCalls(req: NextRequest) {
+  const ip = sourceIp(req)
+
   if (!isAuthorizedVapiRequest(req)) {
-    console.warn('❌ Vapi tools unauthorized:', describeAuthHeader(req))
+    console.warn(`❌ Vapi tools unauthorized: ip=${ip}`, describeAuthHeader(req))
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -74,8 +86,11 @@ async function handleToolCalls(req: NextRequest) {
   const results = await Promise.all(
     toolCalls.map(async (toolCall: any) => {
       const { name, parameters } = parseToolCall(toolCall)
+      const label = `🔧 Vapi tool ${name} id=${toolCall.id} ip=${ip}`
+      const startedAt = Date.now()
       try {
         const result = await runTool(name, parameters)
+        console.log(`${label} → ok (${Date.now() - startedAt}ms)`)
         return {
           name,
           toolCallId: toolCall.id,
@@ -83,7 +98,7 @@ async function handleToolCalls(req: NextRequest) {
         }
       } catch (error) {
         const errMsg = error instanceof Error ? error.message : String(error)
-        console.error('❌ Vapi tools error:', errMsg)
+        console.error(`${label} → error: ${errMsg} (${Date.now() - startedAt}ms)`)
         return { name, toolCallId: toolCall.id, error: errMsg }
       }
     })
