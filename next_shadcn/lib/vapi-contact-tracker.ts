@@ -565,10 +565,12 @@ export async function dispatchContactDirectly(row: SheetUtils.ContactRow): Promi
   const id = row[0];
   const phone = row[1];
   const name = row[2];
+  const email = String(row[3] ?? '');
   const channel = row[4];
   const timezone = row[13] as string | undefined; // N: Timezone
   const notes = String(row[12] ?? '');
   const company = notes.match(/Company:\s*(.+?)(?:\s*\||$)/)?.[1]?.trim();
+  const challenge = notes.match(/Challenge:\s*(.+?)(?:\s*\||$)/)?.[1]?.trim();
 
   console.log(`📞 Dispatching ${id} immediately (${phone})`);
 
@@ -579,7 +581,7 @@ export async function dispatchContactDirectly(row: SheetUtils.ContactRow): Promi
 
     const messages = await getCallMachineMessages();
     const callMachineMessage = messages.get(1);
-    const vapiResponse = await makeVapiCall(phone as string, name as string, channel as string, 1, callMachineMessage, timezone, company);
+    const vapiResponse = await makeVapiCall(phone as string, name as string, channel as string, 1, callMachineMessage, timezone, company, email, challenge);
 
     if (!vapiResponse.success) {
       throw new Error(vapiResponse.error || 'Unknown Vapi error');
@@ -671,11 +673,13 @@ async function dispatchContact(
   const id = row[0];
   const phone = row[1];
   const name = row[2];
+  const email = String(row[3] ?? '');
   const channel = row[4];
   const attemptCount = parseInt(String(row[6])) || 0;
   const timezone = row[13] as string | undefined; // N: Timezone
   const notes = String(row[12] ?? '');
   const company = notes.match(/Company:\s*(.+?)(?:\s*\||$)/)?.[1]?.trim();
+  const challenge = notes.match(/Challenge:\s*(.+?)(?:\s*\||$)/)?.[1]?.trim();
 
   console.log(
     `📞 Dispatching ${id} (attempt ${attemptCount + 1}/${cfg.MAX_ATTEMPTS})`
@@ -684,7 +688,7 @@ async function dispatchContact(
   try {
     const messages = await getCallMachineMessages();
     const callMachineMessage = messages.get(attemptCount + 1);
-    const vapiResponse = await makeVapiCall(phone, name, channel, attemptCount + 1, callMachineMessage, timezone, company);
+    const vapiResponse = await makeVapiCall(phone, name, channel, attemptCount + 1, callMachineMessage, timezone, company, email, challenge);
 
     if (!vapiResponse.success) {
       throw new Error(vapiResponse.error || 'Unknown Vapi error');
@@ -730,7 +734,9 @@ export async function makeVapiCall(
   attemptNumber: number = 1,
   callMachineMessage?: string,
   timezone?: string,
-  company?: string
+  company?: string,
+  email?: string,
+  challenge?: string
 ): Promise<VapiResponse> {
   const cfg = getConfig();
   const url = 'https://api.vapi.ai/call';
@@ -745,6 +751,8 @@ export async function makeVapiCall(
         customerName: name,
         fullName: name,
         company: company ?? '',
+        email: email ?? '',
+        challenge: challenge ?? '',
         channel,
         attemptNumber,
       },
@@ -842,11 +850,13 @@ async function pollInProgress(
         status.endedReason === 'assistant_ended'
       ) {
         await markSuccess(rowIndex, row, status);
-      } else {
+      } else if (VOICEMAIL_REASONS.has(status.endedReason ?? '')) {
         await markFailed(rowIndex, row, `Ended: ${status.endedReason}`);
+      } else {
+        await markExhausted(rowIndex, row, `Ended: ${status.endedReason}`);
       }
     } else if (status.status === 'failed') {
-      await markFailed(rowIndex, row, status.error || 'Vapi call failed');
+      await markExhausted(rowIndex, row, status.error || 'Vapi call failed');
     } else if (status.status === 'scheduled' && process.env.HTPC_IGNORE_SCHEDULE === 'true') {
       // Call was queued with a future schedulePlan but scheduling is now bypassed.
       // Mark failed so the retry loop re-dispatches immediately without a schedule window.
@@ -937,6 +947,33 @@ async function markSuccess(
     cfg.SHEET_NAME
   );
   console.log(`✅ Contact ${row[0]} marked SUCCESS`);
+}
+
+const VOICEMAIL_REASONS = new Set(['voicemail_reached', 'voicemail']);
+
+async function markExhausted(
+  rowIndex: number,
+  row: SheetUtils.ContactRow,
+  reason: string
+): Promise<void> {
+  const cfg = getConfig();
+  const now = new Date();
+  await SheetUtils.updateContactRow(
+    cfg.GOOGLE_SHEET_ID,
+    rowIndex,
+    {
+      [5]: ContactStatus.RETRY_EXHAUSTED,
+      [10]: now.toISOString(),
+    } as any,
+    cfg.SHEET_NAME
+  );
+  await SheetUtils.appendContactNote(
+    cfg.GOOGLE_SHEET_ID,
+    rowIndex,
+    `❌ NO_RETRY: ${reason}`,
+    cfg.SHEET_NAME
+  );
+  console.log(`🚫 Contact ${row[0]} will not retry: ${reason}`);
 }
 
 async function markFailed(
@@ -1063,15 +1100,13 @@ export async function onVapiWebhook(vapiEvent: {
           status: 'completed',
           endedReason: vapiEvent.endedReason,
         });
+      } else if (VOICEMAIL_REASONS.has(vapiEvent.endedReason)) {
+        await markFailed(rowIndex, row, `Ended: ${vapiEvent.endedReason}`);
       } else {
-        await markFailed(
-          rowIndex,
-          row,
-          `Ended: ${vapiEvent.endedReason}`
-        );
+        await markExhausted(rowIndex, row, `Ended: ${vapiEvent.endedReason}`);
       }
     } else if (vapiEvent.status === 'failed') {
-      await markFailed(
+      await markExhausted(
         rowIndex,
         row,
         vapiEvent.error || 'Vapi call failed'

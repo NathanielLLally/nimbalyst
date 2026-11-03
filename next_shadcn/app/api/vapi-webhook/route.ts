@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
     // Extract the actual report from the message
     const body: VapiCallReport = rawBody.message || rawBody;
 
-    console.log(`📨 Vapi Webhook: ${body.id || body.callId} | Type: ${body.type || 'unknown'} | Status: ${body.status}`);
+    console.log(`📨 Vapi Webhook: ${body.id || body.callId} | Type: ${body.type || 'unknown'} | Status: ${body.status} | Reason: ${body.endedReason || 'unknown'}`);
 
     // Optional: Verify signature
     if (process.env.VAPI_WEBHOOK_SECRET && signature) {
