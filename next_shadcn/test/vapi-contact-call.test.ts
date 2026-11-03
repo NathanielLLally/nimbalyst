@@ -16,11 +16,15 @@ import {
 } from '../lib/vapi-contact-tracker';
 
 // A: ID | B: Phone | C: Name | D: Email | E: Channel | F: Status | G: Attempt Count ...
-function contactRow(email: string) {
+function contactRow(email: string, notes = 'Challenge: Growth | Company: Acme') {
   const row: any[] = ['contact_1', '+15555550100', 'Jane Lead', email, 'voice', 'PENDING', 0];
-  row[12] = 'Company: Acme';
+  row[12] = notes; // M: Notes
   return row;
 }
+
+// After each dispatch appendContactNote adds a line to M: Notes
+const NOTES_AFTER_FIRST_ATTEMPT =
+  'Challenge: Growth | Company: Acme\n[2026-11-03T07:33:24] Dispatched to Vapi (call ID: call_1)';
 
 function sentVariableValues(fetchMock: ReturnType<typeof vi.fn>) {
   const vapiCall = fetchMock.mock.calls.find(([url]) => url === 'https://api.vapi.ai/call');
@@ -79,5 +83,28 @@ describe('Vapi call receives the email from the contact form', () => {
 
     // Then
     expect(sentVariableValues(fetchMock).email).toBe('jane@acme.com');
+  });
+
+  it('should_send_company_on_retry_after_notes_were_appended', async () => {
+    // Given: a retry, so notes already have a dispatch line after the company
+    getTrackerData.mockResolvedValue([['header'], contactRow('jane@acme.com', NOTES_AFTER_FIRST_ATTEMPT)]);
+
+    // When
+    await dispatchContactById('contact_1');
+
+    // Then
+    expect(sentVariableValues(fetchMock).company).toBe('Acme');
+  });
+
+  it('should_send_company_on_immediate_dispatch_with_appended_notes', async () => {
+    // Given
+    const row = contactRow('jane@acme.com', NOTES_AFTER_FIRST_ATTEMPT);
+    getTrackerData.mockResolvedValue([['header'], row]);
+
+    // When
+    await dispatchContactDirectly(row as any);
+
+    // Then
+    expect(sentVariableValues(fetchMock).company).toBe('Acme');
   });
 });

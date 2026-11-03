@@ -89,13 +89,10 @@ async function handleToolCalls(req: NextRequest) {
       const label = `🔧 Vapi tool ${name} id=${toolCall.id} ip=${ip}`
       const startedAt = Date.now()
       try {
-        const result = await runTool(name, parameters)
-        console.log(`${label} → ok (${Date.now() - startedAt}ms)`)
-        return {
-          name,
-          toolCallId: toolCall.id,
-          result: typeof result === 'string' ? result : JSON.stringify(result),
-        }
+        const raw = await runTool(name, parameters)
+        const result = typeof raw === 'string' ? raw : JSON.stringify(raw)
+        console.log(`${label} → ok (${Date.now() - startedAt}ms) result="${truncate(result, 200)}"`)
+        return { name, toolCallId: toolCall.id, result }
       } catch (error) {
         const errMsg = error instanceof Error ? error.message : String(error)
         console.error(`${label} → error: ${errMsg} (${Date.now() - startedAt}ms)`)
@@ -105,6 +102,10 @@ async function handleToolCalls(req: NextRequest) {
   )
 
   return NextResponse.json({ results })
+}
+
+function truncate(text: string, max: number) {
+  return text.length <= max ? text : `${text.slice(0, max - 1)}…`
 }
 
 // toolCallList entries arrive either flat ({ name, parameters }) or as OpenAI

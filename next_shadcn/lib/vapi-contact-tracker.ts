@@ -99,7 +99,14 @@ enum ContactStatus {
   SUCCESS = 'SUCCESS',
   FAILED = 'FAILED',
   RETRY_EXHAUSTED = 'RETRY_EXHAUSTED',
+  // Call ended for a reason that isn't retried (and isn't a success)
+  ENDED = 'ENDED',
 }
+
+// Vapi endedReason values. A retry happens if and only if the call ended
+// with one of these; every other outcome is final.
+const RETRYABLE_END_REASONS = ['voicemail', 'silence-timed-out', 'customer-did-not-answer'];
+const SUCCESS_END_REASONS = ['customer-ended-call', 'assistant-ended-call', 'assistant-said-end-call-phrase'];
 
 enum Channel {
   VOICE = 'voice',
@@ -126,7 +133,7 @@ interface VapiResponse {
 }
 
 interface VapiStatus {
-  status: 'queued' | 'in-progress' | 'completed' | 'failed' | 'scheduled';
+  status: 'queued' | 'in-progress' | 'ended' | 'completed' | 'failed' | 'scheduled';
   endedReason?: string;
   error?: string;
   transcript?: string;
@@ -560,6 +567,15 @@ export async function processContacts(): Promise<void> {
 // Dispatch Logic
 // ============================================================================
 
+/**
+ * Read the company from M: Notes ("Challenge: ... | Company: ...").
+ * Matches per line: appendContactNote adds dispatch lines after the form's
+ * line, so the company is no longer at the end of the notes on retries.
+ */
+function companyFromNotes(notes: string): string | undefined {
+  return notes.match(/Company:\s*(.+?)(?:\s*\||$)/m)?.[1]?.trim();
+}
+
 export async function dispatchContactDirectly(row: SheetUtils.ContactRow): Promise<void> {
   const cfg = getConfig();
   const id = row[0];
@@ -569,7 +585,7 @@ export async function dispatchContactDirectly(row: SheetUtils.ContactRow): Promi
   const channel = row[4];
   const timezone = row[13] as string | undefined; // N: Timezone
   const notes = String(row[12] ?? '');
-  const company = notes.match(/Company:\s*(.+?)(?:\s*\||$)/)?.[1]?.trim();
+  const company = companyFromNotes(notes);
 
   console.log(`📞 Dispatching ${id} immediately (${phone})`);
 
@@ -677,7 +693,7 @@ async function dispatchContact(
   const attemptCount = parseInt(String(row[6])) || 0;
   const timezone = row[13] as string | undefined; // N: Timezone
   const notes = String(row[12] ?? '');
-  const company = notes.match(/Company:\s*(.+?)(?:\s*\||$)/)?.[1]?.trim();
+  const company = companyFromNotes(notes);
 
   console.log(
     `📞 Dispatching ${id} (attempt ${attemptCount + 1}/${cfg.MAX_ATTEMPTS})`
@@ -841,17 +857,9 @@ async function pollInProgress(
 
     console.log(`📊 ${id} status: ${status.status}`);
 
-    if (status.status === 'completed') {
-      if (
-        status.endedReason === 'customer_ended' ||
-        status.endedReason === 'assistant_ended'
-      ) {
-        await markSuccess(rowIndex, row, status);
-      } else {
-        await markFailed(rowIndex, row, `Ended: ${status.endedReason}`);
-      }
-    } else if (status.status === 'failed') {
-      await markFailed(rowIndex, row, status.error || 'Vapi call failed');
+    // Vapi reports finished calls as "ended"
+    if (status.status === 'ended' || status.status === 'completed' || status.status === 'failed') {
+      await resolveEndedCall(rowIndex, row, status.endedReason, status.error || 'Vapi call failed', status);
     } else if (status.status === 'scheduled' && process.env.HTPC_IGNORE_SCHEDULE === 'true') {
       // Call was queued with a future schedulePlan but scheduling is now bypassed.
       // Mark failed so the retry loop re-dispatches immediately without a schedule window.
@@ -908,6 +916,53 @@ async function getVapiCallStatus(callId: string): Promise<VapiStatus> {
 // ============================================================================
 // State Transitions
 // ============================================================================
+
+/**
+ * Settle a finished call: retry only for RETRYABLE_END_REASONS, otherwise
+ * mark SUCCESS or ENDED, both final.
+ */
+async function resolveEndedCall(
+  rowIndex: number,
+  row: SheetUtils.ContactRow,
+  endedReason: string | undefined,
+  fallbackReason: string,
+  vapiStatus: VapiStatus
+): Promise<void> {
+  if (endedReason && RETRYABLE_END_REASONS.includes(endedReason)) {
+    await markFailed(rowIndex, row, `Ended: ${endedReason}`);
+  } else if (endedReason && SUCCESS_END_REASONS.includes(endedReason)) {
+    await markSuccess(rowIndex, row, vapiStatus);
+  } else {
+    await markEnded(rowIndex, row, endedReason ? `Ended: ${endedReason}` : fallbackReason);
+  }
+}
+
+async function markEnded(
+  rowIndex: number,
+  row: SheetUtils.ContactRow,
+  reason: string
+): Promise<void> {
+  const cfg = getConfig();
+  const now = new Date();
+
+  await SheetUtils.updateContactRow(
+    cfg.GOOGLE_SHEET_ID,
+    rowIndex,
+    {
+      [5]: ContactStatus.ENDED, // Status
+      [10]: now.toISOString(), // Resolved
+    } as any,
+    cfg.SHEET_NAME
+  );
+
+  await SheetUtils.appendContactNote(
+    cfg.GOOGLE_SHEET_ID,
+    rowIndex,
+    `🛑 ENDED (not retried): ${reason}`,
+    cfg.SHEET_NAME
+  );
+  console.log(`🛑 Contact ${row[0]} ended without retry: ${reason}`);
+}
 
 async function markSuccess(
   rowIndex: number,
@@ -1055,32 +1110,11 @@ export async function onVapiWebhook(vapiEvent: {
 
     const { rowIndex, row } = matches[0];
 
-    if (
-      vapiEvent.status === 'completed' &&
-      vapiEvent.endedReason
-    ) {
-      if (
-        ['customer_ended', 'assistant_ended'].includes(
-          vapiEvent.endedReason
-        )
-      ) {
-        await markSuccess(rowIndex, row, {
-          status: 'completed',
-          endedReason: vapiEvent.endedReason,
-        });
-      } else {
-        await markFailed(
-          rowIndex,
-          row,
-          `Ended: ${vapiEvent.endedReason}`
-        );
-      }
-    } else if (vapiEvent.status === 'failed') {
-      await markFailed(
-        rowIndex,
-        row,
-        vapiEvent.error || 'Vapi call failed'
-      );
+    if (vapiEvent.endedReason || vapiEvent.status === 'failed') {
+      await resolveEndedCall(rowIndex, row, vapiEvent.endedReason, vapiEvent.error || 'Vapi call failed', {
+        status: vapiEvent.status as VapiStatus['status'],
+        endedReason: vapiEvent.endedReason,
+      });
     }
   } catch (err) {
     console.error('❌ onVapiWebhook error:', err);

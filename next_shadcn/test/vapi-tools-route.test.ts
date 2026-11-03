@@ -729,3 +729,57 @@ describe('/api/vapi-tools tool call logging', () => {
     expect(logged(warn)).toContain('ip=203.0.113.9');
   });
 });
+
+describe('/api/vapi-tools logs what the assistant was told', () => {
+  const fetchMock = vi.fn();
+  let log: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    vi.stubGlobal('fetch', fetchMock);
+    vi.stubEnv('CAL_API_KEY', 'test-key');
+    vi.stubEnv('CAL_EVENT_TYPE_ID', '123');
+    vi.stubEnv('VAPI_WEBHOOK_SECRET', 'test-secret');
+    log = vi.spyOn(console, 'log').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    fetchMock.mockReset();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+  });
+
+  it('should_include_result_in_success_log_line', async () => {
+    // Given
+    fetchMock.mockResolvedValueOnce(
+      calResponse({ status: 'success', data: { '2026-11-04': [{ start: '2026-11-04T09:00:00.000-05:00' }] } })
+    );
+
+    // When
+    await POST(toolCallRequest('check_availability', {}));
+
+    // Then
+    expect(log.mock.calls.flat().join(' ')).toContain(
+      'result="Available times (America/New_York): 2026-11-04T09:00:00.000-05:00"'
+    );
+  });
+
+  it('should_truncate_long_results_in_log_line', async () => {
+    // Given: six slots make a result well over the log limit
+    const day = Array.from({ length: 6 }, (_, i) => ({
+      start: `2026-11-04T1${i}:00:00.000-05:00`,
+    }));
+    fetchMock.mockResolvedValueOnce(calResponse({ status: 'success', data: { '2026-11-04': day } }));
+
+    // When
+    await POST(toolCallRequest('check_availability', {}));
+
+    // Then
+    const line = log.mock.calls.flat().join(' ');
+    const logged = line.match(/result="(.*)"/)![1];
+    expect({ length: logged.length, endsWithEllipsis: logged.endsWith('…') }).toEqual({
+      length: 200,
+      endsWithEllipsis: true,
+    });
+  });
+});

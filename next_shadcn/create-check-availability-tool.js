@@ -40,14 +40,14 @@ async function createTool() {
         // "Happy Tails Webhook" bearer credential; token is VAPI_WEBHOOK_SECRET
         credentialId: '61a15a35-0433-45aa-8804-b15c29e32f43',
       },
+      // Must be sync: for async tools Vapi hands the assistant "Success." and
+      // discards the slots the server returns
+      async: false,
+      // No request-complete message, so the assistant reads out the actual slots
       messages: [
         {
           type: 'request-start',
           content: 'Let me check what times are available for you.',
-        },
-        {
-          type: 'request-complete',
-          content: 'Here are the available time slots.',
         },
         {
           type: 'request-failed',
