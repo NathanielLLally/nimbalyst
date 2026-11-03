@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
-import { appendFile } from 'fs/promises';
 import path from 'path';
 import { google } from 'googleapis';
 import { onFormSubmit } from '@/lib/vapi-contact-tracker';
@@ -88,9 +87,7 @@ export async function POST(request: NextRequest) {
       const mxResults = JSON.parse(stdout);
       const mxResult = mxResults[0];
       if (!mxResult?.verified) {
-        const logFile = process.env.MX_CHECK_LOG_FILE ?? path.join(process.cwd(), 'logs', 'mx-check.log');
-        const logEntry = `${new Date().toISOString()} email=${data.email} error=${mxResult?.error ?? 'unverified'}\n`;
-        await appendFile(logFile, logEntry).catch((e: Error) => console.error('mx log write failed:', e.message));
+        console.error(`❌ MX verification failed: email=${data.email} error=${mxResult?.error ?? 'unverified'}`);
         return NextResponse.json({ error: 'Invalid Email' }, { status: 400 });
       }
     } catch (mxErr) {
