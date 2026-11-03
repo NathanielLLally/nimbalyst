@@ -1,4 +1,20 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
+const sheets = vi.hoisted(() => ({
+  findContactRows: vi.fn<(...args: any[]) => Promise<any>>(async () => []),
+  updateContactRow: vi.fn<(...args: any[]) => Promise<any>>(async () => ({})),
+}));
+
+// after() callbacks are collected so tests decide when post-response work runs
+const afterCallbacks = vi.hoisted(() => [] as (() => Promise<unknown> | unknown)[]);
+vi.mock('next/server', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('next/server')>()),
+  after: (cb: () => unknown) => {
+    afterCallbacks.push(cb);
+  },
+}));
+vi.mock('@/lib/googleSheetUtils', () => sheets);
+
 import { POST, OPTIONS } from '../app/api/vapi-tools/route';
 
 function vapiRequest(body: unknown, authorization: string | null = 'Bearer test-secret') {
@@ -878,5 +894,124 @@ describe('/api/vapi-tools check_availability reads naturally', () => {
     expect(result.split('\n')[0]).toBe(
       'Available times (America/Chicago): tomorrow (Wednesday, November 4) at 8 AM.'
     );
+  });
+});
+
+describe('/api/vapi-tools book_meeting records the Cal booking uid in contact_tracking', () => {
+  const fetchMock = vi.fn();
+  const bookingParams = {
+    name: 'Jane Lead',
+    email: 'jane@acme.com',
+    datetime: '2026-11-04T17:00:00.000Z',
+    timezone: 'America/New_York',
+  };
+
+  // book_meeting as Vapi sends it, with the call's variables
+  function bookMeetingFromCall(variableValues: Record<string, unknown>) {
+    return vapiRequest({
+      message: {
+        type: 'tool-calls',
+        call: { id: 'vapi_call_1', assistantOverrides: { variableValues } },
+        toolCallList: [{ id: 'toolcall_1', name: 'book_meeting', parameters: bookingParams }],
+      },
+    });
+  }
+
+  async function runAfterCallbacks() {
+    for (const cb of afterCallbacks.splice(0)) await cb();
+  }
+
+  beforeEach(() => {
+    vi.stubGlobal('fetch', fetchMock);
+    vi.stubEnv('CAL_API_KEY', 'test-key');
+    vi.stubEnv('CAL_EVENT_TYPE_ID', '123');
+    vi.stubEnv('VAPI_WEBHOOK_SECRET', 'test-secret');
+    vi.stubEnv('GOOGLE_SHEET_ID', 'sheet');
+    vi.stubEnv('SHEET_NAME', 'contact_tracking');
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    afterCallbacks.length = 0;
+    fetchMock.mockResolvedValue(
+      calResponse({ status: 'success', data: { uid: 'cal_uid_1', start: '2026-11-04T17:00:00.000Z' } })
+    );
+    sheets.findContactRows.mockImplementation(async (_id: string, column: number, value: string) =>
+      (column === 0 && value === 'contact_1') || (column === 11 && value === 'vapi_call_1')
+        ? [{ rowIndex: 5, row: ['contact_1'] }]
+        : []
+    );
+  });
+
+  afterEach(() => {
+    fetchMock.mockReset();
+    sheets.findContactRows.mockReset();
+    sheets.updateContactRow.mockClear();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+  });
+
+  it('should_respond_to_vapi_before_touching_the_sheet', async () => {
+    // When
+    const result = await firstResult(await POST(bookMeetingFromCall({ contactId: 'contact_1' })));
+
+    // Then: the booking result is back while the sheet write is still only scheduled
+    expect({
+      result: result.result,
+      sheetCalls: sheets.findContactRows.mock.calls.length + sheets.updateContactRow.mock.calls.length,
+      scheduled: afterCallbacks.length,
+    }).toEqual({ result: expect.stringMatching(/^Booked for /), sheetCalls: 0, scheduled: 1 });
+  });
+
+  it('should_write_uid_to_cal_booking_column_of_row_found_by_contact_id', async () => {
+    // When
+    await POST(bookMeetingFromCall({ contactId: 'contact_1' }));
+    await runAfterCallbacks();
+
+    // Then: column O (index 14) of the contact's row
+    expect(sheets.updateContactRow.mock.calls).toEqual([['sheet', 5, { 14: 'cal_uid_1' }, 'contact_tracking']]);
+  });
+
+  it('should_fall_back_to_vapi_call_id_when_call_has_no_contact_id', async () => {
+    // When: a call placed before contactId was sent
+    await POST(bookMeetingFromCall({}));
+    await runAfterCallbacks();
+
+    // Then
+    expect(sheets.updateContactRow.mock.calls).toEqual([['sheet', 5, { 14: 'cal_uid_1' }, 'contact_tracking']]);
+  });
+
+  it('should_not_write_when_no_row_matches', async () => {
+    // Given
+    sheets.findContactRows.mockResolvedValue([]);
+
+    // When
+    await POST(bookMeetingFromCall({ contactId: 'contact_unknown' }));
+    await runAfterCallbacks();
+
+    // Then
+    expect(sheets.updateContactRow).not.toHaveBeenCalled();
+  });
+
+  it('should_not_schedule_a_sheet_write_when_booking_fails', async () => {
+    // Given
+    fetchMock.mockResolvedValue(new Response('boom', { status: 500 }));
+
+    // When
+    await POST(bookMeetingFromCall({ contactId: 'contact_1' }));
+
+    // Then
+    expect(afterCallbacks.length).toBe(0);
+  });
+
+  it('should_keep_a_failed_sheet_write_out_of_the_tool_result', async () => {
+    // Given
+    sheets.updateContactRow.mockRejectedValueOnce(new Error('sheets down'));
+
+    // When
+    const result = await firstResult(await POST(bookMeetingFromCall({ contactId: 'contact_1' })));
+    await runAfterCallbacks();
+
+    // Then
+    expect(result.result).toMatch(/^Booked for /);
   });
 });

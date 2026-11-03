@@ -1,6 +1,7 @@
 // app/api/vapi-tools/route.ts
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse, after } from 'next/server'
 import { createHash, timingSafeEqual } from 'crypto'
+import * as SheetUtils from '@/lib/googleSheetUtils'
 
 // Vapi tools send the "Happy Tails Webhook" bearer credential, whose token is
 // VAPI_WEBHOOK_SECRET. Fails closed when the secret isn't configured.
@@ -89,7 +90,7 @@ async function handleToolCalls(req: NextRequest) {
       const label = `🔧 Vapi tool ${name} id=${toolCall.id} ip=${ip}`
       const startedAt = Date.now()
       try {
-        const raw = await runTool(name, parameters)
+        const raw = await runTool(name, parameters, body.message.call)
         const result = typeof raw === 'string' ? raw : JSON.stringify(raw)
         console.log(`${label} → ok (${Date.now() - startedAt}ms) result="${truncate(result.replace(/\n/g, ' | '), 200)}"`)
         return { name, toolCallId: toolCall.id, result }
@@ -121,7 +122,14 @@ function parseToolCall(toolCall: any) {
 // timezone so the agent reads times back correctly
 const DEFAULT_TIMEZONE = 'America/New_York'
 
-async function runTool(name: string, parameters: any) {
+// The Vapi call a tool request belongs to: its id, and the variables the
+// contact tracker started it with (including contactId)
+interface VapiCall {
+  id?: string
+  assistantOverrides?: { variableValues?: Record<string, unknown> }
+}
+
+async function runTool(name: string, parameters: any, call?: VapiCall) {
   if (name === 'check_availability') {
     const timezone = parameters?.timezone || DEFAULT_TIMEZONE
     const slots = await getCalAvailability(timezone)
@@ -137,6 +145,8 @@ async function runTool(name: string, parameters: any) {
     }
     const timezone = parameters.timezone || DEFAULT_TIMEZONE
     const booking = await createCalBooking({ ...parameters, timezone })
+    // Record the booking after the response so Vapi isn't kept waiting
+    after(() => recordCalBooking(booking.uid, call))
     const localStart = plainSpaces(
       new Intl.DateTimeFormat('en-US', {
         timeZone: timezone,
@@ -152,6 +162,44 @@ async function runTool(name: string, parameters: any) {
   }
 
   throw new Error(`Unknown tool: ${name}`)
+}
+
+// contact_tracking columns: A ID, L Vapi Call ID, O Cal Booking
+const CONTACT_ID_COLUMN = 0
+const VAPI_CALL_ID_COLUMN = 11
+const CAL_BOOKING_COLUMN = 14
+
+/**
+ * Write a Cal booking uid to the contact's row. The row is found by the
+ * contactId the tracker sent with the call, falling back to the Vapi call ID
+ * for calls placed before contactId was sent. Never throws: a failed write is
+ * logged and must not affect the booking.
+ */
+async function recordCalBooking(uid: string, call?: VapiCall) {
+  try {
+    const sheetId = process.env.GOOGLE_SHEET_ID
+    const sheetName = process.env.SHEET_NAME || 'Sheet1'
+    if (!sheetId) throw new Error('GOOGLE_SHEET_ID not set')
+
+    const contactId = call?.assistantOverrides?.variableValues?.contactId
+    let matches = contactId
+      ? await SheetUtils.findContactRows(sheetId, CONTACT_ID_COLUMN, String(contactId), sheetName)
+      : []
+    if (matches.length === 0 && call?.id) {
+      matches = await SheetUtils.findContactRows(sheetId, VAPI_CALL_ID_COLUMN, call.id, sheetName)
+    }
+    if (matches.length === 0) {
+      console.warn(`⚠️ Cal booking ${uid}: no contact_tracking row for contactId=${contactId ?? '-'} call=${call?.id ?? '-'}`)
+      return
+    }
+
+    const { rowIndex } = matches[0]
+    await SheetUtils.updateContactRow(sheetId, rowIndex, { [CAL_BOOKING_COLUMN]: uid } as any, sheetName)
+    console.log(`📅 Cal booking ${uid} → ${sheetName} row ${rowIndex}`)
+  } catch (error) {
+    const errMsg = error instanceof Error ? error.message : String(error)
+    console.warn(`⚠️ Cal booking ${uid}: could not record in sheet: ${errMsg}`)
+  }
 }
 
 // Newer ICU puts a narrow no-break space before AM/PM; keep plain spaces for TTS

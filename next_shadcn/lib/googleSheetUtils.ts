@@ -27,7 +27,7 @@ export interface ContactRow {
   [3]: string; // Email
   [4]: string; // Channel
   [5]: string; // Status
-  [6]: number; // Attempt Count
+  [6]: number | string; // Attempt Count ("X of Y")
   [7]: string; // Submitted
   [8]: string; // Last Attempt
   [9]: string; // Next Retry

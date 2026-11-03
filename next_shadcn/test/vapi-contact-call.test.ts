@@ -11,7 +11,6 @@ vi.mock('../lib/googleSheetUtils', () => ({
 
 import {
   makeVapiCall,
-  dispatchContactDirectly,
   dispatchContactById,
 } from '../lib/vapi-contact-tracker';
 
@@ -63,15 +62,15 @@ describe('Vapi call receives the email from the contact form', () => {
     expect(sentVariableValues(fetchMock).email).toBe('jane@acme.com');
   });
 
-  it('should_send_form_email_when_dispatching_new_contact_immediately', async () => {
+  it('should_send_contact_id_so_vapi_tool_calls_can_find_the_row', async () => {
     // Given
     getTrackerData.mockResolvedValue([['header'], contactRow('jane@acme.com')]);
 
     // When
-    await dispatchContactDirectly(contactRow('jane@acme.com') as any);
+    await dispatchContactById('contact_1');
 
     // Then
-    expect(sentVariableValues(fetchMock).email).toBe('jane@acme.com');
+    expect(sentVariableValues(fetchMock).contactId).toBe('contact_1');
   });
 
   it('should_send_form_email_when_dispatching_queued_contact', async () => {
@@ -91,18 +90,6 @@ describe('Vapi call receives the email from the contact form', () => {
 
     // When
     await dispatchContactById('contact_1');
-
-    // Then
-    expect(sentVariableValues(fetchMock).company).toBe('Acme');
-  });
-
-  it('should_send_company_on_immediate_dispatch_with_appended_notes', async () => {
-    // Given
-    const row = contactRow('jane@acme.com', NOTES_AFTER_FIRST_ATTEMPT);
-    getTrackerData.mockResolvedValue([['header'], row]);
-
-    // When
-    await dispatchContactDirectly(row as any);
 
     // Then
     expect(sentVariableValues(fetchMock).company).toBe('Acme');
