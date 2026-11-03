@@ -4,7 +4,8 @@
  * Test Vapi Tools Route
  * Run: node test-vapi-tools.js
  *
- * Note: Requires CAL_API_KEY and CAL_EVENT_TYPE_ID in .env for full testing
+ * Note: Requires CAL_API_KEY and CAL_EVENT_TYPE_ID in .env for full testing,
+ * and TEST_BOOKING_EMAIL (a deliverable address) to test booking
  */
 
 require('dotenv').config();
@@ -23,6 +24,9 @@ async function testVapiTools() {
   const baseUrl = process.env.BASE_URL || `http://localhost:${port}`;
   const endpoint = `${baseUrl}/api/vapi-tools`;
 
+  // Slot returned by check_availability, booked in Test 2
+  let firstSlot = null;
+
   // Test 1: check_availability
   console.log('Test 1: check_availability tool call');
   try {
@@ -39,7 +43,10 @@ async function testVapiTools() {
 
     const response = await fetch(endpoint, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${process.env.VAPI_WEBHOOK_SECRET}`
+      },
       body: JSON.stringify(availabilityRequest)
     });
 
@@ -48,6 +55,9 @@ async function testVapiTools() {
     if (response.ok && data.result) {
       console.log('✅ check_availability passed');
       console.log('   Result:', data.result);
+      if (data.result !== 'No availability found') {
+        firstSlot = data.result.split(', ')[0];
+      }
     } else if (response.status === 500 && data.error?.includes('410')) {
       console.log('⚠️  check_availability - Cal.com API returned 410 Gone');
       console.log('   Verify CAL_API_KEY and Cal.com API endpoints are current');
@@ -64,10 +74,15 @@ async function testVapiTools() {
   // Test 2: book_meeting
   console.log('Test 2: book_meeting tool call');
   try {
-    // Use a future date (7 days from now)
-    const futureDate = new Date();
-    futureDate.setDate(futureDate.getDate() + 7);
-    futureDate.setHours(14, 0, 0, 0);
+    // Book a slot Cal.com actually offers; arbitrary dates fall outside the
+    // event type's booking window and fail with no_available_users_found
+    if (!firstSlot) {
+      throw new Error('No slot from check_availability to book');
+    }
+    // Cal.com rejects undeliverable domains like example.com
+    if (!process.env.TEST_BOOKING_EMAIL) {
+      throw new Error('Set TEST_BOOKING_EMAIL to a deliverable address to test booking');
+    }
 
     const bookingRequest = {
       message: {
@@ -75,8 +90,8 @@ async function testVapiTools() {
           name: 'book_meeting',
           parameters: {
             name: 'Test User',
-            email: 'test@example.com',
-            datetime: futureDate.toISOString(),
+            email: process.env.TEST_BOOKING_EMAIL,
+            datetime: firstSlot,
             timezone: 'America/New_York'
           }
         }
@@ -85,7 +100,10 @@ async function testVapiTools() {
 
     const response = await fetch(endpoint, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${process.env.VAPI_WEBHOOK_SECRET}`
+      },
       body: JSON.stringify(bookingRequest)
     });
 
@@ -95,8 +113,8 @@ async function testVapiTools() {
       console.log('✅ book_meeting passed');
       console.log('   Result:', data.result);
     } else if (response.status === 500 && data.error?.includes('no_available_users_found')) {
-      console.log('⚠️  book_meeting - API working, but Cal.com configuration issue');
-      console.log('   Action: Add available team members to your event type in Cal.com');
+      console.log('⚠️  book_meeting - API working, but the requested slot is not bookable');
+      console.log('   Check the event type\'s booking window, schedule, and hosts in Cal.com');
     } else if (response.status === 500 && data.error?.includes('410')) {
       console.log('⚠️  book_meeting - Cal.com API returned 410 Gone');
       console.log('   Verify CAL_API_KEY, CAL_EVENT_TYPE_ID, and Cal.com API endpoints');
@@ -124,7 +142,10 @@ async function testVapiTools() {
 
     const response = await fetch(endpoint, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${process.env.VAPI_WEBHOOK_SECRET}`
+      },
       body: JSON.stringify(invalidRequest)
     });
 
@@ -154,7 +175,10 @@ async function testVapiTools() {
 
     const response = await fetch(endpoint, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${process.env.VAPI_WEBHOOK_SECRET}`
+      },
       body: JSON.stringify(missingParamsRequest)
     });
 

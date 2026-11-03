@@ -1,17 +1,46 @@
 // app/api/vapi-tools/route.ts
 import { NextRequest, NextResponse } from 'next/server'
+import { timingSafeEqual } from 'crypto'
+
+// Vapi tools send the "Happy Tails Webhook" bearer credential, whose token is
+// VAPI_WEBHOOK_SECRET. Fails closed when the secret isn't configured.
+function isAuthorizedVapiRequest(req: NextRequest) {
+  const secret = process.env.VAPI_WEBHOOK_SECRET
+  if (!secret) return false
+
+  const provided = Buffer.from(req.headers.get('authorization') ?? '')
+  const expected = Buffer.from(`Bearer ${secret}`)
+  return provided.length === expected.length && timingSafeEqual(provided, expected)
+}
 
 export async function POST(req: NextRequest) {
+  if (!isAuthorizedVapiRequest(req)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   try {
     const body = await req.json()
     const { name, parameters } = body.message.toolCall
 
     if (name === 'check_availability') {
+      if (!parameters?.timezone) {
+        return NextResponse.json(
+          { error: 'Missing required parameter: timezone' },
+          { status: 400 }
+        )
+      }
       const slots = await getCalAvailability(parameters.timezone)
       return NextResponse.json({ result: slots })
     }
 
     if (name === 'book_meeting') {
+      // Cal.com rejects undeliverable emails, so there's no usable placeholder
+      if (!parameters?.email) {
+        return NextResponse.json(
+          { error: 'Missing required parameter: email' },
+          { status: 400 }
+        )
+      }
       const booking = await createCalBooking(parameters)
       return NextResponse.json({ result: `Booked for ${booking.start}` })
     }
@@ -35,6 +64,19 @@ export async function POST(req: NextRequest) {
   }
 }
 
+// Cal.com versions each endpoint family separately
+const CAL_SLOTS_API_VERSION = '2024-09-04'
+const CAL_BOOKINGS_API_VERSION = '2024-08-13'
+
+// Every Cal.com call authenticates with the same CAL_API_KEY bearer token
+function calHeaders(apiVersion: string, extra: Record<string, string> = {}) {
+  return {
+    Authorization: `Bearer ${process.env.CAL_API_KEY}`,
+    'cal-api-version': apiVersion,
+    ...extra,
+  }
+}
+
 async function getCalAvailability(timezone: string) {
   try {
     const now = new Date()
@@ -43,7 +85,8 @@ async function getCalAvailability(timezone: string) {
     const eventTypeId = process.env.CAL_EVENT_TYPE_ID
 
     const res = await fetch(
-      `https://api.cal.com/v2/slots/available?apiKey=${process.env.CAL_API_KEY}&eventTypeId=${eventTypeId}&startTime=${encodeURIComponent(startTime)}&endTime=${encodeURIComponent(endTime)}&timeZone=${encodeURIComponent(timezone)}`,
+      `https://api.cal.com/v2/slots?eventTypeId=${eventTypeId}&start=${encodeURIComponent(startTime)}&end=${encodeURIComponent(endTime)}&timeZone=${encodeURIComponent(timezone)}`,
+      { headers: calHeaders(CAL_SLOTS_API_VERSION) }
     )
 
     if (!res.ok) {
@@ -54,12 +97,15 @@ async function getCalAvailability(timezone: string) {
 
     const data = await res.json()
 
-    if (!data.slots || !Array.isArray(data.slots)) {
+    // Cal.com v2 groups slots by date: { data: { 'YYYY-MM-DD': [{ start }] } }
+    const slots = Object.values(data?.data ?? {}).flat() as any[]
+
+    if (slots.length === 0) {
       return 'No availability found'
     }
 
     // format into something the LLM can read back naturally
-    return data.slots.map((s: any) => s.time || s.start).slice(0, 6).join(', ')
+    return slots.map((s: any) => s.start).slice(0, 6).join(', ')
   } catch (error) {
     const errMsg = error instanceof Error ? error.message : String(error)
     throw new Error(`Failed to get availability: ${errMsg}`)
@@ -70,7 +116,7 @@ async function cancelBooking(email: string, reason?: string) {
   // 1. Look up upcoming bookings for this attendee
   const lookupRes = await fetch(
     `https://api.cal.com/v2/bookings?attendeeEmail=${encodeURIComponent(email)}&status=upcoming`,
-    { headers: { Authorization: `Bearer ${process.env.CAL_API_KEY}` } }
+    { headers: calHeaders(CAL_BOOKINGS_API_VERSION) }
   );
   const lookup = await lookupRes.json();
   const bookings = lookup.data ?? [];
@@ -89,10 +135,7 @@ async function cancelBooking(email: string, reason?: string) {
     `https://api.cal.com/v2/bookings/${booking.uid}/cancel`,
     {
       method: 'POST',
-      headers: {
-        Authorization: `Bearer ${process.env.CAL_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
+      headers: calHeaders(CAL_BOOKINGS_API_VERSION, { 'Content-Type': 'application/json' }),
       body: JSON.stringify({
         cancellationReason: reason || 'Cancelled by lead via voice agent',
       }),
@@ -124,20 +167,17 @@ async function createCalBooking(params: any) {
 
     const res = await fetch(`https://api.cal.com/v2/bookings`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.CAL_API_KEY}`,
-      },
+      headers: calHeaders(CAL_BOOKINGS_API_VERSION, { 'Content-Type': 'application/json' }),
       body: JSON.stringify({
         eventTypeId,
         start: params.datetime,
-        timeZone: params.timezone,
-        language: 'en',
-        metadata: {},
-        responses: {
+        attendee: {
           name: params.name || 'Unknown',
-          email: params.email || 'noemail@placeholder.com',
+          email: params.email,
+          timeZone: params.timezone,
+          language: 'en',
         },
+        metadata: {},
       }),
     })
 
@@ -147,7 +187,8 @@ async function createCalBooking(params: any) {
       throw new Error(`Cal.com API error: ${res.status} ${res.statusText} - ${errorData}`)
     }
 
-    const booking = await res.json()
+    // v2 wraps the booking: { status, data: { uid, start, ... } }
+    const { data: booking } = await res.json()
     return booking
   } catch (error) {
     const errMsg = error instanceof Error ? error.message : String(error)
