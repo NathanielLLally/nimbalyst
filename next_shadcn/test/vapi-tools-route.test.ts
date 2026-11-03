@@ -518,3 +518,40 @@ describe('/api/vapi-tools CORS for the Vapi dashboard tool tester', () => {
     expect(res.headers.get('access-control-allow-origin')).toBeNull();
   });
 });
+
+describe('/api/vapi-tools 401 diagnostics', () => {
+  beforeEach(() => {
+    vi.stubGlobal('fetch', vi.fn());
+    vi.stubEnv('VAPI_WEBHOOK_SECRET', 'test-secret');
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+  });
+
+  it('should_log_header_shape_and_token_fingerprint_without_leaking_tokens', async () => {
+    // Given
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    // When
+    await POST(toolCallRequest('check_availability', {}, 'Bearer wrong-token'));
+
+    // Then
+    const logged = warn.mock.calls.flat().join(' ');
+    expect({
+      hasScheme: logged.includes('scheme=Bearer'),
+      hasLength: logged.includes('tokenLength=11'),
+      hasFingerprint: /tokenSha256=[0-9a-f]{12}/.test(logged),
+      leaksProvided: logged.includes('wrong-token'),
+      leaksSecret: logged.includes('test-secret'),
+    }).toEqual({
+      hasScheme: true,
+      hasLength: true,
+      hasFingerprint: true,
+      leaksProvided: false,
+      leaksSecret: false,
+    });
+  });
+});

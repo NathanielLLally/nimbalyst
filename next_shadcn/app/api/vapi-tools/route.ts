@@ -1,6 +1,6 @@
 // app/api/vapi-tools/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { timingSafeEqual } from 'crypto'
+import { createHash, timingSafeEqual } from 'crypto'
 
 // Vapi tools send the "Happy Tails Webhook" bearer credential, whose token is
 // VAPI_WEBHOOK_SECRET. Fails closed when the secret isn't configured.
@@ -11,6 +11,24 @@ function isAuthorizedVapiRequest(req: NextRequest) {
   const provided = Buffer.from(req.headers.get('authorization') ?? '')
   const expected = Buffer.from(`Bearer ${secret}`)
   return provided.length === expected.length && timingSafeEqual(provided, expected)
+}
+
+// Describes the Authorization header without revealing tokens: compare
+// tokenSha256 against the first 12 hex chars of sha256(VAPI_WEBHOOK_SECRET)
+function describeAuthHeader(req: NextRequest) {
+  const header = req.headers.get('authorization')
+  if (!header) return 'no Authorization header'
+
+  const [scheme, ...rest] = header.split(' ')
+  const token = rest.join(' ')
+  const fingerprint = (s: string) => createHash('sha256').update(s).digest('hex').slice(0, 12)
+  return [
+    `scheme=${scheme}`,
+    `tokenLength=${token.length}`,
+    `tokenSha256=${fingerprint(token)}`,
+    `expectedLength=${process.env.VAPI_WEBHOOK_SECRET?.length ?? 0}`,
+    `expectedSha256=${process.env.VAPI_WEBHOOK_SECRET ? fingerprint(process.env.VAPI_WEBHOOK_SECRET) : 'unset'}`,
+  ].join(' ')
 }
 
 // Live calls come server-to-server from Vapi and need no CORS; this only lets
@@ -38,6 +56,7 @@ export async function POST(req: NextRequest) {
 
 async function handleToolCalls(req: NextRequest) {
   if (!isAuthorizedVapiRequest(req)) {
+    console.warn('❌ Vapi tools unauthorized:', describeAuthHeader(req))
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
