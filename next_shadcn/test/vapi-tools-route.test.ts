@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { POST } from '../app/api/vapi-tools/route';
+import { POST, OPTIONS } from '../app/api/vapi-tools/route';
 
 function vapiRequest(body: unknown, authorization: string | null = 'Bearer test-secret') {
   return new Request('http://localhost/api/vapi-tools', {
@@ -450,5 +450,71 @@ describe('POST /api/vapi-tools Vapi tool-calls contract', () => {
 
     // Then
     expect(res.status).toBe(400);
+  });
+});
+
+describe('/api/vapi-tools CORS for the Vapi dashboard tool tester', () => {
+  // The dashboard's "Test" button calls the tool URL from the browser
+  const DASHBOARD = 'https://dashboard.vapi.ai';
+
+  beforeEach(() => {
+    vi.stubGlobal('fetch', vi.fn(async () => calResponse({ status: 'success', data: {} })));
+    vi.stubEnv('CAL_API_KEY', 'test-key');
+    vi.stubEnv('CAL_EVENT_TYPE_ID', '123');
+    vi.stubEnv('VAPI_WEBHOOK_SECRET', 'test-secret');
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+  });
+
+  function withOrigin(req: Request, origin: string) {
+    req.headers.set('Origin', origin);
+    return req as any;
+  }
+
+  it('should_allow_dashboard_preflight_with_authorization_header', async () => {
+    // When
+    const res = await OPTIONS(
+      new Request('http://localhost/api/vapi-tools', {
+        method: 'OPTIONS',
+        headers: { Origin: DASHBOARD },
+      }) as any
+    );
+
+    // Then
+    expect({
+      status: res.status,
+      origin: res.headers.get('access-control-allow-origin'),
+      allowsAuth: /authorization/i.test(res.headers.get('access-control-allow-headers') ?? ''),
+      allowsPost: /POST/.test(res.headers.get('access-control-allow-methods') ?? ''),
+    }).toEqual({ status: 204, origin: DASHBOARD, allowsAuth: true, allowsPost: true });
+  });
+
+  it.each([
+    ['authorized', 'Bearer test-secret'],
+    ['unauthorized', 'Bearer wrong'],
+  ])('should_allow_dashboard_origin_on_%s_post', async (_case, authorization) => {
+    // When
+    const res = await POST(
+      withOrigin(toolCallRequest('check_availability', { timezone: 'America/New_York' }, authorization), DASHBOARD)
+    );
+
+    // Then: the browser can read 401s too, so the tester shows the real reason
+    expect(res.headers.get('access-control-allow-origin')).toBe(DASHBOARD);
+  });
+
+  it('should_not_allow_other_origins', async () => {
+    // When
+    const res = await OPTIONS(
+      new Request('http://localhost/api/vapi-tools', {
+        method: 'OPTIONS',
+        headers: { Origin: 'https://evil.example' },
+      }) as any
+    );
+
+    // Then
+    expect(res.headers.get('access-control-allow-origin')).toBeNull();
   });
 });

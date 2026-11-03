@@ -13,7 +13,30 @@ function isAuthorizedVapiRequest(req: NextRequest) {
   return provided.length === expected.length && timingSafeEqual(provided, expected)
 }
 
+// Live calls come server-to-server from Vapi and need no CORS; this only lets
+// the dashboard's tool "Test" button, which runs in the browser, reach the route
+const CORS_ALLOWED_ORIGINS = ['https://dashboard.vapi.ai']
+
+function withCors(req: NextRequest, res: NextResponse) {
+  const origin = req.headers.get('origin')
+  if (origin && CORS_ALLOWED_ORIGINS.includes(origin)) {
+    res.headers.set('Access-Control-Allow-Origin', origin)
+    res.headers.set('Access-Control-Allow-Methods', 'POST, OPTIONS')
+    res.headers.set('Access-Control-Allow-Headers', 'Authorization, Content-Type')
+    res.headers.set('Vary', 'Origin')
+  }
+  return res
+}
+
+export async function OPTIONS(req: NextRequest) {
+  return withCors(req, new NextResponse(null, { status: 204 }))
+}
+
 export async function POST(req: NextRequest) {
+  return withCors(req, await handleToolCalls(req))
+}
+
+async function handleToolCalls(req: NextRequest) {
   if (!isAuthorizedVapiRequest(req)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
