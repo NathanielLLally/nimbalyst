@@ -52,7 +52,7 @@ export default function ContactWithGlobe({
 
         <div className="flex flex-col items-center text-center gap-4 mb-12">
           <motion.div
-            initial={{ opacity: 0, y: -12 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: false }}
             transition={{ duration: 0.8, ease: smoothEase }}
@@ -62,7 +62,7 @@ export default function ContactWithGlobe({
           </motion.div>
 
           <motion.h2
-            initial={{ opacity: 0, y: 14 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: false }}
             transition={{ duration: 0.9, delay: 0.15, ease: smoothEase }}
@@ -72,7 +72,7 @@ export default function ContactWithGlobe({
           </motion.h2>
 
           <motion.p
-            initial={{ opacity: 0, y: 14 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: false }}
             transition={{ duration: 0.9, delay: 0.3, ease: smoothEase }}
@@ -85,7 +85,7 @@ export default function ContactWithGlobe({
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 max-w-5xl mx-auto items-start">
 
           <motion.div
-            initial={{ opacity: 0, y: 28 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: false }}
             transition={{ duration: 1.0, delay: 0.2, ease: smoothEase }}
@@ -105,7 +105,7 @@ export default function ContactWithGlobe({
                 <motion.a
                   key={label}
                   href={href}
-                  initial={{ opacity: 0, x: -12 }}
+                  initial={false}
                   whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: false }}
                   transition={{ duration: 0.5, delay: 0.3 + i * 0.1, ease: smoothEase }}
@@ -133,7 +133,7 @@ export default function ContactWithGlobe({
           </motion.div>
 
           <motion.div
-            initial={{ opacity: 0, y: 28 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: false }}
             transition={{ duration: 1.0, delay: 0.35, ease: smoothEase }}

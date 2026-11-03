@@ -11,6 +11,7 @@ Group=devel
 
 Environment=NODE_ENV=production
 Environment=NODE_VERSION_BIN=/home/devel/.nvm/versions/node/v24.5.0/bin
+Environment=HTPC_IGNORE_SCHEDULE=true
 # DATABASE_URI, GOOGLE_*, VAPI_* etc. — same file the web app uses.
 EnvironmentFile=/home/devel/src/git/nimbalyst/next_shadcn/.env
 WorkingDirectory=/home/devel/src/git/nimbalyst/next_shadcn

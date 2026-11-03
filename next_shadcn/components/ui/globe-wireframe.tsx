@@ -158,7 +158,7 @@ export default function GlobeWireframe({
   const [rotation, setRotation] = useState<[number, number]>(initialRotation);
   const [isDragging, setIsDragging] = useState(false);
   const [lastMouse, setLastMouse] = useState([0, 0]);
-  const [isVisible, setIsVisible] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
   const rotationInterval = useRef<NodeJS.Timeout | null>(null);
   const rotationAnimFrame = useRef<number | null>(null);
   const rotationStartTime = useRef<number | null>(null);
@@ -225,9 +225,7 @@ export default function GlobeWireframe({
   useEffect(() => {
     const loadWorldData = async () => {
       try {
-        const response = await fetch(
-          'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json',
-        );
+        const response = await fetch('/countries-110m.json');
         const world = (await response.json()) as WorldAtlasTopology;
         const countries = feature(world, world.objects.countries)
           .features as GeoFeature[];

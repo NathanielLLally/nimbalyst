@@ -56,8 +56,8 @@ echo ""
 echo -e "${YELLOW}Step 4: Running build and deployment...${NC}"
 echo "Pulling latest code..."
 echo "Building application..."
-if [ "$IS_DEPLOY_HOST" = true ]; then
-  sudo -u "$REMOTE_USER" bash -c "
+if [ "$IS_DEPLOY_HOST" = footrue ]; then
+  sudo -u "$REMOTE_USER" SSH_AUTH_SOCK=$SSH_AUTH_SOCK bash -c "
     set -e
     cd '$REMOTE_PATH'
     git pull
@@ -110,6 +110,8 @@ else
   ssh -p 2222 "${REMOTE_SUDO_USER}@${REMOTE_HOST}" << 'RESTART_SCRIPT'
   TOP="/home/devel/src/git/nimbalyst/next_shadcn"
 
+  sudo cp "$TOP/deploy/systemd/happytailspawcare-dev.service" /etc/systemd/system/
+  sudo systemctl daemon-reload
   sudo systemctl restart happytailspawcare-dev
   sudo systemctl status happytailspawcare-dev --no-pager
 

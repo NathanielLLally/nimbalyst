@@ -119,6 +119,19 @@ body::before {
   }
 }
 
+@keyframes word-blur-in {
+  from {
+    opacity: 0;
+    transform: translateY(22px);
+    filter: blur(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0px);
+  }
+}
+
 @keyframes canopy-x {
   from {
     transform: translateX(0);

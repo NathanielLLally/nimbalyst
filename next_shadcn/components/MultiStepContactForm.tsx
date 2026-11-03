@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { AnimatePresence } from 'motion/react';
 import { ChevronRight, ChevronLeft, Mail, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -227,12 +227,7 @@ export function MultiStepContactForm() {
 
       <AnimatePresence mode="wait">
         {!submitted ? (
-          <motion.form
-            key={currentStep}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.3 }}
+          <form
             onSubmit={handleSubmit}
             className="flex flex-col gap-6"
           >
@@ -263,7 +258,7 @@ export function MultiStepContactForm() {
                     value={formData.fullName}
                     onChange={handleInputChange}
                     required
-                    className="w-full bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
+                    className="w-full bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-800 dark:text-zinc-200 placeholder:text-black dark:placeholder:text-black outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
                   />
                 </div>
                 <div className="flex flex-col gap-2 sm:col-span-1">
@@ -277,7 +272,7 @@ export function MultiStepContactForm() {
                     value={formData.email}
                     onChange={handleInputChange}
                     required
-                    className="w-full bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
+                    className="w-full bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-800 dark:text-zinc-200 placeholder:text-black dark:placeholder:text-black outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
                   />
                 </div>
                 <div className="flex flex-col gap-2 sm:col-span-2">
@@ -291,7 +286,7 @@ export function MultiStepContactForm() {
                     value={formData.phone}
                     onChange={handleInputChange}
                     required
-                    className="w-full bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
+                    className="w-full bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-800 dark:text-zinc-200 placeholder:text-black dark:placeholder:text-black outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
                   />
                 </div>
               </div>
@@ -311,7 +306,7 @@ export function MultiStepContactForm() {
                     value={formData.company}
                     onChange={handleInputChange}
                     required
-                    className="w-full bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
+                    className="w-full bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-800 dark:text-zinc-200 placeholder:text-black dark:placeholder:text-black outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
                   />
                 </div>
                 <div className="flex flex-col gap-2">
@@ -325,7 +320,7 @@ export function MultiStepContactForm() {
                     value={formData.website}
                     onChange={handleInputChange}
                     required
-                    className="w-full bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
+                    className="w-full bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-800 dark:text-zinc-200 placeholder:text-black dark:placeholder:text-black outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
                   />
                 </div>
                 <div className="flex flex-col gap-2">
@@ -374,16 +369,16 @@ export function MultiStepContactForm() {
               <div className="flex flex-col gap-4">
                 <div className="flex flex-col gap-2">
                   <label className="text-xs font-semibold tracking-widest uppercase text-white">
-                    Tell us more
+                    What are your current challenges?
                   </label>
                   <textarea
                     name="message"
-                    placeholder="Share any additional details or goals you'd like to discuss..."
+                    placeholder="We could use more clients"
                     rows={5}
                     value={formData.message}
                     onChange={handleInputChange}
                     required
-                    className="w-full bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-3 text-sm text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 resize-none transition-all duration-200"
+                    className="w-full bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-3 text-sm text-zinc-800 dark:text-zinc-200 placeholder:text-black dark:placeholder:text-black outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 resize-none transition-all duration-200"
                   />
                 </div>
 
@@ -407,6 +402,11 @@ export function MultiStepContactForm() {
                   <div ref={handleContainerRef} />
                 </div>
               </div>
+            )}
+
+            {/* Error message */}
+            {error && (
+              <p className="text-sm text-red-500 dark:text-red-400">{error}</p>
             )}
 
             {/* Navigation */}
@@ -442,13 +442,9 @@ export function MultiStepContactForm() {
                 </Button>
               )}
             </div>
-          </motion.form>
+          </form>
         ) : (
-          <motion.div
-            key="success"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
+          <div
             className="flex flex-col items-center justify-center gap-4 py-12"
           >
             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
@@ -460,7 +456,7 @@ export function MultiStepContactForm() {
             <p className="text-sm text-zinc-500 dark:text-zinc-400 text-center max-w-xs">
               We'll get back to you within 24 hours with a personalized strategy.
             </p>
-          </motion.div>
+          </div>
         )}
       </AnimatePresence>
       </div>
