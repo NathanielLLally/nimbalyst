@@ -1,19 +1,40 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { POST } from '../app/api/vapi-tools/route';
 
-function toolCallRequest(
-  name: string,
-  parameters: Record<string, unknown>,
-  authorization: string | null = 'Bearer test-secret'
-) {
+function vapiRequest(body: unknown, authorization: string | null = 'Bearer test-secret') {
   return new Request('http://localhost/api/vapi-tools', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       ...(authorization ? { Authorization: authorization } : {}),
     },
-    body: JSON.stringify({ message: { toolCall: { name, parameters } } }),
+    body: JSON.stringify(body),
   }) as any;
+}
+
+// Vapi's tool-calls server message (https://docs.vapi.ai/server-url/events)
+function toolCallRequest(
+  name: string,
+  parameters: Record<string, unknown>,
+  authorization: string | null = 'Bearer test-secret'
+) {
+  const id = 'toolcall_1';
+  return vapiRequest(
+    {
+      message: {
+        type: 'tool-calls',
+        call: { id: 'call_1' },
+        toolCallList: [{ id, name, parameters }],
+        toolWithToolCallList: [{ name, toolCall: { id, parameters } }],
+      },
+    },
+    authorization
+  );
+}
+
+async function firstResult(res: Response) {
+  const body = await res.json();
+  return body.results[0];
 }
 
 function calResponse(body: unknown) {
@@ -56,10 +77,10 @@ describe('POST /api/vapi-tools check_availability', () => {
 
     // When
     const res = await POST(toolCallRequest('check_availability', { timezone: 'America/New_York' }));
-    const body = await res.json();
+    const result = await firstResult(res);
 
     // Then: the agent gets real availability back, not a "none found" fallback
-    expect(body.result).toBe(
+    expect(result.result).toBe(
       '2026-11-04T09:00:00.000-05:00, 2026-11-04T10:00:00.000-05:00, 2026-11-05T09:00:00.000-05:00'
     );
   });
@@ -70,19 +91,21 @@ describe('POST /api/vapi-tools check_availability', () => {
 
     // When
     const res = await POST(toolCallRequest('check_availability', { timezone: 'America/New_York' }));
-    const body = await res.json();
+    const result = await firstResult(res);
 
     // Then
-    expect(body.result).toBe('No availability found');
+    expect(result.result).toBe('No availability found');
   });
 
-  it('should_reject_request_without_calling_cal_when_timezone_missing', async () => {
+  it('should_return_tool_error_without_calling_cal_when_timezone_missing', async () => {
     // When
     const res = await POST(toolCallRequest('check_availability', {}));
+    const result = await firstResult(res);
 
     // Then
-    expect({ status: res.status, calCalls: fetchMock.mock.calls.length }).toEqual({
-      status: 400,
+    expect({ status: res.status, error: result.error, calCalls: fetchMock.mock.calls.length }).toEqual({
+      status: 200,
+      error: 'Missing required parameter: timezone',
       calCalls: 0,
     });
   });
@@ -184,16 +207,18 @@ describe('POST /api/vapi-tools book_meeting', () => {
     });
   });
 
-  it('should_reject_request_without_calling_cal_when_email_missing', async () => {
+  it('should_return_tool_error_without_calling_cal_when_email_missing', async () => {
     // Given: Cal.com rejects undeliverable emails, so a placeholder can never book
     const { email: _email, ...withoutEmail } = bookingParams;
 
     // When
     const res = await POST(toolCallRequest('book_meeting', withoutEmail));
+    const result = await firstResult(res);
 
     // Then
-    expect({ status: res.status, calCalls: fetchMock.mock.calls.length }).toEqual({
-      status: 400,
+    expect({ status: res.status, error: result.error, calCalls: fetchMock.mock.calls.length }).toEqual({
+      status: 200,
+      error: 'Missing required parameter: email',
       calCalls: 0,
     });
   });
@@ -201,10 +226,10 @@ describe('POST /api/vapi-tools book_meeting', () => {
   it('should_confirm_booked_start_time_from_v2_response', async () => {
     // When
     const res = await POST(toolCallRequest('book_meeting', bookingParams));
-    const body = await res.json();
+    const result = await firstResult(res);
 
     // Then
-    expect(body.result).toBe('Booked for 2026-11-04T17:00:00.000Z');
+    expect(result.result).toBe('Booked for 2026-11-04T17:00:00.000Z');
   });
 });
 
@@ -311,5 +336,119 @@ describe('POST /api/vapi-tools Vapi authentication', () => {
       status: 401,
       calCalls: 0,
     });
+  });
+});
+
+describe('POST /api/vapi-tools Vapi tool-calls contract', () => {
+  const fetchMock = vi.fn();
+
+  beforeEach(() => {
+    vi.stubGlobal('fetch', fetchMock);
+    vi.stubEnv('CAL_API_KEY', 'test-key');
+    vi.stubEnv('CAL_EVENT_TYPE_ID', '123');
+    vi.stubEnv('VAPI_WEBHOOK_SECRET', 'test-secret');
+    fetchMock.mockImplementation(async () =>
+      calResponse({
+        status: 'success',
+        data: { '2026-11-04': [{ start: '2026-11-04T09:00:00.000-05:00' }] },
+      })
+    );
+  });
+
+  afterEach(() => {
+    fetchMock.mockReset();
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+  });
+
+  it('should_echo_tool_call_id_and_name_in_result', async () => {
+    // When
+    const res = await POST(toolCallRequest('check_availability', { timezone: 'America/New_York' }));
+    const result = await firstResult(res);
+
+    // Then
+    expect({ toolCallId: result.toolCallId, name: result.name }).toEqual({
+      toolCallId: 'toolcall_1',
+      name: 'check_availability',
+    });
+  });
+
+  it('should_accept_openai_style_tool_calls_with_json_string_arguments', async () => {
+    // Given: Vapi may send toolCallList entries as OpenAI tool calls
+    const req = vapiRequest({
+      message: {
+        type: 'tool-calls',
+        toolCallList: [
+          {
+            id: 'toolcall_2',
+            type: 'function',
+            function: {
+              name: 'check_availability',
+              arguments: JSON.stringify({ timezone: 'America/New_York' }),
+            },
+          },
+        ],
+      },
+    });
+
+    // When
+    const result = await firstResult(await POST(req));
+
+    // Then
+    expect(result).toEqual({
+      toolCallId: 'toolcall_2',
+      name: 'check_availability',
+      result: '2026-11-04T09:00:00.000-05:00',
+    });
+  });
+
+  it('should_return_one_result_per_tool_call', async () => {
+    // Given
+    const req = vapiRequest({
+      message: {
+        type: 'tool-calls',
+        toolCallList: [
+          { id: 'a', name: 'check_availability', parameters: { timezone: 'America/New_York' } },
+          { id: 'b', name: 'check_availability', parameters: { timezone: 'America/Chicago' } },
+        ],
+      },
+    });
+
+    // When
+    const body = await (await POST(req)).json();
+
+    // Then
+    expect(body.results.map((r: any) => r.toolCallId)).toEqual(['a', 'b']);
+  });
+
+  it('should_report_cal_failure_as_tool_error_with_http_200', async () => {
+    // Given
+    fetchMock.mockImplementation(async () => new Response('boom', { status: 500 }));
+
+    // When
+    const res = await POST(toolCallRequest('check_availability', { timezone: 'America/New_York' }));
+    const result = await firstResult(res);
+
+    // Then
+    expect({ status: res.status, failed: result.error?.startsWith('Failed to get availability') }).toEqual({
+      status: 200,
+      failed: true,
+    });
+  });
+
+  it('should_report_unknown_tool_as_tool_error', async () => {
+    // When
+    const result = await firstResult(await POST(toolCallRequest('make_coffee', {})));
+
+    // Then
+    expect(result.error).toBe('Unknown tool: make_coffee');
+  });
+
+  it('should_reject_body_without_tool_call_list', async () => {
+    // When
+    const res = await POST(vapiRequest({ message: { toolCall: { name: 'check_availability' } } }));
+
+    // Then
+    expect(res.status).toBe(400);
   });
 });

@@ -18,50 +18,69 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  try {
-    const body = await req.json()
-    const { name, parameters } = body.message.toolCall
-
-    if (name === 'check_availability') {
-      if (!parameters?.timezone) {
-        return NextResponse.json(
-          { error: 'Missing required parameter: timezone' },
-          { status: 400 }
-        )
-      }
-      const slots = await getCalAvailability(parameters.timezone)
-      return NextResponse.json({ result: slots })
-    }
-
-    if (name === 'book_meeting') {
-      // Cal.com rejects undeliverable emails, so there's no usable placeholder
-      if (!parameters?.email) {
-        return NextResponse.json(
-          { error: 'Missing required parameter: email' },
-          { status: 400 }
-        )
-      }
-      const booking = await createCalBooking(parameters)
-      return NextResponse.json({ result: `Booked for ${booking.start}` })
-    }
-
-    if (name === 'cancel_booking') {
-      const result = await cancelBooking(parameters.email, parameters.reason);
-      return NextResponse.json({ result: result })
-    }
-
+  const body = await req.json().catch(() => null)
+  const toolCalls = body?.message?.toolCallList
+  if (!Array.isArray(toolCalls)) {
     return NextResponse.json(
-      { error: `Unknown tool: ${name}` },
+      { error: 'Expected a Vapi tool-calls message with message.toolCallList' },
       { status: 400 }
     )
-  } catch (error) {
-    const errMsg = error instanceof Error ? error.message : String(error)
-    console.error('❌ Vapi tools error:', errMsg)
-    return NextResponse.json(
-      { error: errMsg },
-      { status: 500 }
-    )
   }
+
+  // Vapi expects HTTP 200 with one { toolCallId, result | error } per call;
+  // result and error must be strings
+  const results = await Promise.all(
+    toolCalls.map(async (toolCall: any) => {
+      const { name, parameters } = parseToolCall(toolCall)
+      try {
+        const result = await runTool(name, parameters)
+        return {
+          name,
+          toolCallId: toolCall.id,
+          result: typeof result === 'string' ? result : JSON.stringify(result),
+        }
+      } catch (error) {
+        const errMsg = error instanceof Error ? error.message : String(error)
+        console.error('❌ Vapi tools error:', errMsg)
+        return { name, toolCallId: toolCall.id, error: errMsg }
+      }
+    })
+  )
+
+  return NextResponse.json({ results })
+}
+
+// toolCallList entries arrive either flat ({ name, parameters }) or as OpenAI
+// tool calls ({ function: { name, arguments } }) with arguments as a JSON string
+function parseToolCall(toolCall: any) {
+  const name = toolCall.name ?? toolCall.function?.name
+  const rawParams = toolCall.parameters ?? toolCall.function?.arguments ?? {}
+  const parameters = typeof rawParams === 'string' ? JSON.parse(rawParams) : rawParams
+  return { name, parameters }
+}
+
+async function runTool(name: string, parameters: any) {
+  if (name === 'check_availability') {
+    if (!parameters?.timezone) {
+      throw new Error('Missing required parameter: timezone')
+    }
+    return getCalAvailability(parameters.timezone)
+  }
+
+  if (name === 'book_meeting') {
+    // Cal.com rejects undeliverable emails, so there's no usable placeholder
+    if (!parameters?.email) {
+      throw new Error('Missing required parameter: email')
+    }
+    const booking = await createCalBooking(parameters)
+    return `Booked for ${booking.start}`
+  }
+
+  if (name === 'cancel_booking') {
+    return cancelBooking(parameters.email, parameters.reason)
+  }
+
+  throw new Error(`Unknown tool: ${name}`)
 }
 
 // Cal.com versions each endpoint family separately
