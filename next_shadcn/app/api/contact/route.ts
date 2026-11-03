@@ -108,6 +108,14 @@ export async function POST(request: NextRequest) {
         const mxResults = JSON.parse(stdout);
         const mxResult = mxResults[0];
         console.log(`📧 mxCheck.pl returned: verified=${mxResult?.verified ? 1 : 0} mx=${mxResult?.mx_server ?? '-'} error=${mxResult?.error ?? '-'}`);
+        // A "false positive check failed" error means the MX host is catch-all:
+        // it accepts RCPT TO for any local part, so the mailbox can't be proven
+        // to exist — but that doesn't prove it doesn't. Treat it as valid.
+        const mxError: string = mxResult?.error ?? '';
+        if (!mxResult?.verified && mxError.startsWith('false positive check failed')) {
+          console.log(`📧 Catch-all domain for ${data.email} — accepting as valid (${mxError})`);
+          return null;
+        }
         if (!mxResult?.verified) {
           console.error(`❌ MX verification failed: email=${data.email} error=${mxResult?.error ?? 'unverified'}`);
           return { email: data.email, mxError: mxResult?.error ?? 'unverified', mxServer: mxResult?.mx_server ?? null };
