@@ -109,7 +109,7 @@ describe('contact tracker texts the meeting details once per Cal booking', () =>
       {
         From: '+15555550000',
         To: '+15555550100',
-        Body: `Hi Jane, your call with Happy Tails Paw Care is confirmed for Wednesday, November 4 at 12:00 PM EST. Join on Google Meet: ${MEET}`,
+        Body: `Hi Jane Lead, your call with Happy Tails Paw Care is confirmed for Wednesday, November 4 at 12:00 PM EST. Join on Google Meet: ${MEET}`,
       },
     ]);
   });

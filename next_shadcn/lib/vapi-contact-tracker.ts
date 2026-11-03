@@ -644,10 +644,10 @@ async function processMeetingSms(rowIndex: number, row: SheetUtils.ContactRow): 
   }
 
   const timezone = (row[13] as string | undefined) || 'America/New_York'; // N: Timezone
-  const firstName = String(row[2] ?? '').trim().split(/\s+/)[0] || 'there';
+  const name = String(row[2] ?? '').trim() || 'there'; // C: Name, as entered on the form
   const link = booking.meetingUrl || booking.location;
   const body =
-    `Hi ${firstName}, your call with Happy Tails Paw Care is confirmed for ${meetingTimeText(booking.start, timezone)}.` +
+    `Hi ${name}, your call with Happy Tails Paw Care is confirmed for ${meetingTimeText(booking.start, timezone)}.` +
     (link ? ` Join on Google Meet: ${link}` : '');
 
   const sms = await sendSms(String(row[1]), body);
