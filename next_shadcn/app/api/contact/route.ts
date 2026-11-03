@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { google } from 'googleapis';
-import { onFormSubmit, dispatchContactDirectly } from '@/lib/vapi-contact-tracker';
+import { onFormSubmit } from '@/lib/vapi-contact-tracker';
 import { sendEmail } from '#lib/contact-email-sender';
 import { formatContactSubmissionEmail } from '#lib/format-contact-submission-email';
 
@@ -217,7 +217,7 @@ export async function POST(request: NextRequest) {
     // Create tracking entry for Vapi dispatch (only when explicitly enabled)
     if (process.env.HTPC_CONTACT_TRACKER_ENABLED === 'true') {
       try {
-        const { id: contactId, row } = await onFormSubmit(
+        const { id: contactId } = await onFormSubmit(
           {
             phone: phoneValidation.formatted!,
             fullName: data.fullName,
@@ -249,14 +249,8 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // Dispatch to Vapi
-        try {
-          await dispatchContactDirectly(row);
-          console.log('✅ Contact dispatched to Vapi:', contactId);
-        } catch (dispatchError) {
-          const errMsg = dispatchError instanceof Error ? dispatchError.message : String(dispatchError);
-          console.warn('⚠️ Dispatch failed:', errMsg);
-        }
+        // No call here: the contact tracker worker dispatches PENDING rows on
+        // its next tick, recording the attempt and next retry like every call
       } catch (trackingErr) {
         const errMsg = trackingErr instanceof Error ? trackingErr.message : String(trackingErr);
         console.warn('⚠️ Failed to create tracking entry:', errMsg);

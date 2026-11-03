@@ -49,6 +49,8 @@ async function createTool() {
       },
       server: {
         url: `${baseUrl}/api/vapi-tools`,
+        // "Happy Tails Webhook" bearer credential; token is VAPI_WEBHOOK_SECRET
+        credentialId: '61a15a35-0433-45aa-8804-b15c29e32f43',
       },
       messages: [
         {

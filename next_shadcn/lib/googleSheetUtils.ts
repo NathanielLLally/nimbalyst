@@ -27,7 +27,7 @@ export interface ContactRow {
   [3]: string; // Email
   [4]: string; // Channel
   [5]: string; // Status
-  [6]: number; // Attempt Count
+  [6]: number | string; // Attempt Count ("X of Y")
   [7]: string; // Submitted
   [8]: string; // Last Attempt
   [9]: string; // Next Retry
@@ -374,12 +374,14 @@ export async function getTrackerData(
  * @param sheetId - Google Sheet ID
  * @param row - Contact row data
  * @param sheetName - Sheet name (default: "Sheet1")
+ * @param columnCount - Row width (default: the tracker's 14 columns, A–N)
  * @returns Response from API
  */
 export async function createContactRow(
   sheetId: string,
   row: (string | number)[],
-  sheetName: string = 'Sheet1'
+  sheetName: string = 'Sheet1',
+  columnCount: number = 14
 ): Promise<SheetResponse> {
   const auth = getAuth();
   const sheets = google.sheets({ version: 'v4', auth });
@@ -396,10 +398,11 @@ export async function createContactRow(
       range: sheetName,
     });
     const nextRow = (existing.data.values?.length || 0) + 1;
-    const range = `${sheetName}!A${nextRow}:N${nextRow}`;
+    const lastColumn = columnIndexToLetter(columnCount - 1);
+    const range = `${sheetName}!A${nextRow}:${lastColumn}${nextRow}`;
 
-    // Pad/truncate to exactly the 14 columns (A–N) of the tracker schema.
-    const normalized = Array.from({ length: 14 }, (_, i) => row[i] ?? '');
+    // Pad/truncate to exactly columnCount columns (A–N for the tracker schema).
+    const normalized = Array.from({ length: columnCount }, (_, i) => row[i] ?? '');
 
     const response = await sheets.spreadsheets.values.update({
       spreadsheetId: sheetId,
@@ -419,6 +422,43 @@ export async function createContactRow(
     const error = err instanceof Error ? err.message : String(err);
     throw new Error(`Failed to create contact row: ${error}`);
   }
+}
+
+/**
+ * Look up a tab's numeric sheetId and grid size by its title.
+ */
+async function getTabProperties(sheetId: string, sheetName: string) {
+  const sheets = google.sheets({ version: 'v4', auth: getAuth() });
+  const response = await sheets.spreadsheets.get({
+    spreadsheetId: sheetId,
+    fields: 'sheets.properties(sheetId,title,gridProperties)',
+  });
+  const tab = response.data.sheets?.find((s) => s.properties?.title === sheetName)?.properties;
+  if (!tab || tab.sheetId == null) {
+    throw new Error(`Sheet tab not found: ${sheetName}`);
+  }
+  return { tabId: tab.sheetId, columnCount: tab.gridProperties?.columnCount ?? 0 };
+}
+
+/**
+ * Widen a tab so it has at least `columnCount` columns. Writes past a tab's
+ * last column are rejected by the API, so call this before writing wide rows.
+ */
+export async function ensureColumnCount(
+  sheetId: string,
+  sheetName: string,
+  columnCount: number
+): Promise<void> {
+  const { tabId, columnCount: current } = await getTabProperties(sheetId, sheetName);
+  if (current >= columnCount) return;
+
+  const sheets = google.sheets({ version: 'v4', auth: getAuth() });
+  await sheets.spreadsheets.batchUpdate({
+    spreadsheetId: sheetId,
+    requestBody: {
+      requests: [{ appendDimension: { sheetId: tabId, dimension: 'COLUMNS', length: columnCount - current } }],
+    },
+  });
 }
 
 /**

@@ -38,15 +38,14 @@ function getSmsConfig(): SMSConfig {
 }
 
 /**
- * Send SMS confirmation to contact
+ * Send an SMS through Twilio
  */
-export async function sendConfirmationSms(
+export async function sendSms(
   phone: string,
-  name: string
+  body: string
 ): Promise<{ success: boolean; messageId?: string; error?: string }> {
   try {
     const config = getSmsConfig();
-    const message = `Hi ${name}! We received your form submission. We'll be in touch soon to schedule a call. Thanks!`;
 
     const response = await fetch('https://api.twilio.com/2010-04-01/Accounts/' + config.TWILIO_ACCOUNT_SID + '/Messages.json', {
       method: 'POST',
@@ -57,7 +56,7 @@ export async function sendConfirmationSms(
       body: new URLSearchParams({
         'From': config.TWILIO_PHONE_NUMBER,
         'To': phone,
-        'Body': message,
+        'Body': body,
       }).toString(),
     });
 
@@ -74,6 +73,19 @@ export async function sendConfirmationSms(
     console.error(`❌ Failed to send SMS to ${phone}:`, errMsg);
     return { success: false, error: errMsg };
   }
+}
+
+/**
+ * Send SMS confirmation to contact
+ */
+export async function sendConfirmationSms(
+  phone: string,
+  name: string
+): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  return sendSms(
+    phone,
+    `Hi ${name}! We received your form submission. We'll be in touch soon to schedule a call. Thanks!`
+  );
 }
 
 /**

@@ -188,21 +188,7 @@ async function processCallReport(report: VapiCallReport): Promise<void> {
       // No contact found, but still log the call data
       console.warn(`⚠️ No contact found for call ID: ${callId}`);
       try {
-        const unknownContact: SheetUtils.ContactRow = [
-          'Unmatched',
-          report.customer?.number || report.call?.customer?.number || 'Unknown',
-          'Unknown',
-          'Unknown',
-          'UNKNOWN',
-          0,
-          '',
-          '',
-          '',
-          '',
-          callId,
-          ''
-        ] as any;
-        await logCallDetails(sheetId, unknownContact, report, metrics);
+        await logCallDetails(sheetId, report);
         console.log(`📊 Call data stored for unmatched call ${callId}`);
       } catch (logErr) {
         console.warn(`⚠️ Could not log call details:`, logErr);
@@ -228,7 +214,7 @@ async function processCallReport(report: VapiCallReport): Promise<void> {
     });
 
     // Log detailed call metrics to separate sheet
-    await logCallDetails(sheetId, row, report, metrics);
+    await logCallDetails(sheetId, report);
 
     console.log(`✅ Contact ${row[0]} updated with call results`);
   } catch (err) {
@@ -327,44 +313,78 @@ function extractSummaryFromTranscript(transcript: string): string {
  * Log call details to a separate sheet for analytics
  * (Optional: create a "Call Details" sheet for this)
  */
-async function logCallDetails(
-  sheetId: string,
-  contact: SheetUtils.ContactRow,
-  report: VapiCallReport,
-  metrics: CallMetrics
-): Promise<void> {
+// Nested report objects whose fields become columns; everything else nested
+// (assistant, artifact, costBreakdown, phoneNumber, ...) is too large to log
+const FLATTENED_OBJECTS = ['analysis', 'customer'];
+
+/**
+ * Flatten an end-of-call report into { key path: value } in Vapi's key order:
+ * top-level text/number/boolean fields, every field under FLATTENED_OBJECTS,
+ * and call.id. Arrays are skipped. dashboardUrl follows recordingUrl because
+ * recordingUrl points at Vapi's private HIPAA storage and never opens.
+ */
+function callDetailFields(report: VapiCallReport): Map<string, string | number | boolean> {
+  const fields = new Map<string, string | number | boolean>();
+  const isScalar = (v: unknown): v is string | number | boolean =>
+    typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean';
+  const flatten = (value: unknown, path: string) => {
+    if (isScalar(value)) fields.set(path, value);
+    else if (value && typeof value === 'object' && !Array.isArray(value))
+      for (const [k, v] of Object.entries(value)) flatten(v, `${path}.${k}`);
+  };
+
+  const callId = report.call?.id || report.id || report.callId;
+  for (const [key, value] of Object.entries(report)) {
+    if (isScalar(value)) fields.set(key, value);
+    else if (FLATTENED_OBJECTS.includes(key)) flatten(value, key);
+    else if (key === 'call' && callId) fields.set('call.id', callId);
+
+    if (key === 'recordingUrl' && callId) fields.set('dashboardUrl', `https://dashboard.vapi.ai/calls/${callId}`);
+  }
+  return fields;
+}
+
+async function logCallDetails(sheetId: string, report: VapiCallReport): Promise<void> {
   try {
     // Use configured sheet name or default to "Vapi Calls"
     const callDetailsSheetName = process.env.VAPI_CALL_DETAILS_SHEET || 'Vapi Calls';
+    const fields = callDetailFields(report);
 
-    const callId = report.id || report.callId || report.call?.id || 'unknown';
+    const header = await syncCallDetailsHeader(sheetId, callDetailsSheetName, [...fields.keys()]);
+    const row = header.map((key) => {
+      const value = fields.get(key)!;
+      return typeof value === 'boolean' ? String(value) : value;
+    });
 
-    const row = [
-      callId, // Call ID
-      contact[0], // Contact ID
-      contact[1], // Phone
-      contact[2], // Name
-      metrics.success ? 'SUCCESS' : 'FAILED', // Outcome
-      metrics.duration, // Duration (seconds)
-      metrics.endReason, // End reason
-      metrics.transcript.substring(0, 100), // Transcript snippet
-      metrics.summary.substring(0, 150), // Summary snippet
-      metrics.recordingUrl || '', // Recording URL
-      new Date().toISOString(), // Logged at
-    ];
+    await SheetUtils.createContactRow(sheetId, row, callDetailsSheetName, header.length);
 
-    await SheetUtils.createContactRow(
-      sheetId,
-      row,
-      callDetailsSheetName
-    );
-
-    console.log(`📊 Call details logged for ${callId} in "${callDetailsSheetName}" sheet`);
+    console.log(`📊 Call details logged for ${fields.get('call.id') ?? 'unknown'} in "${callDetailsSheetName}" sheet`);
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err);
     console.warn(`Could not log call details: ${errMsg}`);
     // Don't fail the webhook if details logging fails
   }
+}
+
+/**
+ * Make row 1 exactly `keys` (the report's JSON field names). If it holds
+ * anything else it is overwritten, with leftover cells past the end cleared.
+ * The tab is widened first when it has fewer columns than the header needs.
+ */
+async function syncCallDetailsHeader(sheetId: string, sheetName: string, keys: string[]): Promise<string[]> {
+  const rows = await SheetUtils.getTrackerData(sheetId, sheetName);
+  const rowOne = ((rows[0] ?? []) as unknown as unknown[]).map(String);
+  if (rowOne.length === keys.length && rowOne.every((cell, i) => cell === keys[i])) return keys;
+
+  await SheetUtils.ensureColumnCount(sheetId, sheetName, keys.length);
+  const cells = Array.from({ length: Math.max(keys.length, rowOne.length) }, (_, i) => keys[i] ?? '');
+  await SheetUtils.updateContactRow(
+    sheetId,
+    1,
+    Object.fromEntries(cells.map((cell, i) => [i, cell])) as any,
+    sheetName
+  );
+  return keys;
 }
 
 // ============================================================================
