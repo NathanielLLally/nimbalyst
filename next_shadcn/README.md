@@ -72,7 +72,7 @@ A lead-generation and prospect-enrichment pipeline for the dog/pet-care market, 
 The SMTP-level email verification script (`scripts/mxCheck.pl`) requires the following CPAN modules:
 
 ```bash
-cpanm Net::DNS Net::SMTP Parallel::ForkManager Try::Tiny JSON::PP IO::Socket::Socks
+cpanm Net::DNS Net::SMTP Parallel::ForkManager Try::Tiny JSON::PP IO::Socket IO::Socket::Socks
 ```
 
 **What each module does:**
