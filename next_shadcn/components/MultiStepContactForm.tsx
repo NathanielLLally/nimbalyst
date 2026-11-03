@@ -381,20 +381,6 @@ export function MultiStepContactForm() {
                 </div>
                 <div className="flex flex-col gap-2 sm:col-span-1">
                   <label className="text-xs font-semibold tracking-widest uppercase text-white">
-                    ✉️ Email
-                  </label>
-                  <input
-                    type="email"
-                    name="email"
-                    placeholder="john@example.com"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    required
-                    className="w-full bg-black/10 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-100 placeholder:text-[#f8f6f0] outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
-                  />
-                </div>
-                <div className="flex flex-col gap-2 sm:col-span-2">
-                  <label className="text-xs font-semibold tracking-widest uppercase text-white">
                     <span className="text-blue-500">📞</span> Phone
                   </label>
                   <input
@@ -404,6 +390,20 @@ export function MultiStepContactForm() {
                     placeholder="(###) ###-####"
                     value={formData.phone}
                     onChange={handlePhoneChange}
+                    required
+                    className="w-full bg-black/10 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-100 placeholder:text-[#f8f6f0] outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
+                  />
+                </div>
+                <div className="flex flex-col gap-2 sm:col-span-2">
+                  <label className="text-xs font-semibold tracking-widest uppercase text-white">
+                    ✉️ Email
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    placeholder="john@example.com"
+                    value={formData.email}
+                    onChange={handleInputChange}
                     required
                     className="w-full bg-black/10 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-100 placeholder:text-[#f8f6f0] outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
                   />
