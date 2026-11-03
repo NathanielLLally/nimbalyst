@@ -374,12 +374,14 @@ export async function getTrackerData(
  * @param sheetId - Google Sheet ID
  * @param row - Contact row data
  * @param sheetName - Sheet name (default: "Sheet1")
+ * @param columnCount - Row width (default: the tracker's 14 columns, A–N)
  * @returns Response from API
  */
 export async function createContactRow(
   sheetId: string,
   row: (string | number)[],
-  sheetName: string = 'Sheet1'
+  sheetName: string = 'Sheet1',
+  columnCount: number = 14
 ): Promise<SheetResponse> {
   const auth = getAuth();
   const sheets = google.sheets({ version: 'v4', auth });
@@ -396,10 +398,11 @@ export async function createContactRow(
       range: sheetName,
     });
     const nextRow = (existing.data.values?.length || 0) + 1;
-    const range = `${sheetName}!A${nextRow}:N${nextRow}`;
+    const lastColumn = columnIndexToLetter(columnCount - 1);
+    const range = `${sheetName}!A${nextRow}:${lastColumn}${nextRow}`;
 
-    // Pad/truncate to exactly the 14 columns (A–N) of the tracker schema.
-    const normalized = Array.from({ length: 14 }, (_, i) => row[i] ?? '');
+    // Pad/truncate to exactly columnCount columns (A–N for the tracker schema).
+    const normalized = Array.from({ length: columnCount }, (_, i) => row[i] ?? '');
 
     const response = await sheets.spreadsheets.values.update({
       spreadsheetId: sheetId,
