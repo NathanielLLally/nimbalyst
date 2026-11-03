@@ -109,6 +109,7 @@ export function MultiStepContactForm() {
     } else {
       setFormData((prev) => ({ ...prev, [name]: value }));
     }
+    if (name === 'email') setError(null);
   };
 
   // Check if current step is complete
@@ -163,7 +164,8 @@ export function MultiStepContactForm() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to submit form');
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body.error || 'Failed to submit form');
       }
 
       console.log('✅ Form submitted successfully');
@@ -406,7 +408,7 @@ export function MultiStepContactForm() {
 
             {/* Error message */}
             {error && (
-              <p className="text-sm text-red-500 dark:text-red-400">{error}</p>
+              <p className="text-sm font-semibold text-red-500 dark:text-red-400">{error}</p>
             )}
 
             {/* Navigation */}

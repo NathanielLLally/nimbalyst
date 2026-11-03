@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { execFile } from 'child_process';
+import { promisify } from 'util';
+import { appendFile } from 'fs/promises';
+import path from 'path';
 import { google } from 'googleapis';
 import { onFormSubmit } from '@/lib/vapi-contact-tracker';
 import { sendEmail } from '#lib/contact-email-sender';
 import { formatContactSubmissionEmail } from '#lib/format-contact-submission-email';
+
+const execFileAsync = promisify(execFile);
 
 const CONTACT_NOTIFICATION_EMAIL = 'www@happytailspawcare.com';
 
@@ -74,6 +80,24 @@ export async function POST(request: NextRequest) {
   try {
     const data: ContactFormData = await request.json();
     console.log('📝 Form submission received:', { name: data.fullName, email: data.email, phone: data.phone, company: data.company });
+
+    // MX-level email verification via mxCheck.pl
+    const scriptPath = path.join(process.cwd(), 'scripts', 'mxCheck.pl');
+    try {
+      const { stdout } = await execFileAsync('perl', [scriptPath, '--email', data.email], { timeout: 30000 });
+      const mxResults = JSON.parse(stdout);
+      const mxResult = mxResults[0];
+      if (!mxResult?.verified) {
+        const logFile = process.env.MX_CHECK_LOG_FILE ?? path.join(process.cwd(), 'logs', 'mx-check.log');
+        const logEntry = `${new Date().toISOString()} email=${data.email} error=${mxResult?.error ?? 'unverified'}\n`;
+        await appendFile(logFile, logEntry).catch((e: Error) => console.error('mx log write failed:', e.message));
+        return NextResponse.json({ error: 'Invalid Email' }, { status: 400 });
+      }
+    } catch (mxErr) {
+      const errMsg = mxErr instanceof Error ? mxErr.message : String(mxErr);
+      console.error('MX check failed:', errMsg);
+      return NextResponse.json({ error: 'Invalid Email' }, { status: 400 });
+    }
 
     // Verify reCAPTCHA token
     const host = request.headers.get('host') || '';
