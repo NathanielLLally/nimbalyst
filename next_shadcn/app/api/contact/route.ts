@@ -153,10 +153,13 @@ export async function POST(request: NextRequest) {
       const lookupUrl = `https://lookups.twilio.com/v2/PhoneNumbers/${encodeURIComponent(e164Phone)}?Fields=${lookupFields}`;
       try {
         console.log(`📞 Calling Twilio Lookup for ${e164Phone}: ${lookupUrl}`);
+        // Bound the call — without a timeout a network stall hangs this route
+        // (undici waits ~300s), which hangs the client's submit button with it.
         const lookupResponse = await fetch(lookupUrl, {
           headers: {
             Authorization: 'Basic ' + Buffer.from(`${twilioSid}:${twilioToken}`).toString('base64'),
           },
+          signal: AbortSignal.timeout(10000),
         });
         const lookupData = await lookupResponse.json().catch(() => ({}));
         // Full result logged for the record — may be persisted downstream.

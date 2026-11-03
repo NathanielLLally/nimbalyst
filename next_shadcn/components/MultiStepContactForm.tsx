@@ -34,6 +34,19 @@ interface EmailValidationError {
   detail: string;
 }
 
+// Reject if a promise hasn't settled within `ms`. Without this a hung
+// grecaptcha.execute() leaves the submit button stuck on "Submitting…" forever,
+// since nothing after the await (including the finally reset) ever runs.
+function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`${label} timed out, please try again`)), ms);
+    p.then(
+      (v) => { clearTimeout(timer); resolve(v); },
+      (e) => { clearTimeout(timer); reject(e); }
+    );
+  });
+}
+
 export function MultiStepContactForm() {
   const recaptchaContainerRef = useRef<HTMLDivElement>(null);
   const recaptchaWidgetId = useRef<number | null>(null);
@@ -192,13 +205,20 @@ export function MultiStepContactForm() {
       if (recaptchaWidgetId.current === null) {
         throw new Error('reCAPTCHA is still loading, please try again');
       }
-      const token = await grecaptcha.execute(recaptchaWidgetId.current, { action: 'submit' });
+      const token = await withTimeout(
+        grecaptcha.execute(recaptchaWidgetId.current, { action: 'submit' }),
+        15000,
+        'reCAPTCHA'
+      );
       console.log('🔐 reCAPTCHA token obtained');
 
+      // Bound the request too: AbortSignal.timeout guarantees the fetch settles
+      // (rejects) even if the server stalls, so the button can never hang.
       const response = await fetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...formData, recaptchaToken: token }),
+        signal: AbortSignal.timeout(45000),
       });
 
       // User edited the field while this was in flight — ignore the result.
@@ -244,18 +264,21 @@ export function MultiStepContactForm() {
       }, 3000);
     } catch (err) {
       if (isStale()) return;
-      const errorMessage = err instanceof Error ? err.message : 'An error occurred';
+      // AbortSignal.timeout rejects with a TimeoutError/AbortError DOMException.
+      const isTimeout = err instanceof DOMException && (err.name === 'TimeoutError' || err.name === 'AbortError');
+      const errorMessage = isTimeout
+        ? 'Submission timed out, please try again'
+        : err instanceof Error
+          ? err.message
+          : 'An error occurred';
       console.error('❌ Form submission error:', errorMessage);
       setError(errorMessage);
     } finally {
-      // Always clear the submit state when this request settles — unless it was
-      // superseded (user edited a field or started another submit), in which
-      // case the newer flow owns the state and we must not clobber it. This is
-      // what prevents the button from getting stuck on "Submitting…".
-      if (!isStale()) {
-        setLoading(false);
-        submitting.current = false;
-      }
+      // Unconditionally clear the submit state once the request settles. This
+      // is what guarantees the button reverts from "Submitting…" — it must run
+      // on every path (success, handled error, thrown error, or early return).
+      setLoading(false);
+      submitting.current = false;
     }
   };
 
