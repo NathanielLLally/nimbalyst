@@ -425,6 +425,43 @@ export async function createContactRow(
 }
 
 /**
+ * Look up a tab's numeric sheetId and grid size by its title.
+ */
+async function getTabProperties(sheetId: string, sheetName: string) {
+  const sheets = google.sheets({ version: 'v4', auth: getAuth() });
+  const response = await sheets.spreadsheets.get({
+    spreadsheetId: sheetId,
+    fields: 'sheets.properties(sheetId,title,gridProperties)',
+  });
+  const tab = response.data.sheets?.find((s) => s.properties?.title === sheetName)?.properties;
+  if (!tab || tab.sheetId == null) {
+    throw new Error(`Sheet tab not found: ${sheetName}`);
+  }
+  return { tabId: tab.sheetId, columnCount: tab.gridProperties?.columnCount ?? 0 };
+}
+
+/**
+ * Widen a tab so it has at least `columnCount` columns. Writes past a tab's
+ * last column are rejected by the API, so call this before writing wide rows.
+ */
+export async function ensureColumnCount(
+  sheetId: string,
+  sheetName: string,
+  columnCount: number
+): Promise<void> {
+  const { tabId, columnCount: current } = await getTabProperties(sheetId, sheetName);
+  if (current >= columnCount) return;
+
+  const sheets = google.sheets({ version: 'v4', auth: getAuth() });
+  await sheets.spreadsheets.batchUpdate({
+    spreadsheetId: sheetId,
+    requestBody: {
+      requests: [{ appendDimension: { sheetId: tabId, dimension: 'COLUMNS', length: columnCount - current } }],
+    },
+  });
+}
+
+/**
  * Convert a 0-based column index to its A1 letter (0 -> A, 11 -> L, 12 -> M).
  */
 function columnIndexToLetter(index: number): string {

@@ -8,6 +8,7 @@ const sheets = vi.hoisted(() => {
     updateContactRow: mock(),
     findContactRows: mock(),
     appendContactNote: mock(),
+    ensureColumnCount: mock(),
   };
 });
 
@@ -81,7 +82,7 @@ function headerCellsWritten(): Record<string, string> {
   return write?.[2] ?? {};
 }
 
-describe('vapi-webhook call details sheet takes its columns from Vapi report keys', () => {
+describe('vapi-webhook call details sheet: row 1 is always the report\'s JSON field names', () => {
   beforeEach(() => {
     vi.stubEnv('GOOGLE_SHEET_ID', 'sheet');
     vi.stubEnv('GOOGLE_SERVICE_ACCOUNT_EMAIL', 'svc@example.com');
@@ -141,23 +142,45 @@ describe('vapi-webhook call details sheet takes its columns from Vapi report key
     ]);
   });
 
-  it('should_place_values_by_existing_header_order_without_rewriting_it', async () => {
-    // Given: a header already in the sheet, in a different order
-    const existing = [...EXPECTED_HEADER].reverse();
-    sheets.getTrackerData.mockResolvedValue([existing]);
+  it.each([
+    ['a data row', ['01a1a09c-f6c4-7000-83a4', 'contact_1', '+16464507917', 'Nate Lally', 'FAILED']],
+    ['an old-style header', ['Call ID', 'Contact ID', 'Phone', 'Name', 'Outcome']],
+    ['the field names in another order', [...EXPECTED_HEADER].reverse()],
+    ['the field names minus one', EXPECTED_HEADER.slice(0, -1)],
+  ])('should_overwrite_row_one_when_it_holds_%s', async (_case, rowOne) => {
+    // Given
+    sheets.getTrackerData.mockResolvedValue([rowOne, ['data']]);
 
     // When
     await POST(webhookRequest(endOfCallReport()));
 
     // Then
-    expect({
-      headerWritten: Object.keys(headerCellsWritten()).length > 0,
-      callIdCell: loggedRow()[existing.indexOf('call.id')],
-      endedReasonCell: loggedRow()[existing.indexOf('endedReason')],
-    }).toEqual({ headerWritten: false, callIdCell: 'call_1', endedReasonCell: 'customer-ended-call' });
+    expect(Object.values(headerCellsWritten())).toEqual(EXPECTED_HEADER);
   });
 
-  it('should_append_new_keys_as_columns_at_the_end', async () => {
+  it('should_clear_leftover_cells_when_old_row_one_is_longer', async () => {
+    // Given
+    sheets.getTrackerData.mockResolvedValue([[...EXPECTED_HEADER, 'Notes', 'Logged At']]);
+
+    // When
+    await POST(webhookRequest(endOfCallReport()));
+
+    // Then
+    expect(Object.values(headerCellsWritten())).toEqual([...EXPECTED_HEADER, '', '']);
+  });
+
+  it('should_not_write_row_one_when_it_matches_the_report_keys', async () => {
+    // Given
+    sheets.getTrackerData.mockResolvedValue([EXPECTED_HEADER]);
+
+    // When
+    await POST(webhookRequest(endOfCallReport()));
+
+    // Then
+    expect(headerCellsWritten()).toEqual({});
+  });
+
+  it('should_rewrite_header_and_row_for_a_report_with_a_new_key', async () => {
     // Given
     sheets.getTrackerData.mockResolvedValue([EXPECTED_HEADER]);
 
@@ -165,22 +188,11 @@ describe('vapi-webhook call details sheet takes its columns from Vapi report key
     await POST(webhookRequest(endOfCallReport({ cost: 0.0999 })));
 
     // Then
-    const newColumn = EXPECTED_HEADER.length;
-    expect({ header: headerCellsWritten(), value: loggedRow()[newColumn] }).toEqual({
-      header: { [newColumn]: 'cost' },
-      value: 0.0999,
+    const header = Object.values(headerCellsWritten());
+    expect({ header, cost: loggedRow()[header.indexOf('cost')] }).toEqual({
+      header: [...EXPECTED_HEADER, 'cost'],
+      cost: 0.0999,
     });
-  });
-
-  it('should_leave_cells_empty_for_keys_missing_from_this_report', async () => {
-    // Given
-    sheets.getTrackerData.mockResolvedValue([[...EXPECTED_HEADER, 'cost']]);
-
-    // When
-    await POST(webhookRequest(endOfCallReport()));
-
-    // Then
-    expect(loggedRow()[EXPECTED_HEADER.length]).toBe('');
   });
 
   it('should_write_full_width_rows_beyond_the_tracker_width', async () => {
@@ -200,5 +212,20 @@ describe('vapi-webhook call details sheet takes its columns from Vapi report key
 
     // Then
     expect(loggedRow()[EXPECTED_HEADER.indexOf('call.id')]).toBe('call_1');
+  });
+
+  it('should_widen_the_tab_before_writing_a_header_that_needs_more_columns', async () => {
+    // When
+    await POST(webhookRequest(endOfCallReport()));
+
+    // Then: widened to the header's width, before any header or row write
+    const widen = sheets.ensureColumnCount.mock;
+    const firstWrite = Math.min(
+      ...[...sheets.updateContactRow.mock.invocationCallOrder, ...sheets.createContactRow.mock.invocationCallOrder]
+    );
+    expect({ args: widen.calls[0], beforeWrites: widen.invocationCallOrder[0] < firstWrite }).toEqual({
+      args: ['sheet', 'Vapi Calls', EXPECTED_HEADER.length],
+      beforeWrites: true,
+    });
   });
 });

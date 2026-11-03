@@ -352,8 +352,8 @@ async function logCallDetails(sheetId: string, report: VapiCallReport): Promise<
 
     const header = await syncCallDetailsHeader(sheetId, callDetailsSheetName, [...fields.keys()]);
     const row = header.map((key) => {
-      const value = fields.get(key);
-      return value === undefined ? '' : typeof value === 'boolean' ? String(value) : value;
+      const value = fields.get(key)!;
+      return typeof value === 'boolean' ? String(value) : value;
     });
 
     await SheetUtils.createContactRow(sheetId, row, callDetailsSheetName, header.length);
@@ -367,23 +367,24 @@ async function logCallDetails(sheetId: string, report: VapiCallReport): Promise<
 }
 
 /**
- * Keep row 1 as the header: existing columns stay where they are and keys
- * the sheet hasn't seen are appended, so every row stays aligned by key.
- * Returns the full header.
+ * Make row 1 exactly `keys` (the report's JSON field names). If it holds
+ * anything else it is overwritten, with leftover cells past the end cleared.
+ * The tab is widened first when it has fewer columns than the header needs.
  */
 async function syncCallDetailsHeader(sheetId: string, sheetName: string, keys: string[]): Promise<string[]> {
   const rows = await SheetUtils.getTrackerData(sheetId, sheetName);
-  const header = ((rows[0] ?? []) as unknown as unknown[]).map(String);
-  const added = keys.filter((key) => !header.includes(key));
-  if (added.length === 0) return header;
+  const rowOne = ((rows[0] ?? []) as unknown as unknown[]).map(String);
+  if (rowOne.length === keys.length && rowOne.every((cell, i) => cell === keys[i])) return keys;
 
+  await SheetUtils.ensureColumnCount(sheetId, sheetName, keys.length);
+  const cells = Array.from({ length: Math.max(keys.length, rowOne.length) }, (_, i) => keys[i] ?? '');
   await SheetUtils.updateContactRow(
     sheetId,
     1,
-    Object.fromEntries(added.map((key, i) => [header.length + i, key])) as any,
+    Object.fromEntries(cells.map((cell, i) => [i, cell])) as any,
     sheetName
   );
-  return [...header, ...added];
+  return keys;
 }
 
 // ============================================================================
