@@ -26,6 +26,14 @@ const steps = [
   { title: 'Message', description: 'Share your goals' },
 ];
 
+// Rich email-validation error: which half of the address is at fault drives
+// both the coloring (bad half red, good half blue) and the detail message.
+interface EmailValidationError {
+  email: string;
+  mode: 'domain' | 'username';
+  detail: string;
+}
+
 export function MultiStepContactForm() {
   const recaptchaContainerRef = useRef<HTMLDivElement>(null);
   const recaptchaWidgetId = useRef<number | null>(null);
@@ -100,6 +108,8 @@ export function MultiStepContactForm() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState<EmailValidationError | null>(null);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
   const submitting = useRef(false);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -109,7 +119,14 @@ export function MultiStepContactForm() {
     } else {
       setFormData((prev) => ({ ...prev, [name]: value }));
     }
-    if (name === 'email') setError(null);
+    if (name === 'email') {
+      setError(null);
+      setEmailError(null);
+    }
+    if (name === 'phone') {
+      setError(null);
+      setPhoneError(null);
+    }
   };
 
   // Check if current step is complete
@@ -145,6 +162,8 @@ export function MultiStepContactForm() {
 
     setLoading(true);
     setError(null);
+    setEmailError(null);
+    setPhoneError(null);
 
     try {
       const isProduction = process.env.NODE_ENV === 'production';
@@ -165,6 +184,35 @@ export function MultiStepContactForm() {
 
       if (!response.ok) {
         const body = await response.json().catch(() => ({}));
+        if (body.emailValidation) {
+          const { email, mxError, mxServer } = body.emailValidation;
+          // "no mx record for hostname ..." means the domain itself is bad;
+          // anything else is a rejected mailbox at a valid domain.
+          const isDomainError = typeof mxError === 'string' && mxError.startsWith('no mx record for hostname');
+          setEmailError({
+            email,
+            mode: isDomainError ? 'domain' : 'username',
+            detail: isDomainError
+              ? 'wrong domain name'
+              : `unknown username says ${mxServer ?? 'mail server'}`,
+          });
+          // Email field lives on step 0 — send the user back so they can fix it.
+          setCurrentStep(0);
+          setLoading(false);
+          submitting.current = false;
+          return;
+        }
+        if (body.phoneValidation) {
+          // Show "Invalid Phone Number" plus whatever the Twilio lookup returned.
+          const pv = body.phoneValidation;
+          const twilioOutput = pv.twilio !== undefined ? JSON.stringify(pv.twilio, null, 2) : pv.detail;
+          setPhoneError(twilioOutput ? String(twilioOutput) : null);
+          // Phone field lives on step 0 — send the user back so they can fix it.
+          setCurrentStep(0);
+          setLoading(false);
+          submitting.current = false;
+          return;
+        }
         throw new Error(body.error || 'Failed to submit form');
       }
 
@@ -407,9 +455,39 @@ export function MultiStepContactForm() {
             )}
 
             {/* Error message */}
-            {error && (
+            {emailError ? (
+              (() => {
+                const atIdx = emailError.email.lastIndexOf('@');
+                const local = emailError.email.slice(0, atIdx);
+                const domain = emailError.email.slice(atIdx + 1);
+                return (
+                  <p className="text-sm font-semibold text-red-500 dark:text-red-400">
+                    Invalid Email: &quot;
+                    {emailError.mode === 'domain' ? (
+                      <>
+                        <span className="text-blue-500">{local}</span>
+                        <span className="text-white">@</span>
+                        <span className="text-red-500 underline decoration-black">{domain}</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-red-500 underline decoration-black">{local}</span>
+                        <span className="text-white">@</span>
+                        <span className="text-blue-500">{domain}</span>
+                      </>
+                    )}
+                    &quot;, {emailError.detail}
+                  </p>
+                );
+              })()
+            ) : phoneError ? (
+              <div className="text-sm font-semibold text-red-500 dark:text-red-400">
+                <p>Invalid Phone Number</p>
+                <pre className="mt-1 whitespace-pre-wrap break-words font-mono text-xs font-normal">{phoneError}</pre>
+              </div>
+            ) : error ? (
               <p className="text-sm font-semibold text-red-500 dark:text-red-400">{error}</p>
-            )}
+            ) : null}
 
             {/* Navigation */}
             <div className="flex gap-3 pt-4">

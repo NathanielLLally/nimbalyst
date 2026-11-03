@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
 import path from 'path';
+import { parsePhoneNumberFromString } from 'libphonenumber-js';
 import { google } from 'googleapis';
 import { onFormSubmit } from '@/lib/vapi-contact-tracker';
 import { sendEmail } from '#lib/contact-email-sender';
@@ -45,36 +46,6 @@ function formatTimestampInTimezone(isoString: string, timezone: string): string 
   }
 }
 
-function validateE164Format(phone: string): { valid: boolean; formatted?: string; error?: string } {
-  if (!phone || typeof phone !== 'string') {
-    return { valid: false, error: 'Phone number is required' };
-  }
-
-  const trimmed = phone.trim();
-
-  let toFormat = trimmed;
-  if (!trimmed.startsWith('+')) {
-    const digits = trimmed.replace(/\D/g, '');
-    if (digits.length === 10) {
-      toFormat = '+1' + digits;
-    } else if (digits.length === 11 && digits.startsWith('1')) {
-      toFormat = '+' + digits;
-    } else {
-      return { valid: false, error: 'Invalid phone number format. Use +1234567890 or 10-digit US number' };
-    }
-  }
-
-  const e164Regex = /^\+[1-9]\d{1,14}$/;
-  if (!e164Regex.test(toFormat)) {
-    return {
-      valid: false,
-      error: `Invalid E.164 format. Expected: +[country code][number]. Got: ${toFormat}`
-    };
-  }
-
-  return { valid: true, formatted: toFormat };
-}
-
 export async function POST(request: NextRequest) {
   try {
     const data: ContactFormData = await request.json();
@@ -83,16 +54,28 @@ export async function POST(request: NextRequest) {
     // MX-level email verification via mxCheck.pl
     const scriptPath = path.join(process.cwd(), 'scripts', 'mxCheck.pl');
     try {
+      console.log(`📧 Calling mxCheck.pl for ${data.email}...`);
       const { stdout } = await execFileAsync('perl', [scriptPath, '--email', data.email], { timeout: 30000 });
       const mxResults = JSON.parse(stdout);
       const mxResult = mxResults[0];
+      console.log(`📧 mxCheck.pl returned: verified=${mxResult?.verified ? 1 : 0} mx=${mxResult?.mx_server ?? '-'} error=${mxResult?.error ?? '-'}`);
       if (!mxResult?.verified) {
         console.error(`❌ MX verification failed: email=${data.email} error=${mxResult?.error ?? 'unverified'}`);
-        return NextResponse.json({ error: 'Invalid Email' }, { status: 400 });
+        return NextResponse.json(
+          {
+            error: 'Invalid Email',
+            emailValidation: {
+              email: data.email,
+              mxError: mxResult?.error ?? 'unverified',
+              mxServer: mxResult?.mx_server ?? null,
+            },
+          },
+          { status: 400 }
+        );
       }
     } catch (mxErr) {
       const errMsg = mxErr instanceof Error ? mxErr.message : String(mxErr);
-      console.error('MX check failed:', errMsg);
+      console.error('❌ mxCheck.pl call failed:', errMsg);
       return NextResponse.json({ error: 'Invalid Email' }, { status: 400 });
     }
 
@@ -122,15 +105,68 @@ export async function POST(request: NextRequest) {
       console.log('⏭️  Skipping reCAPTCHA verification (localhost)');
     }
 
-    // Validate phone number
-    const phoneValidation = validateE164Format(data.phone);
-    if (!phoneValidation.valid) {
-      console.log('❌ Phone number validation failed:', phoneValidation.error);
+    // Validate phone number with libphonenumber-js, then confirm it's a real,
+    // reachable line via Twilio Lookup v2. Default region US (the form is a
+    // US pet-care business); an explicit +country code still parses correctly.
+    const parsedPhone = parsePhoneNumberFromString(data.phone ?? '', 'US');
+    if (!parsedPhone || !parsedPhone.isValid()) {
+      console.log(`❌ Phone number failed libphonenumber-js validation: ${data.phone}`);
       return NextResponse.json(
-        { error: phoneValidation.error },
+        {
+          error: 'Invalid Phone Number',
+          phoneValidation: { phone: data.phone, detail: 'Not a valid phone number' },
+        },
         { status: 400 }
       );
     }
+    const e164Phone = parsedPhone.number; // E.164, e.g. +15551234567
+
+    const twilioSid = process.env.TWILIO_ACCOUNT_SID;
+    const twilioToken = process.env.TWILIO_AUTH_TOKEN;
+    // line_type_intelligence enriches the lookup with carrier/line-type data
+    // (mobile, landline, voip, nonFixedVoip) so VoIP/burner numbers can be
+    // distinguished from real reachable lines.
+    const lookupFields = 'line_type_intelligence';
+    const lookupUrl = `https://lookups.twilio.com/v2/PhoneNumbers/${encodeURIComponent(e164Phone)}?Fields=${lookupFields}`;
+    try {
+      console.log(`📞 Calling Twilio Lookup for ${e164Phone}: ${lookupUrl}`);
+      const lookupResponse = await fetch(lookupUrl, {
+        headers: {
+          Authorization: 'Basic ' + Buffer.from(`${twilioSid}:${twilioToken}`).toString('base64'),
+        },
+      });
+      const lookupData = await lookupResponse.json().catch(() => ({}));
+      // Full result logged for the record — may be persisted downstream.
+      console.log(
+        `📞 Twilio Lookup returned status=${lookupResponse.status} valid=${lookupData?.valid ?? '-'} lineType=${lookupData?.line_type_intelligence?.type ?? '-'}`
+      );
+      console.log('📞 Twilio Lookup full result:', JSON.stringify(lookupData));
+
+      // Twilio returns 200 with { valid: true } for a good number; a 404 (and a
+      // 200 with valid:false) means the number isn't a real, routable line.
+      if (!lookupResponse.ok || lookupData?.valid === false) {
+        console.error(`❌ Twilio Lookup rejected ${e164Phone}: status=${lookupResponse.status}`, lookupData);
+        return NextResponse.json(
+          {
+            error: 'Invalid Phone Number',
+            phoneValidation: { phone: e164Phone, twilioStatus: lookupResponse.status, twilio: lookupData },
+          },
+          { status: 400 }
+        );
+      }
+    } catch (lookupErr) {
+      const errMsg = lookupErr instanceof Error ? lookupErr.message : String(lookupErr);
+      console.error('❌ Twilio Lookup call failed:', errMsg);
+      return NextResponse.json(
+        {
+          error: 'Invalid Phone Number',
+          phoneValidation: { phone: e164Phone, twilio: { error: errMsg } },
+        },
+        { status: 400 }
+      );
+    }
+
+    const phoneValidation = { valid: true as const, formatted: e164Phone };
 
     // Initialize Google Sheets API
     const auth = new google.auth.GoogleAuth({
