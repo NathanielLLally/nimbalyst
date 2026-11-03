@@ -111,6 +111,19 @@ export function MultiStepContactForm() {
   const [emailError, setEmailError] = useState<EmailValidationError | null>(null);
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const submitting = useRef(false);
+  // Bumped on every submit and on any email/phone edit. A submit only applies
+  // its result if its captured seq still matches, so a slow in-flight request
+  // (mxCheck + Twilio can take seconds) can't clobber the form after the user
+  // has already edited the field it was validating.
+  const submitSeq = useRef(0);
+
+  // Abandon any in-flight submit and clear the stuck "Submitting…" button so
+  // correcting the field immediately re-enables the form.
+  const cancelPendingSubmit = () => {
+    submitSeq.current++;
+    submitting.current = false;
+    setLoading(false);
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target as any;
@@ -122,10 +135,12 @@ export function MultiStepContactForm() {
     if (name === 'email') {
       setError(null);
       setEmailError(null);
+      cancelPendingSubmit();
     }
     if (name === 'phone') {
       setError(null);
       setPhoneError(null);
+      cancelPendingSubmit();
     }
   };
 
@@ -159,6 +174,10 @@ export function MultiStepContactForm() {
     e.preventDefault();
     if (!isStepComplete() || submitting.current) return;
     submitting.current = true;
+    const seq = ++submitSeq.current;
+    // True once the user has edited email/phone (or started another submit)
+    // while this request was in flight — in which case we drop its result.
+    const isStale = () => seq !== submitSeq.current;
 
     setLoading(true);
     setError(null);
@@ -182,8 +201,12 @@ export function MultiStepContactForm() {
         body: JSON.stringify({ ...formData, recaptchaToken: token }),
       });
 
+      // User edited the field while this was in flight — ignore the result.
+      if (isStale()) return;
+
       if (!response.ok) {
         const body = await response.json().catch(() => ({}));
+        if (isStale()) return;
         if (body.emailValidation) {
           const { email, mxError, mxServer } = body.emailValidation;
           // "no mx record for hostname ..." means the domain itself is bad;
@@ -225,6 +248,7 @@ export function MultiStepContactForm() {
         submitting.current = false;
       }, 3000);
     } catch (err) {
+      if (isStale()) return;
       const errorMessage = err instanceof Error ? err.message : 'An error occurred';
       console.error('❌ Form submission error:', errorMessage);
       setError(errorMessage);
@@ -461,17 +485,17 @@ export function MultiStepContactForm() {
                 const local = emailError.email.slice(0, atIdx);
                 const domain = emailError.email.slice(atIdx + 1);
                 return (
-                  <p className="text-sm font-semibold text-red-500 dark:text-red-400">
+                  <p className="text-sm font-semibold text-red-700 dark:text-red-600">
                     Invalid Email: &quot;
                     {emailError.mode === 'domain' ? (
                       <>
                         <span className="text-blue-500">{local}</span>
                         <span className="text-white">@</span>
-                        <span className="text-red-500 underline decoration-black">{domain}</span>
+                        <span className="text-red-700 underline decoration-black">{domain}</span>
                       </>
                     ) : (
                       <>
-                        <span className="text-red-500 underline decoration-black">{local}</span>
+                        <span className="text-red-700 underline decoration-black">{local}</span>
                         <span className="text-white">@</span>
                         <span className="text-blue-500">{domain}</span>
                       </>
@@ -481,12 +505,12 @@ export function MultiStepContactForm() {
                 );
               })()
             ) : phoneError ? (
-              <div className="text-sm font-semibold text-red-500 dark:text-red-400">
+              <div className="text-sm font-semibold text-red-700 dark:text-red-600">
                 <p>Invalid Phone Number</p>
                 <pre className="mt-1 whitespace-pre-wrap break-words font-mono text-xs font-normal">{phoneError}</pre>
               </div>
             ) : error ? (
-              <p className="text-sm font-semibold text-red-500 dark:text-red-400">{error}</p>
+              <p className="text-sm font-semibold text-red-700 dark:text-red-600">{error}</p>
             ) : null}
 
             {/* Navigation */}
