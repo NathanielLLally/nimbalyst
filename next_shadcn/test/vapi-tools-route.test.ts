@@ -81,7 +81,7 @@ describe('POST /api/vapi-tools check_availability', () => {
 
     // Then: the agent gets real availability back, not a "none found" fallback
     expect(result.result).toBe(
-      '2026-11-04T09:00:00.000-05:00, 2026-11-04T10:00:00.000-05:00, 2026-11-05T09:00:00.000-05:00'
+      'Available times (America/New_York): 2026-11-04T09:00:00.000-05:00, 2026-11-04T10:00:00.000-05:00, 2026-11-05T09:00:00.000-05:00'
     );
   });
 
@@ -94,20 +94,46 @@ describe('POST /api/vapi-tools check_availability', () => {
     const result = await firstResult(res);
 
     // Then
-    expect(result.result).toBe('No availability found');
+    expect(result.result).toBe('No availability found (America/New_York)');
   });
 
-  it('should_return_tool_error_without_calling_cal_when_timezone_missing', async () => {
+  it('should_query_cal_in_new_york_when_timezone_missing', async () => {
+    // Given
+    fetchMock.mockResolvedValueOnce(calResponse({ status: 'success', data: {} }));
+
     // When
-    const res = await POST(toolCallRequest('check_availability', {}));
-    const result = await firstResult(res);
+    await POST(toolCallRequest('check_availability', {}));
 
     // Then
-    expect({ status: res.status, error: result.error, calCalls: fetchMock.mock.calls.length }).toEqual({
-      status: 200,
-      error: 'Missing required parameter: timezone',
-      calCalls: 0,
-    });
+    expect(new URL(fetchMock.mock.calls[0][0]).searchParams.get('timeZone')).toBe('America/New_York');
+  });
+
+  it('should_name_new_york_in_result_when_timezone_missing', async () => {
+    // Given
+    fetchMock.mockResolvedValueOnce(
+      calResponse({ status: 'success', data: { '2026-11-04': [{ start: '2026-11-04T09:00:00.000-05:00' }] } })
+    );
+
+    // When
+    const result = await firstResult(await POST(toolCallRequest('check_availability', {})));
+
+    // Then
+    expect(result.result).toBe('Available times (America/New_York): 2026-11-04T09:00:00.000-05:00');
+  });
+
+  it('should_name_requested_timezone_in_result', async () => {
+    // Given
+    fetchMock.mockResolvedValueOnce(
+      calResponse({ status: 'success', data: { '2026-11-04': [{ start: '2026-11-04T08:00:00.000-06:00' }] } })
+    );
+
+    // When
+    const result = await firstResult(
+      await POST(toolCallRequest('check_availability', { timezone: 'America/Chicago' }))
+    );
+
+    // Then
+    expect(result.result).toBe('Available times (America/Chicago): 2026-11-04T08:00:00.000-06:00');
   });
 
   it('should_query_v2_slots_endpoint_for_configured_event_type', async () => {
@@ -228,8 +254,40 @@ describe('POST /api/vapi-tools book_meeting', () => {
     const res = await POST(toolCallRequest('book_meeting', bookingParams));
     const result = await firstResult(res);
 
+    // Then: the booked time is read back in the attendee's timezone
+    expect(result.result).toBe('Booked for Wednesday, November 4, 2026 at 12:00 PM (America/New_York)');
+  });
+
+  it('should_book_in_new_york_when_timezone_missing', async () => {
+    // Given
+    const { timezone: _tz, ...withoutTimezone } = bookingParams;
+
+    // When
+    await POST(toolCallRequest('book_meeting', withoutTimezone));
+
     // Then
-    expect(result.result).toBe('Booked for 2026-11-04T17:00:00.000Z');
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).attendee.timeZone).toBe('America/New_York');
+  });
+
+  it('should_name_new_york_in_confirmation_when_timezone_missing', async () => {
+    // Given
+    const { timezone: _tz, ...withoutTimezone } = bookingParams;
+
+    // When
+    const result = await firstResult(await POST(toolCallRequest('book_meeting', withoutTimezone)));
+
+    // Then
+    expect(result.result).toBe('Booked for Wednesday, November 4, 2026 at 12:00 PM (America/New_York)');
+  });
+
+  it('should_read_booking_back_in_requested_timezone', async () => {
+    // When
+    const result = await firstResult(
+      await POST(toolCallRequest('book_meeting', { ...bookingParams, timezone: 'America/Los_Angeles' }))
+    );
+
+    // Then
+    expect(result.result).toBe('Booked for Wednesday, November 4, 2026 at 9:00 AM (America/Los_Angeles)');
   });
 });
 
@@ -398,7 +456,7 @@ describe('POST /api/vapi-tools Vapi tool-calls contract', () => {
     expect(result).toEqual({
       toolCallId: 'toolcall_2',
       name: 'check_availability',
-      result: '2026-11-04T09:00:00.000-05:00',
+      result: 'Available times (America/New_York): 2026-11-04T09:00:00.000-05:00',
     });
   });
 

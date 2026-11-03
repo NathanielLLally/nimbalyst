@@ -61,8 +61,10 @@ async function testVapiTools() {
     if (response.ok && data.result) {
       console.log('✅ check_availability passed');
       console.log('   Result:', data.result);
-      if (data.result !== 'No availability found') {
-        firstSlot = data.result.split(', ')[0];
+      // "Available times (<timezone>): <slot>, <slot>, ..."
+      const slots = data.result.match(/^Available times \([^)]+\): (.+)$/);
+      if (slots) {
+        firstSlot = slots[1].split(', ')[0];
       }
     } else if (data.error?.includes('410')) {
       console.log('⚠️  check_availability - Cal.com API returned 410 Gone');
@@ -153,8 +155,8 @@ async function testVapiTools() {
   }
   console.log('');
 
-  // Test 4: Missing required parameters
-  console.log('Test 4: Missing required parameters');
+  // Test 4: Missing timezone defaults to America/New_York
+  console.log('Test 4: Missing timezone (should default to America/New_York)');
   try {
     const missingParamsRequest = toolCallBody('check_availability', {});
 
@@ -171,14 +173,15 @@ async function testVapiTools() {
     // Fall back to the top-level body when the route failed before producing results
     const data = json.results?.[0] ?? json;
 
-    if (data.error) {
-      console.log('✅ Missing parameters reported as tool error:', data.error);
+    if (data.result?.includes('(America/New_York)')) {
+      console.log('✅ Missing timezone defaulted to America/New_York');
+      console.log('   Result:', data.result);
     } else {
-      console.log('❌ Missing parameters not reported as an error');
+      console.log('❌ Missing timezone did not default to America/New_York');
       console.log('   Status:', response.status, 'Response:', data);
     }
   } catch (err) {
-    console.log('❌ Missing parameters error:', err.message);
+    console.log('❌ Missing timezone error:', err.message);
   }
   console.log('');
 

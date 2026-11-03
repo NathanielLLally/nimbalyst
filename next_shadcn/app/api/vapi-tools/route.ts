@@ -101,12 +101,17 @@ function parseToolCall(toolCall: any) {
   return { name, parameters }
 }
 
+// Used when the agent doesn't pass a timezone; results always name the
+// timezone so the agent reads times back correctly
+const DEFAULT_TIMEZONE = 'America/New_York'
+
 async function runTool(name: string, parameters: any) {
   if (name === 'check_availability') {
-    if (!parameters?.timezone) {
-      throw new Error('Missing required parameter: timezone')
-    }
-    return getCalAvailability(parameters.timezone)
+    const timezone = parameters?.timezone || DEFAULT_TIMEZONE
+    const slots = await getCalAvailability(timezone)
+    return slots.length === 0
+      ? `No availability found (${timezone})`
+      : `Available times (${timezone}): ${slots.join(', ')}`
   }
 
   if (name === 'book_meeting') {
@@ -114,8 +119,14 @@ async function runTool(name: string, parameters: any) {
     if (!parameters?.email) {
       throw new Error('Missing required parameter: email')
     }
-    const booking = await createCalBooking(parameters)
-    return `Booked for ${booking.start}`
+    const timezone = parameters.timezone || DEFAULT_TIMEZONE
+    const booking = await createCalBooking({ ...parameters, timezone })
+    const localStart = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      dateStyle: 'full',
+      timeStyle: 'short',
+    }).format(new Date(booking.start))
+    return `Booked for ${localStart} (${timezone})`
   }
 
   if (name === 'cancel_booking') {
@@ -161,12 +172,7 @@ async function getCalAvailability(timezone: string) {
     // Cal.com v2 groups slots by date: { data: { 'YYYY-MM-DD': [{ start }] } }
     const slots = Object.values(data?.data ?? {}).flat() as any[]
 
-    if (slots.length === 0) {
-      return 'No availability found'
-    }
-
-    // format into something the LLM can read back naturally
-    return slots.map((s: any) => s.start).slice(0, 6).join(', ')
+    return slots.map((s: any) => s.start as string).slice(0, 6)
   } catch (error) {
     const errMsg = error instanceof Error ? error.message : String(error)
     throw new Error(`Failed to get availability: ${errMsg}`)

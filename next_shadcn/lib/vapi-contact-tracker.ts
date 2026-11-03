@@ -565,6 +565,7 @@ export async function dispatchContactDirectly(row: SheetUtils.ContactRow): Promi
   const id = row[0];
   const phone = row[1];
   const name = row[2];
+  const email = row[3]; // D: Email
   const channel = row[4];
   const timezone = row[13] as string | undefined; // N: Timezone
   const notes = String(row[12] ?? '');
@@ -579,7 +580,7 @@ export async function dispatchContactDirectly(row: SheetUtils.ContactRow): Promi
 
     const messages = await getCallMachineMessages();
     const callMachineMessage = messages.get(1);
-    const vapiResponse = await makeVapiCall(phone as string, name as string, channel as string, 1, callMachineMessage, timezone, company);
+    const vapiResponse = await makeVapiCall(phone as string, name as string, channel as string, 1, callMachineMessage, timezone, company, email as string);
 
     if (!vapiResponse.success) {
       throw new Error(vapiResponse.error || 'Unknown Vapi error');
@@ -671,6 +672,7 @@ async function dispatchContact(
   const id = row[0];
   const phone = row[1];
   const name = row[2];
+  const email = row[3]; // D: Email
   const channel = row[4];
   const attemptCount = parseInt(String(row[6])) || 0;
   const timezone = row[13] as string | undefined; // N: Timezone
@@ -684,7 +686,7 @@ async function dispatchContact(
   try {
     const messages = await getCallMachineMessages();
     const callMachineMessage = messages.get(attemptCount + 1);
-    const vapiResponse = await makeVapiCall(phone, name, channel, attemptCount + 1, callMachineMessage, timezone, company);
+    const vapiResponse = await makeVapiCall(phone, name, channel, attemptCount + 1, callMachineMessage, timezone, company, email);
 
     if (!vapiResponse.success) {
       throw new Error(vapiResponse.error || 'Unknown Vapi error');
@@ -730,7 +732,8 @@ export async function makeVapiCall(
   attemptNumber: number = 1,
   callMachineMessage?: string,
   timezone?: string,
-  company?: string
+  company?: string,
+  email?: string
 ): Promise<VapiResponse> {
   const cfg = getConfig();
   const url = 'https://api.vapi.ai/call';
@@ -745,6 +748,8 @@ export async function makeVapiCall(
         customerName: name,
         fullName: name,
         company: company ?? '',
+        // Lets the assistant pass the form's email to book_meeting
+        email: email ?? '',
         channel,
         attemptNumber,
       },
