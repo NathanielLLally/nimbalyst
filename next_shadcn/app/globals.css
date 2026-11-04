@@ -173,7 +173,15 @@ body::before {
     height: 100dvh; /* Dynamic viewport height to account for mobile browser bars */
     z-index: 9999;
     overflow-y: auto;
+    overscroll-behavior: contain; /* don't chain scroll to the page behind */
     box-sizing: border-box;
     padding: 16px;
+  }
+
+  /* While the form is active, lock background page scroll so the user only
+     interacts with the fullscreen form (scrolling stays inside it). */
+  body:has(#contact:target .form-container),
+  body:has(.form-container:focus-within) {
+    overflow: hidden;
   }
 }

@@ -394,6 +394,7 @@ export function MultiStepContactForm() {
                   <input
                     type="text"
                     name="fullName"
+                    autoComplete="name"
                     placeholder="John Smith"
                     value={formData.fullName}
                     onChange={handleInputChange}
@@ -409,6 +410,7 @@ export function MultiStepContactForm() {
                   <input
                     type="tel"
                     name="phone"
+                    autoComplete="tel"
                     inputMode="tel"
                     placeholder="(###) ###-####"
                     value={formData.phone}
@@ -425,6 +427,7 @@ export function MultiStepContactForm() {
                   <input
                     type="email"
                     name="email"
+                    autoComplete="email"
                     placeholder="john@example.com"
                     value={formData.email}
                     onChange={handleInputChange}
@@ -446,6 +449,7 @@ export function MultiStepContactForm() {
                   <input
                     type="text"
                     name="company"
+                    autoComplete="organization"
                     placeholder="Your Pet Business"
                     value={formData.company}
                     onChange={handleInputChange}
@@ -460,6 +464,7 @@ export function MultiStepContactForm() {
                   <input
                     type="url"
                     name="website"
+                    autoComplete="url"
                     placeholder="https://example.com"
                     value={formData.website}
                     onChange={handleInputChange}
