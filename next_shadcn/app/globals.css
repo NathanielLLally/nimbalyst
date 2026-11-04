@@ -155,3 +155,15 @@ body::before {
   color: #fff;
   text-shadow: 0 0 5px #00d4ff, 0 0 10px #00d4ff, 0 0 20px #00d4ff, 0 0 40px #00d4ff, 0 0 80px #00d4ff;
 }
+
+/* Emoji icons inside .neon-text labels: opt out of the label's glow so they render plain. */
+.neon-icon {
+  text-shadow: none;
+}
+
+/* Opt an icon into a cyan neon glow. drop-shadow traces the emoji's outline (text-shadow on
+   color emoji renders inconsistently across browsers). */
+.neon-icon--glow {
+  display: inline-block;
+  filter: drop-shadow(0 0 2px #00d4ff) drop-shadow(0 0 6px #00d4ff) drop-shadow(0 0 12px #00d4ff);
+}

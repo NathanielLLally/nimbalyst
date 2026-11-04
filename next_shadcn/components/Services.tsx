@@ -174,6 +174,7 @@ export function Services({
               return (
                 <CardHoverLift
                   key={service.id}
+                  onClick={() => openModal(service)}
                   className="bg-background p-8 rounded-2xl border border-border/40 hover:border-primary/40 transition-colors flex flex-col md:col-span-2 lg:col-span-3"
                 >
                   <div className="flex flex-col md:flex-row gap-6 md:items-center">
@@ -187,8 +188,10 @@ export function Services({
                       <p className="text-muted-foreground text-sm leading-relaxed mb-4">{service.description}</p>
                     </div>
                     <div className="flex-shrink-0 self-end md:self-center">
+                      {/* Opens the modal via the card's onClick (click bubbles); kept as a
+                          button so keyboard users can focus and activate it. */}
                       <button
-                        onClick={() => openModal(service)}
+                        type="button"
                         className="inline-flex items-center justify-center px-6 py-3 rounded-xl text-sm font-bold text-white bg-primary hover:bg-primary/90 transition-colors shadow-md shadow-primary/10"
                       >
                         Explaining Analytics <i className="fa-solid fa-circle-info ml-2" />
@@ -201,6 +204,7 @@ export function Services({
             return (
               <CardHoverLift
                 key={service.id}
+                onClick={() => openModal(service)}
                 className="bg-background p-8 rounded-2xl border border-border/40 hover:border-primary/40 transition-colors flex flex-col h-full"
               >
                 <div className={`w-14 h-14 rounded-2xl ${c.bg} flex items-center justify-center ${c.text} mb-6 group-hover:scale-110 transition-transform`}>
@@ -210,8 +214,10 @@ export function Services({
                   {service.title}
                 </h3>
                 <p className="text-muted-foreground text-sm leading-relaxed mb-6 flex-grow">{service.description}</p>
+                {/* Opens the modal via the card's onClick (click bubbles); kept as a
+                    button so keyboard users can focus and activate it. */}
                 <button
-                  onClick={() => openModal(service)}
+                  type="button"
                   className={`inline-flex items-center gap-1.5 text-sm font-extrabold ${c.btn} transition-colors`}
                 >
                   Learn More <i className="fa-solid fa-arrow-right" />

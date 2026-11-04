@@ -6,9 +6,9 @@ const root = path.resolve(__dirname, '..');
 const form = readFileSync(path.join(root, 'components/MultiStepContactForm.tsx'), 'utf8');
 const css = readFileSync(path.join(root, 'app/globals.css'), 'utf8');
 
-const fieldClassNames = [...form.matchAll(/<(input|select|textarea)\b[^>]*?className="([^"]*)"/g)]
-  .filter(([, tag, cls]) => !(tag === 'input' && cls.includes('w-4 h-4'))) // skip checkbox
-  .map(([, , cls]) => cls);
+const fieldClassNames = [...form.matchAll(/<(input|select|textarea)\b([^>]*?)className="([^"]*)"/g)]
+  .filter(([, , attrs]) => !attrs.includes('type="checkbox"'))
+  .map(([, , , cls]) => cls);
 
 describe('MultiStepContactForm styles', () => {
   it('finds all text fields', () => {
@@ -80,5 +80,20 @@ describe('MultiStepContactForm styles', () => {
       cyanShadow: rule.includes('0 0 5px #00d4ff, 0 0 10px #00d4ff, 0 0 20px #00d4ff, 0 0 40px #00d4ff, 0 0 80px #00d4ff'),
       animated: /animation/.test(rule) || /@keyframes neon-glow/.test(css),
     }).toEqual({ color: true, cyanShadow: true, animated: false });
+  });
+
+  it('should_define_neon_icon_with_no_glow_at_all', () => {
+    const rule = css.match(/\.neon-icon\s*\{([^}]*)\}/)?.[1] ?? '';
+    expect({
+      noTextShadow: /text-shadow:\s*none/.test(rule),
+      noFilter: !/filter/.test(rule),
+    }).toEqual({ noTextShadow: true, noFilter: true });
+  });
+
+  it('should_define_neon_icon_glow_modifier_as_a_cyan_drop_shadow_after_neon_icon', () => {
+    const base = css.indexOf('.neon-icon {');
+    const mod = css.search(/\.neon-icon--glow\s*\{[^}]*filter:\s*drop-shadow\(0 0 \d+px #00d4ff\)/);
+    expect({ defined: mod !== -1, afterBase: mod > base, oldShadowGone: !css.includes('neon-icon--shadow') })
+      .toEqual({ defined: true, afterBase: true, oldShadowGone: true });
   });
 });

@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import Image from 'next/image'
 import {
   Menu, X,
@@ -57,13 +58,25 @@ const services: ServiceSection[] = [
 
 export function Navbar() {
   const [open, setOpen] = useState(false)
+  const pathname = usePathname()
+
+  // Next's <Link> only scrolls when the URL changes, so clicking "/" while already on "/"
+  // (or re-clicking the same "/#section") does nothing. On the home page, scroll to the top
+  // ourselves and drop any leftover "#section" so the URL matches.
+  const handleLogoClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (pathname !== '/') return
+    e.preventDefault()
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+    if (window.location.hash) window.history.replaceState(null, '', '/')
+    setOpen(false)
+  }
 
   return (
     <header className="fixed top-0 inset-x-0 z-50 border-b border-border/40 bg-background/45 backdrop-blur-xl">
       <div className="mx-auto max-w-6xl items-center justify-between px-4 md:px-6">
         <NavigationMenu className="w-full max-w-none justify-between h-[85px]">
           {/* Brand */}
-          <Link href="/" className="shrink-0 -m-[10px]">
+          <Link href="/" onClick={handleLogoClick} className="shrink-0 -m-[10px]">
           {/*            <Image src="/logo.png" alt="Happy Tails Paw Care" width={212} height={53} className="h-[53px] w-auto" />
 */}
             <Image src="/logo.png" alt="Happy Tails Paw Care" width={456} height={158} className="h-[85px] w-auto" />
@@ -130,7 +143,7 @@ export function Navbar() {
             onClick={() => setOpen(v => !v)}
             aria-label="Toggle menu"
           >
-            {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            {open ? <X className="w-[1.5625rem] h-[1.5625rem]" /> : <Menu className="w-[1.5625rem] h-[1.5625rem]" />}
           </button>
         </NavigationMenu>
       </div>

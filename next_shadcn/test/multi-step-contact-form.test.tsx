@@ -48,6 +48,118 @@ async function submitOnceAndGetBouncedBackForBadEmail() {
   await screen.findByText(/Invalid Email/);
 }
 
+describe('MultiStepContactForm labels', () => {
+  it('should_label_the_email_field_with_the_envelope_emoji', () => {
+    // Given the form on page 1, Then the email label reads "✉️ Email"
+    render(<MultiStepContactForm />);
+    expect(screen.getByText((_, el) => el?.tagName === 'LABEL' && el.textContent?.trim() === '\u2709\uFE0F Email')).toBeTruthy();
+  });
+
+  it('should_wrap_each_page_1_label_icon_in_a_neon_icon_span', () => {
+    // Given the form on page 1, Then every label icon sits in a .neon-icon span (which opts it out of the label glow)
+    render(<MultiStepContactForm />);
+    const icons = ['\u{1F464}', '\u{1F4DE}', '\u2709\uFE0F'].map((i) => screen.getByText(i).className.split(' '));
+    expect(icons.every((c) => c.includes('neon-icon'))).toBe(true);
+  });
+});
+
+describe('MultiStepContactForm icon glow', () => {
+  it('should_give_only_the_phone_icon_the_neon_glow', () => {
+    // Given the form on page 1, Then only 📞 carries the glow modifier
+    render(<MultiStepContactForm />);
+    const glows = (i: string) => screen.getByText(i).className.split(' ').includes('neon-icon--glow');
+    expect({ name: glows('\u{1F464}'), phone: glows('\u{1F4DE}'), email: glows('\u2709\uFE0F') })
+      .toEqual({ name: false, phone: true, email: false });
+  });
+});
+
+describe('MultiStepContactForm consent checkbox', () => {
+  it('should_render_the_last_page_checkbox_at_twice_the_original_size', () => {
+    // Given the user reaches the last page
+    render(<MultiStepContactForm />);
+    type('John Smith', 'Jane Doe');
+    type('(###) ###-####', '2125550123');
+    type('john@example.com', 'jane@paws.example');
+    fireEvent.click(screen.getByRole('button', { name: /next/i }));
+    type('Your Pet Business', 'Paws');
+    type('https://example.com', 'https://paws.example');
+    const [businessType, challenge] = screen.getAllByRole('combobox');
+    fireEvent.change(businessType, { target: { value: 'grooming' } });
+    fireEvent.change(challenge, { target: { value: 'leads' } });
+    fireEvent.click(screen.getByRole('button', { name: /next/i }));
+    // Then the checkbox is 2rem square (was w-4 h-4 = 1rem)
+    const cls = screen.getByRole('checkbox').className.split(' ');
+    expect({ w8: cls.includes('w-8'), h8: cls.includes('h-8'), old: cls.includes('w-4') || cls.includes('h-4') })
+      .toEqual({ w8: true, h8: true, old: false });
+  });
+});
+
+describe('MultiStepContactForm focus on page change', () => {
+  const fillPage1 = () => {
+    type('John Smith', 'Jane Doe');
+    type('(###) ###-####', '2125550123');
+    type('john@example.com', 'jane@paws.example');
+  };
+  const fillPage2 = () => {
+    type('Your Pet Business', 'Paws');
+    type('https://example.com', 'https://paws.example');
+    const [businessType, challenge] = screen.getAllByRole('combobox');
+    fireEvent.change(businessType, { target: { value: 'grooming' } });
+    fireEvent.change(challenge, { target: { value: 'leads' } });
+  };
+
+  it('should_not_steal_focus_on_initial_render', () => {
+    render(<MultiStepContactForm />);
+    expect(document.activeElement).toBe(document.body);
+  });
+
+  it('should_focus_company_name_after_clicking_next_on_page_1', () => {
+    render(<MultiStepContactForm />);
+    fillPage1();
+    fireEvent.click(screen.getByRole('button', { name: /next/i }));
+    expect(document.activeElement).toBe(screen.getByPlaceholderText('Your Pet Business'));
+  });
+
+  it('should_focus_the_message_after_clicking_next_on_page_2', () => {
+    render(<MultiStepContactForm />);
+    fillPage1();
+    fireEvent.click(screen.getByRole('button', { name: /next/i }));
+    fillPage2();
+    fireEvent.click(screen.getByRole('button', { name: /next/i }));
+    expect(document.activeElement).toBe(screen.getByPlaceholderText('We could use more clients'));
+  });
+
+  it('should_advance_and_focus_company_name_on_enter_in_the_last_page_1_field', () => {
+    render(<MultiStepContactForm />);
+    fillPage1();
+    fireEvent.keyDown(screen.getByPlaceholderText('john@example.com'), { key: 'Enter' });
+    expect(document.activeElement).toBe(screen.getByPlaceholderText('Your Pet Business'));
+  });
+
+  it('should_advance_and_focus_the_message_on_enter_in_the_last_page_2_field', () => {
+    render(<MultiStepContactForm />);
+    fillPage1();
+    fireEvent.click(screen.getByRole('button', { name: /next/i }));
+    fillPage2();
+    fireEvent.keyDown(screen.getAllByRole('combobox')[1], { key: 'Enter' });
+    expect(document.activeElement).toBe(screen.getByPlaceholderText('We could use more clients'));
+  });
+
+  it('should_not_advance_on_enter_in_a_field_that_is_not_the_last_on_its_page', () => {
+    render(<MultiStepContactForm />);
+    fillPage1();
+    fireEvent.keyDown(screen.getByPlaceholderText('John Smith'), { key: 'Enter' });
+    expect(screen.queryByPlaceholderText('Your Pet Business')).toBeNull();
+  });
+
+  it('should_not_advance_on_enter_in_the_last_field_when_the_page_is_incomplete', () => {
+    render(<MultiStepContactForm />);
+    type('john@example.com', 'jane@paws.example');
+    fireEvent.keyDown(screen.getByPlaceholderText('john@example.com'), { key: 'Enter' });
+    expect(screen.queryByPlaceholderText('Your Pet Business')).toBeNull();
+  });
+});
+
 describe('MultiStepContactForm Next/Submit buttons', () => {
   it('should_render_submit_as_a_new_element_not_the_reused_next_button', () => {
     // Given the user is on page 2 with all fields filled

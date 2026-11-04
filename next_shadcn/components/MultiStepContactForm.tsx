@@ -20,6 +20,11 @@ interface FormData {
   submittedAt?: string;
 }
 
+// Field to focus when a page is entered via Next, and the field whose Enter acts as Next.
+// The last page has no "last field" entry: Enter there submits the form as usual.
+const firstFieldByStep = ['fullName', 'company', 'message'];
+const lastFieldByStep = ['email', 'challenge'];
+
 const steps = [
   { title: 'About You', description: 'Tell us about yourself' },
   { title: 'Your Business', description: 'What do you need help with?' },
@@ -106,6 +111,17 @@ export function MultiStepContactForm() {
   }, [renderBadge]);
 
   const [currentStep, setCurrentStep] = useState(0);
+  const formRef = useRef<HTMLFormElement>(null);
+  // Set by handleNext so the page-change effect focuses the new page's first field.
+  // Not set on initial render, Previous, or the invalid-email bounce, so focus isn't stolen.
+  const focusFirstFieldOnStepChange = useRef(false);
+
+  useEffect(() => {
+    if (!focusFirstFieldOnStepChange.current) return;
+    focusFirstFieldOnStepChange.current = false;
+    const field = formRef.current?.elements.namedItem(firstFieldByStep[currentStep]);
+    if (field instanceof HTMLElement) field.focus();
+  }, [currentStep]);
 
   const [formData, setFormData] = useState<FormData>({
     fullName: '',
@@ -192,8 +208,17 @@ export function MultiStepContactForm() {
 
   const handleNext = () => {
     if (isStepComplete() && currentStep < steps.length - 1) {
+      focusFirstFieldOnStepChange.current = true;
       setCurrentStep(currentStep + 1);
     }
+  };
+
+  // Enter in the last field of a non-final page behaves like clicking Next.
+  const handleFormKeyDown = (e: React.KeyboardEvent<HTMLFormElement>) => {
+    if (e.key !== 'Enter' || currentStep >= steps.length - 1) return;
+    if ((e.target as HTMLInputElement).name !== lastFieldByStep[currentStep]) return;
+    e.preventDefault();
+    handleNext();
   };
 
   const handlePrev = () => {
@@ -346,7 +371,9 @@ export function MultiStepContactForm() {
       <AnimatePresence mode="wait">
         {!submitted ? (
           <form
+            ref={formRef}
             onSubmit={handleSubmit}
+            onKeyDown={handleFormKeyDown}
             className="flex flex-col gap-6"
           >
             {/* Step header */}
@@ -370,7 +397,7 @@ export function MultiStepContactForm() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-2 sm:col-span-1">
                   <label className="neon-text text-xs font-semibold tracking-widest uppercase text-white">
-                    👤 Name
+                    <span className="neon-icon">👤</span> Name
                   </label>
                   <input
                     type="text"
@@ -384,7 +411,7 @@ export function MultiStepContactForm() {
                 </div>
                 <div className="flex flex-col gap-2 sm:col-span-1">
                   <label className="neon-text text-xs font-semibold tracking-widest uppercase text-white">
-                    <span className="text-blue-500">📞</span> Phone
+                    <span className="neon-icon neon-icon--glow">📞</span> Phone
                   </label>
                   <input
                     type="tel"
@@ -399,7 +426,7 @@ export function MultiStepContactForm() {
                 </div>
                 <div className="flex flex-col gap-2 sm:col-span-2">
                   <label className="neon-text text-xs font-semibold tracking-widest uppercase text-white">
-                    ✉️ Email
+                    <span className="neon-icon">✉️</span> Email
                   </label>
                   <input
                     type="email"
@@ -512,7 +539,7 @@ export function MultiStepContactForm() {
                     id="receiveMessages"
                     checked={formData.receiveMessages}
                     onChange={handleInputChange}
-                    className="w-4 h-4 mt-1 cursor-pointer rounded border-zinc-300 text-primary focus:ring-primary/20"
+                    className="w-8 h-8 shrink-0 cursor-pointer rounded border-zinc-300 text-primary focus:ring-primary/20"
                   />
                   <label htmlFor="receiveMessages" className="text-xs text-white cursor-pointer">
                     Check this box to receive messages from our sales team. Message frequency varies, and data rates may apply.
