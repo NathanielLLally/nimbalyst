@@ -379,7 +379,7 @@ export function MultiStepContactForm() {
                     value={formData.fullName}
                     onChange={handleInputChange}
                     required
-                    className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
+                    className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-base sm:text-sm text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
                   />
                 </div>
                 <div className="flex flex-col gap-2 sm:col-span-1">
@@ -394,7 +394,7 @@ export function MultiStepContactForm() {
                     value={formData.phone}
                     onChange={handlePhoneChange}
                     required
-                    className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
+                    className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-base sm:text-sm text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
                   />
                 </div>
                 <div className="flex flex-col gap-2 sm:col-span-2">
@@ -408,7 +408,7 @@ export function MultiStepContactForm() {
                     value={formData.email}
                     onChange={handleInputChange}
                     required
-                    className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
+                    className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-base sm:text-sm text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
                   />
                 </div>
               </div>
@@ -428,7 +428,7 @@ export function MultiStepContactForm() {
                     value={formData.company}
                     onChange={handleInputChange}
                     required
-                    className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
+                    className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-base sm:text-sm text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
                   />
                 </div>
                 <div className="flex flex-col gap-2">
@@ -442,7 +442,7 @@ export function MultiStepContactForm() {
                     value={formData.website}
                     onChange={handleInputChange}
                     required
-                    className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
+                    className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-base sm:text-sm text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
                   />
                 </div>
                 <div className="flex flex-col gap-2">
@@ -454,7 +454,7 @@ export function MultiStepContactForm() {
                     value={formData.businessType}
                     onChange={handleInputChange}
                     required
-                    className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-100 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
+                    className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-base sm:text-sm text-zinc-100 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
                   >
                     <option value="">Select your business type</option>
                     <option value="grooming">Grooming Salon</option>
@@ -473,7 +473,7 @@ export function MultiStepContactForm() {
                     value={formData.challenge}
                     onChange={handleInputChange}
                     required
-                    className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-100 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
+                    className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-base sm:text-sm text-zinc-100 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
                   >
                     <option value="">Select your main challenge</option>
                     <option value="leads">Getting more leads</option>
@@ -500,7 +500,7 @@ export function MultiStepContactForm() {
                     value={formData.message}
                     onChange={handleInputChange}
                     required
-                    className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-3 text-sm text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 resize-none transition-all duration-200"
+                    className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-3 text-base sm:text-sm text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 resize-none transition-all duration-200"
                   />
                 </div>
 
@@ -538,21 +538,21 @@ export function MultiStepContactForm() {
               const domain = emailError.email.slice(atIdx + 1);
               return (
                 <p className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-4 py-2 text-sm font-medium text-rose-500">
-                  Invalid Email: &quot;
+                  Invalid Email: <span className="text-white">&quot;</span>
                   {emailError.mode === 'domain' ? (
                     <>
                       <span className="text-blue-500">{local}</span>
                       <span className="text-white">@</span>
-                      <span className="text-rose-500 underline decoration-white">{domain}</span>
+                      <span className="text-black underline decoration-black [text-shadow:1px_1px_3px_rgb(239_68_68)]">{domain}</span>
                     </>
                   ) : (
                     <>
-                      <span className="text-rose-500 underline decoration-white">{local}</span>
+                      <span className="text-black underline decoration-black [text-shadow:1px_1px_3px_rgb(239_68_68)]">{local}</span>
                       <span className="text-white">@</span>
                       <span className="text-blue-500">{domain}</span>
                     </>
                   )}
-                  &quot;, {emailError.detail}
+                  <span className="text-white">&quot;</span>, {emailError.detail}
                 </p>
               );
             })()}
