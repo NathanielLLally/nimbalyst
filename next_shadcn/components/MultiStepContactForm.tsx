@@ -351,22 +351,25 @@ export function MultiStepContactForm() {
           >
             {/* Step header */}
             <div>
-              <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-1">
+              <h3 className="neon-text text-lg font-semibold text-white mb-1">
                 {steps[currentStep].title}
               </h3>
-              <p className="text-sm text-zinc-500 dark:text-zinc-400">
+              <p className="text-sm text-white">
                 {steps[currentStep].description}
               </p>
-              <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-2">
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2 text-center">
                 Your timezone: {formData.timezone || 'Detecting...'}
               </p>
             </div>
+
+            {/* Spacer between the timezone line and the first field (first page only) */}
+            {currentStep === 0 && <div aria-hidden="true" className="h-4" />}
 
             {/* Step 1: Personal Info */}
             {currentStep === 0 && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-2 sm:col-span-1">
-                  <label className="text-xs font-semibold tracking-widest uppercase text-white">
+                  <label className="neon-text text-xs font-semibold tracking-widest uppercase text-white">
                     👤 Name
                   </label>
                   <input
@@ -376,11 +379,11 @@ export function MultiStepContactForm() {
                     value={formData.fullName}
                     onChange={handleInputChange}
                     required
-                    className="w-full bg-black/10 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-100 placeholder:text-[#f8f6f0] outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
+                    className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
                   />
                 </div>
                 <div className="flex flex-col gap-2 sm:col-span-1">
-                  <label className="text-xs font-semibold tracking-widest uppercase text-white">
+                  <label className="neon-text text-xs font-semibold tracking-widest uppercase text-white">
                     <span className="text-blue-500">📞</span> Phone
                   </label>
                   <input
@@ -391,11 +394,11 @@ export function MultiStepContactForm() {
                     value={formData.phone}
                     onChange={handlePhoneChange}
                     required
-                    className="w-full bg-black/10 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-100 placeholder:text-[#f8f6f0] outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
+                    className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
                   />
                 </div>
                 <div className="flex flex-col gap-2 sm:col-span-2">
-                  <label className="text-xs font-semibold tracking-widest uppercase text-white">
+                  <label className="neon-text text-xs font-semibold tracking-widest uppercase text-white">
                     ✉️ Email
                   </label>
                   <input
@@ -405,7 +408,7 @@ export function MultiStepContactForm() {
                     value={formData.email}
                     onChange={handleInputChange}
                     required
-                    className="w-full bg-black/10 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-100 placeholder:text-[#f8f6f0] outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
+                    className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
                   />
                 </div>
               </div>
@@ -415,7 +418,7 @@ export function MultiStepContactForm() {
             {currentStep === 1 && (
               <div className="grid grid-cols-1 gap-4">
                 <div className="flex flex-col gap-2">
-                  <label className="text-xs font-semibold tracking-widest uppercase text-white">
+                  <label className="neon-text text-xs font-semibold tracking-widest uppercase text-white">
                     Company Name
                   </label>
                   <input
@@ -425,11 +428,11 @@ export function MultiStepContactForm() {
                     value={formData.company}
                     onChange={handleInputChange}
                     required
-                    className="w-full bg-black/10 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-100 placeholder:text-[#f8f6f0] outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
+                    className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
                   />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <label className="text-xs font-semibold tracking-widest uppercase text-white">
+                  <label className="neon-text text-xs font-semibold tracking-widest uppercase text-white">
                     Website
                   </label>
                   <input
@@ -439,11 +442,11 @@ export function MultiStepContactForm() {
                     value={formData.website}
                     onChange={handleInputChange}
                     required
-                    className="w-full bg-black/10 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-100 placeholder:text-[#f8f6f0] outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
+                    className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
                   />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <label className="text-xs font-semibold tracking-widest uppercase text-white">
+                  <label className="neon-text text-xs font-semibold tracking-widest uppercase text-white">
                     Business Type
                   </label>
                   <select
@@ -451,7 +454,7 @@ export function MultiStepContactForm() {
                     value={formData.businessType}
                     onChange={handleInputChange}
                     required
-                    className="w-full bg-black/10 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-100 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
+                    className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-100 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
                   >
                     <option value="">Select your business type</option>
                     <option value="grooming">Grooming Salon</option>
@@ -462,7 +465,7 @@ export function MultiStepContactForm() {
                   </select>
                 </div>
                 <div className="flex flex-col gap-2">
-                  <label className="text-xs font-semibold tracking-widest uppercase text-white">
+                  <label className="neon-text text-xs font-semibold tracking-widest uppercase text-white">
                     Main Challenge
                   </label>
                   <select
@@ -470,7 +473,7 @@ export function MultiStepContactForm() {
                     value={formData.challenge}
                     onChange={handleInputChange}
                     required
-                    className="w-full bg-black/10 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-100 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
+                    className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-100 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
                   >
                     <option value="">Select your main challenge</option>
                     <option value="leads">Getting more leads</option>
@@ -487,7 +490,7 @@ export function MultiStepContactForm() {
             {currentStep === 2 && (
               <div className="flex flex-col gap-4">
                 <div className="flex flex-col gap-2">
-                  <label className="text-xs font-semibold tracking-widest uppercase text-white">
+                  <label className="neon-text text-xs font-semibold tracking-widest uppercase text-white">
                     What are your current challenges?
                   </label>
                   <textarea
@@ -497,7 +500,7 @@ export function MultiStepContactForm() {
                     value={formData.message}
                     onChange={handleInputChange}
                     required
-                    className="w-full bg-black/10 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-3 text-sm text-zinc-100 placeholder:text-[#f8f6f0] outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 resize-none transition-all duration-200"
+                    className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-3 text-sm text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 resize-none transition-all duration-200"
                   />
                 </div>
 
@@ -511,7 +514,7 @@ export function MultiStepContactForm() {
                     onChange={handleInputChange}
                     className="w-4 h-4 mt-1 cursor-pointer rounded border-zinc-300 text-primary focus:ring-primary/20"
                   />
-                  <label htmlFor="receiveMessages" className="text-xs text-zinc-600 dark:text-zinc-400 cursor-pointer">
+                  <label htmlFor="receiveMessages" className="text-xs text-white cursor-pointer">
                     Check this box to receive messages from our sales team. Message frequency varies, and data rates may apply.
                   </label>
                 </div>
@@ -576,7 +579,13 @@ export function MultiStepContactForm() {
                 Previous
               </Button>
               {currentStep < steps.length - 1 ? (
+                // Distinct keys force separate <button> elements. Without them React
+                // reuses the clicked Next button and flips it to type="submit" before
+                // the browser runs the click's default action, which then submits
+                // the form (visible after an invalid-email bounce, when page 3 is
+                // already filled in).
                 <Button
+                  key="next"
                   type="button"
                   onClick={handleNext}
                   disabled={!isStepComplete()}
@@ -587,6 +596,7 @@ export function MultiStepContactForm() {
                 </Button>
               ) : (
                 <Button
+                  key="submit"
                   type="submit"
                   disabled={!isStepComplete() || loading}
                   className="gap-2 ml-auto"

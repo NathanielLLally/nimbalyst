@@ -1,5 +1,13 @@
 🐾🐾🐾🐾
 
+# check out this great repo of css text styling
+
+```
+https://prismic.io/blog/css-text-animations
+```
+
+
+
 # Hello Nimbalyst
 
 A **Hello World** starter built with:

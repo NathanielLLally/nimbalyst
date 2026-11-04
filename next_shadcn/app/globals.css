@@ -149,3 +149,9 @@ body::before {
     transform: translateY(calc(-100% - var(--gap)));
   }
 }
+
+/* Neon glow text: white with a static cyan glow (contact form headers and labels) */
+.neon-text {
+  color: #fff;
+  text-shadow: 0 0 5px #00d4ff, 0 0 10px #00d4ff, 0 0 20px #00d4ff, 0 0 40px #00d4ff, 0 0 80px #00d4ff;
+}

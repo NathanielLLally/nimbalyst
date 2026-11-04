@@ -61,12 +61,15 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@testing-library/dom": "^10.4.2",
+    "@testing-library/react": "^16.3.3",
     "@types/node": "^20",
     "@types/nodemailer": "^6.4.14",
     "@types/react": "19.2.17",
     "@types/react-dom": "19.2.3",
     "eslint": "10.7.0",
     "eslint-config-next": "16.2.10",
+    "jsdom": "^26.1.0",
     "postcss": "^8",
     "shadcn": "^4.10.0",
     "tailwindcss": "^3.4.1",
