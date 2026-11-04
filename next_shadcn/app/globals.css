@@ -155,3 +155,21 @@ body::before {
   color: #fff;
   text-shadow: 0 0 5px #00d4ff, 0 0 10px #00d4ff, 0 0 20px #00d4ff, 0 0 40px #00d4ff, 0 0 80px #00d4ff;
 }
+
+/* On mobile, pin the contact form to the full (dynamic) viewport so focusing a
+   field doesn't shift the page around. Placed after @tailwind utilities so it
+   overrides the element's utility classes (position/size/overflow/padding). */
+@media (max-width: 768px) {
+  .form-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh; /* Dynamic viewport height to account for mobile browser bars */
+    z-index: 9999;
+    overflow-y: auto;
+    box-sizing: border-box;
+    padding: 16px;
+  }
+}

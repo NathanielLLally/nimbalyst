@@ -321,7 +321,7 @@ export function MultiStepContactForm() {
   };
 
   return (
-    <div className="relative rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-background p-6 sm:p-8 flex flex-col gap-8 overflow-hidden">
+    <div className="form-container relative rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-background p-6 sm:p-8 flex flex-col gap-8 overflow-hidden">
       <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 opacity-60 pointer-events-none">
         <Image
           src="/dog_shake.png"
