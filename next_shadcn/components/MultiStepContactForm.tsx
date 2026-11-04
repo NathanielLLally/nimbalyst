@@ -5,6 +5,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { AnimatePresence } from 'motion/react';
 import { ChevronRight, ChevronLeft, Mail, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { sanitizeE164Input, isPlausibleE164 } from '@/lib/phone-input';
 
 interface FormData {
   fullName: string;
@@ -35,16 +36,6 @@ interface EmailValidationError {
   email: string;
   mode: 'domain' | 'username';
   detail: string;
-}
-
-// Progressively format digits into the (###) ###-#### mask as the user types.
-// Non-digits are ignored and input is capped at 10 digits (US).
-function formatPhoneMask(input: string): string {
-  const digits = input.replace(/\D/g, '').slice(0, 10);
-  if (digits.length === 0) return '';
-  if (digits.length < 4) return `(${digits}`;
-  if (digits.length < 7) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
-  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
 }
 
 // Reject if a promise hasn't settled within `ms`. Without this a hung
@@ -181,10 +172,10 @@ export function MultiStepContactForm() {
     }
   };
 
-  // Phone field: apply the (###) ###-#### mask as the user types.
+  // Phone field: keep the value in E.164 form (+ and digits only) as the user types.
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const masked = formatPhoneMask(e.target.value);
-    setFormData((prev) => ({ ...prev, phone: masked }));
+    const phone = sanitizeE164Input(e.target.value);
+    setFormData((prev) => ({ ...prev, phone }));
     setError(null);
     setPhoneError(null);
     cancelPendingSubmit();
@@ -194,7 +185,7 @@ export function MultiStepContactForm() {
   const isStepComplete = () => {
     switch (currentStep) {
       case 0:
-        return formData.fullName && formData.email && formData.phone;
+        return formData.fullName && formData.email && isPlausibleE164(formData.phone);
       case 1:
         return formData.company && formData.website && formData.businessType && formData.challenge;
       case 2:
@@ -428,7 +419,7 @@ export function MultiStepContactForm() {
                     name="phone"
                     autoComplete="tel"
                     inputMode="tel"
-                    placeholder="(###) ###-####"
+                    placeholder="+12125550123"
                     value={formData.phone}
                     onChange={handlePhoneChange}
                     onKeyDown={handleFieldKeyDown}

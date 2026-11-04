@@ -33,7 +33,7 @@ const type = (placeholder: string, value: string) =>
 async function submitOnceAndGetBouncedBackForBadEmail() {
   render(<MultiStepContactForm />);
   type('John Smith', 'Jane Doe');
-  type('(###) ###-####', '2125550123');
+  type('+12125550123', '+12125550123');
   type('john@example.com', 'bad@nope.invalid');
   fireEvent.click(screen.getByRole('button', { name: /next/i }));
   type('Your Pet Business', 'Paws');
@@ -78,7 +78,7 @@ describe('MultiStepContactForm consent checkbox', () => {
     // Given the user reaches the last page
     render(<MultiStepContactForm />);
     type('John Smith', 'Jane Doe');
-    type('(###) ###-####', '2125550123');
+    type('+12125550123', '+12125550123');
     type('john@example.com', 'jane@paws.example');
     fireEvent.click(screen.getByRole('button', { name: /next/i }));
     type('Your Pet Business', 'Paws');
@@ -97,7 +97,7 @@ describe('MultiStepContactForm consent checkbox', () => {
 describe('MultiStepContactForm focus on page change', () => {
   const fillPage1 = () => {
     type('John Smith', 'Jane Doe');
-    type('(###) ###-####', '2125550123');
+    type('+12125550123', '+12125550123');
     type('john@example.com', 'jane@paws.example');
   };
   const fillPage2 = () => {
@@ -156,7 +156,7 @@ describe('MultiStepContactForm focus on page change', () => {
     fireEvent.keyDown(screen.getByPlaceholderText('John Smith'), { key: 'Enter' });
     expect({
       onPage1: screen.queryByPlaceholderText('Your Pet Business') === null,
-      focusedPhone: document.activeElement === screen.getByPlaceholderText('(###) ###-####'),
+      focusedPhone: document.activeElement === screen.getByPlaceholderText('+12125550123'),
     }).toEqual({ onPage1: true, focusedPhone: true });
   });
 
@@ -168,12 +168,37 @@ describe('MultiStepContactForm focus on page change', () => {
   });
 });
 
+describe('MultiStepContactForm phone field', () => {
+  it('should_use_an_e164_placeholder_instead_of_the_us_mask', () => {
+    render(<MultiStepContactForm />);
+    expect({ e164: !!screen.queryByPlaceholderText('+12125550123'), mask: !!screen.queryByPlaceholderText('(###) ###-####') })
+      .toEqual({ e164: true, mask: false });
+  });
+
+  it('should_keep_the_typed_value_in_e164_form', () => {
+    render(<MultiStepContactForm />);
+    type('+12125550123', '+44 20 7946 0958');
+    expect((screen.getByPlaceholderText('+12125550123') as HTMLInputElement).value).toBe('+442079460958');
+  });
+
+  it('should_keep_next_disabled_until_the_phone_is_a_plausible_e164_number', () => {
+    render(<MultiStepContactForm />);
+    type('John Smith', 'Jane Doe');
+    type('john@example.com', 'jane@paws.example');
+    type('+12125550123', '+1');
+    const next = screen.getByRole('button', { name: /next/i }) as HTMLButtonElement;
+    const disabledWhenShort = next.disabled;
+    type('+12125550123', '+12125550123');
+    expect({ disabledWhenShort, disabledWhenFull: next.disabled }).toEqual({ disabledWhenShort: true, disabledWhenFull: false });
+  });
+});
+
 describe('MultiStepContactForm Next/Submit buttons', () => {
   it('should_render_submit_as_a_new_element_not_the_reused_next_button', () => {
     // Given the user is on page 2 with all fields filled
     render(<MultiStepContactForm />);
     type('John Smith', 'Jane Doe');
-    type('(###) ###-####', '2125550123');
+    type('+12125550123', '+12125550123');
     type('john@example.com', 'jane@paws.example');
     fireEvent.click(screen.getByRole('button', { name: /next/i }));
     type('Your Pet Business', 'Paws');
