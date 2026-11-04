@@ -20,10 +20,8 @@ interface FormData {
   submittedAt?: string;
 }
 
-// Field to focus when a page is entered via Next, and the field whose Enter acts as Next.
-// The last page has no "last field" entry: Enter there submits the form as usual.
+// Field to focus when a page is entered via Next (button, or Enter in the page's last field).
 const firstFieldByStep = ['fullName', 'company', 'message'];
-const lastFieldByStep = ['email', 'challenge'];
 
 const steps = [
   { title: 'About You', description: 'Tell us about yourself' },
@@ -213,17 +211,28 @@ export function MultiStepContactForm() {
     }
   };
 
-  // Enter in the last field of a non-final page behaves like clicking Next.
-  const handleFormKeyDown = (e: React.KeyboardEvent<HTMLFormElement>) => {
-    if (e.key !== 'Enter' || currentStep >= steps.length - 1) return;
-    if ((e.target as HTMLInputElement).name !== lastFieldByStep[currentStep]) return;
-    e.preventDefault();
-    handleNext();
-  };
-
   const handlePrev = () => {
     if (currentStep > 0) {
       setCurrentStep(currentStep - 1);
+    }
+  };
+
+  // Enter in a single-line field should move to the next field, or advance to
+  // the next step if it's the last field — never submit the whole form early.
+  const handleFieldKeyDown = (e: React.KeyboardEvent<HTMLInputElement | HTMLSelectElement>) => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    const formEl = e.currentTarget.form;
+    if (!formEl) return;
+    // Only the current step's fields are in the DOM (steps render conditionally).
+    const fields = Array.from(
+      formEl.querySelectorAll<HTMLElement>('input, select, textarea')
+    ).filter((el) => !(el as HTMLInputElement).disabled && el.offsetParent !== null);
+    const next = fields[fields.indexOf(e.currentTarget) + 1];
+    if (next) {
+      next.focus();
+    } else {
+      handleNext();
     }
   };
 
@@ -346,7 +355,7 @@ export function MultiStepContactForm() {
   };
 
   return (
-    <div className="relative rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-background p-6 sm:p-8 flex flex-col gap-8 overflow-hidden">
+    <div className="form-container relative rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-background p-6 sm:p-8 flex flex-col gap-8 overflow-hidden">
       <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 opacity-60 pointer-events-none">
         <Image
           src="/dog_shake.png"
@@ -373,7 +382,6 @@ export function MultiStepContactForm() {
           <form
             ref={formRef}
             onSubmit={handleSubmit}
-            onKeyDown={handleFormKeyDown}
             className="flex flex-col gap-6"
           >
             {/* Step header */}
@@ -402,11 +410,13 @@ export function MultiStepContactForm() {
                   <input
                     type="text"
                     name="fullName"
+                    autoComplete="name"
                     placeholder="John Smith"
                     value={formData.fullName}
                     onChange={handleInputChange}
+                    onKeyDown={handleFieldKeyDown}
                     required
-                    className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
+                    className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-base sm:text-sm text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
                   />
                 </div>
                 <div className="flex flex-col gap-2 sm:col-span-1">
@@ -416,12 +426,14 @@ export function MultiStepContactForm() {
                   <input
                     type="tel"
                     name="phone"
+                    autoComplete="tel"
                     inputMode="tel"
                     placeholder="(###) ###-####"
                     value={formData.phone}
                     onChange={handlePhoneChange}
+                    onKeyDown={handleFieldKeyDown}
                     required
-                    className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
+                    className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-base sm:text-sm text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
                   />
                 </div>
                 <div className="flex flex-col gap-2 sm:col-span-2">
@@ -431,11 +443,13 @@ export function MultiStepContactForm() {
                   <input
                     type="email"
                     name="email"
+                    autoComplete="email"
                     placeholder="john@example.com"
                     value={formData.email}
                     onChange={handleInputChange}
+                    onKeyDown={handleFieldKeyDown}
                     required
-                    className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
+                    className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-base sm:text-sm text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
                   />
                 </div>
               </div>
@@ -451,11 +465,12 @@ export function MultiStepContactForm() {
                   <input
                     type="text"
                     name="company"
+                    autoComplete="organization"
                     placeholder="Your Pet Business"
                     value={formData.company}
                     onChange={handleInputChange}
                     required
-                    className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
+                    className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-base sm:text-sm text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
                   />
                 </div>
                 <div className="flex flex-col gap-2">
@@ -465,11 +480,12 @@ export function MultiStepContactForm() {
                   <input
                     type="url"
                     name="website"
+                    autoComplete="url"
                     placeholder="https://example.com"
                     value={formData.website}
                     onChange={handleInputChange}
                     required
-                    className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
+                    className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-base sm:text-sm text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
                   />
                 </div>
                 <div className="flex flex-col gap-2">
@@ -480,8 +496,9 @@ export function MultiStepContactForm() {
                     name="businessType"
                     value={formData.businessType}
                     onChange={handleInputChange}
+                    onKeyDown={handleFieldKeyDown}
                     required
-                    className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-100 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
+                    className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-base sm:text-sm text-zinc-100 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
                   >
                     <option value="">Select your business type</option>
                     <option value="grooming">Grooming Salon</option>
@@ -499,8 +516,9 @@ export function MultiStepContactForm() {
                     name="challenge"
                     value={formData.challenge}
                     onChange={handleInputChange}
+                    onKeyDown={handleFieldKeyDown}
                     required
-                    className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-sm text-zinc-100 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
+                    className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-base sm:text-sm text-zinc-100 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
                   >
                     <option value="">Select your main challenge</option>
                     <option value="leads">Getting more leads</option>
@@ -527,7 +545,7 @@ export function MultiStepContactForm() {
                     value={formData.message}
                     onChange={handleInputChange}
                     required
-                    className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-3 text-sm text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 resize-none transition-all duration-200"
+                    className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-3 text-base sm:text-sm text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 resize-none transition-all duration-200"
                   />
                 </div>
 
@@ -565,21 +583,21 @@ export function MultiStepContactForm() {
               const domain = emailError.email.slice(atIdx + 1);
               return (
                 <p className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-4 py-2 text-sm font-medium text-rose-500">
-                  Invalid Email: &quot;
+                  Invalid Email: <span className="text-white">&quot;</span>
                   {emailError.mode === 'domain' ? (
                     <>
                       <span className="text-blue-500">{local}</span>
                       <span className="text-white">@</span>
-                      <span className="text-rose-500 underline decoration-white">{domain}</span>
+                      <span className="text-black underline decoration-black [text-shadow:1px_1px_3px_rgb(239_68_68)]">{domain}</span>
                     </>
                   ) : (
                     <>
-                      <span className="text-rose-500 underline decoration-white">{local}</span>
+                      <span className="text-black underline decoration-black [text-shadow:1px_1px_3px_rgb(239_68_68)]">{local}</span>
                       <span className="text-white">@</span>
                       <span className="text-blue-500">{domain}</span>
                     </>
                   )}
-                  &quot;, {emailError.detail}
+                  <span className="text-white">&quot;</span>, {emailError.detail}
                 </p>
               );
             })()}

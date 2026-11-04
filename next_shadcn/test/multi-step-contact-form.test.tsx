@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, onTestFinished } from 'vitest';
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 import { MultiStepContactForm } from '@/components/MultiStepContactForm';
 
@@ -145,11 +145,19 @@ describe('MultiStepContactForm focus on page change', () => {
     expect(document.activeElement).toBe(screen.getByPlaceholderText('We could use more clients'));
   });
 
-  it('should_not_advance_on_enter_in_a_field_that_is_not_the_last_on_its_page', () => {
+  it('should_move_to_the_next_field_not_the_next_page_on_enter_in_a_non_last_field', () => {
+    // jsdom has no layout, so offsetParent is always null; the handler uses it to skip hidden fields.
+    const spy = vi.spyOn(HTMLElement.prototype, 'offsetParent', 'get').mockImplementation(function (this: HTMLElement) {
+      return this.parentElement;
+    });
+    onTestFinished(() => spy.mockRestore());
     render(<MultiStepContactForm />);
     fillPage1();
     fireEvent.keyDown(screen.getByPlaceholderText('John Smith'), { key: 'Enter' });
-    expect(screen.queryByPlaceholderText('Your Pet Business')).toBeNull();
+    expect({
+      onPage1: screen.queryByPlaceholderText('Your Pet Business') === null,
+      focusedPhone: document.activeElement === screen.getByPlaceholderText('(###) ###-####'),
+    }).toEqual({ onPage1: true, focusedPhone: true });
   });
 
   it('should_not_advance_on_enter_in_the_last_field_when_the_page_is_incomplete', () => {
