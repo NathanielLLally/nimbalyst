@@ -202,6 +202,25 @@ export function MultiStepContactForm() {
     }
   };
 
+  // Enter in a single-line field should move to the next field, or advance to
+  // the next step if it's the last field — never submit the whole form early.
+  const handleFieldKeyDown = (e: React.KeyboardEvent<HTMLInputElement | HTMLSelectElement>) => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    const formEl = e.currentTarget.form;
+    if (!formEl) return;
+    // Only the current step's fields are in the DOM (steps render conditionally).
+    const fields = Array.from(
+      formEl.querySelectorAll<HTMLElement>('input, select, textarea')
+    ).filter((el) => !(el as HTMLInputElement).disabled && el.offsetParent !== null);
+    const next = fields[fields.indexOf(e.currentTarget) + 1];
+    if (next) {
+      next.focus();
+    } else {
+      handleNext();
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isStepComplete() || submitting.current) return;
@@ -378,6 +397,7 @@ export function MultiStepContactForm() {
                     placeholder="John Smith"
                     value={formData.fullName}
                     onChange={handleInputChange}
+                    onKeyDown={handleFieldKeyDown}
                     required
                     className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-base sm:text-sm text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
                   />
@@ -393,6 +413,7 @@ export function MultiStepContactForm() {
                     placeholder="(###) ###-####"
                     value={formData.phone}
                     onChange={handlePhoneChange}
+                    onKeyDown={handleFieldKeyDown}
                     required
                     className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-base sm:text-sm text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
                   />
@@ -407,6 +428,7 @@ export function MultiStepContactForm() {
                     placeholder="john@example.com"
                     value={formData.email}
                     onChange={handleInputChange}
+                    onKeyDown={handleFieldKeyDown}
                     required
                     className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-base sm:text-sm text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
                   />
@@ -453,6 +475,7 @@ export function MultiStepContactForm() {
                     name="businessType"
                     value={formData.businessType}
                     onChange={handleInputChange}
+                    onKeyDown={handleFieldKeyDown}
                     required
                     className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-base sm:text-sm text-zinc-100 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
                   >
@@ -472,6 +495,7 @@ export function MultiStepContactForm() {
                     name="challenge"
                     value={formData.challenge}
                     onChange={handleInputChange}
+                    onKeyDown={handleFieldKeyDown}
                     required
                     className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-base sm:text-sm text-zinc-100 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
                   >

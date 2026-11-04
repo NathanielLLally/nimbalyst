@@ -278,7 +278,7 @@ export function Services({
 
               <div className="pt-4 border-t border-border/40">
                 <a
-                  href="#contact"
+                  href="/#contact"
                   onClick={closeModal}
                   className="flex-grow inline-flex items-center justify-center w-full py-3 rounded-xl text-sm font-bold text-white bg-primary hover:bg-primary/90 transition-colors shadow-md"
                 >

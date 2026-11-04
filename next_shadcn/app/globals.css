@@ -158,9 +158,13 @@ body::before {
 
 /* On mobile, pin the contact form to the full (dynamic) viewport so focusing a
    field doesn't shift the page around. Placed after @tailwind utilities so it
-   overrides the element's utility classes (position/size/overflow/padding). */
+   overrides the element's utility classes (position/size/overflow/padding).
+   Only while the form is "active" — the #contact section is the navigation
+   target, or a field inside the form has focus — so it isn't a permanent
+   full-screen takeover. */
 @media (max-width: 768px) {
-  .form-container {
+  #contact:target .form-container,
+  .form-container:focus-within {
     position: fixed;
     top: 0;
     left: 0;
