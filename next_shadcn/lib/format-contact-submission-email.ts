@@ -5,6 +5,8 @@
  * it with form data to create a complete audit trail.
  */
 
+import { scoreLead, labelFor } from './lead-scoring';
+
 interface ContactFormData {
   fullName: string;
   email: string;
@@ -12,8 +14,15 @@ interface ContactFormData {
   company: string;
   website: string;
   businessType: string;
-  challenge: string;
-  message: string;
+  monthlyBudget: string;
+  role: string;
+  dogsPerWeek: string;
+  clientSource: string;
+  costKnowledge: string;
+  frustration: string;
+  triedBefore: string;
+  tenMoreClients: string;
+  startTiming: string;
   receiveMessages: boolean;
   timezone?: string;
   submittedAt?: string;
@@ -135,9 +144,33 @@ export function formatContactSubmissionEmail(
   sections.push(`Company:          ${formData.company}`);
   sections.push(`Website:          ${formData.website}`);
   sections.push(`Business Type:    ${formData.businessType}`);
-  sections.push(`Challenge:        ${formData.challenge}`);
-  sections.push(`Message:          ${formData.message}`);
+  sections.push(`Monthly Budget:   ${formData.monthlyBudget}`);
   sections.push(`Receive Messages: ${formData.receiveMessages ? 'Yes' : 'No'}`);
+  sections.push('');
+
+  // Lead Qualification Section
+  sections.push('LEAD QUALIFICATION');
+  sections.push('-'.repeat(60));
+  sections.push(`Role:                 ${labelFor('role', formData.role)}`);
+  sections.push(`Dogs/Week:            ${labelFor('dogsPerWeek', formData.dogsPerWeek)}`);
+  sections.push(`New Clients From:     ${labelFor('clientSource', formData.clientSource)}`);
+  sections.push(`Cost/Client Known:    ${labelFor('costKnowledge', formData.costKnowledge)}`);
+  sections.push(`Biggest Frustration:  ${labelFor('frustration', formData.frustration)}`);
+  sections.push(`Already Tried:        ${labelFor('triedBefore', formData.triedBefore)}`);
+  sections.push(`10 More Clients:      ${formData.tenMoreClients}`);
+  sections.push(`Wants To Start:       ${labelFor('startTiming', formData.startTiming)}`);
+  sections.push('');
+
+  // Lead Score Section
+  const score = scoreLead(formData as unknown as Record<string, string>);
+  sections.push('LEAD SCORE');
+  sections.push('-'.repeat(60));
+  sections.push(`ICP Match:        ${score.icp}/${score.max.icp} (${score.tiers.icp})`);
+  sections.push(`Ability To Pay:   ${score.pay}/${score.max.pay} (${score.tiers.pay})`);
+  sections.push(`Readiness:        ${score.readiness}/${score.max.readiness} (${score.tiers.readiness})`);
+  sections.push(`Total:            ${score.total}/${score.max.icp + score.max.pay + score.max.readiness}`);
+  sections.push(`Sophistication:   ${score.sophistication.score}/${score.sophistication.max} (${score.sophistication.tier})`);
+  sections.push(`Fit Risk:         ${score.fitRisk.label}`);
   sections.push('');
 
   // Timestamp Section

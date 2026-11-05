@@ -7,6 +7,7 @@ import { google } from 'googleapis';
 import { onFormSubmit } from '@/lib/vapi-contact-tracker';
 import { sendEmail } from '#lib/contact-email-sender';
 import { formatContactSubmissionEmail } from '#lib/format-contact-submission-email';
+import { scoreLead, labelFor } from '@/lib/lead-scoring';
 
 const execFileAsync = promisify(execFile);
 
@@ -19,8 +20,16 @@ interface ContactFormData {
   company: string;
   website: string;
   businessType: string;
-  challenge: string;
-  message: string;
+  monthlyBudget: string;
+  // Lead qualification answers (ids match lead-scoring.ts).
+  role: string;
+  dogsPerWeek: string;
+  clientSource: string;
+  costKnowledge: string;
+  frustration: string;
+  triedBefore: string;
+  tenMoreClients: string;
+  startTiming: string;
   receiveMessages: boolean;
   recaptchaToken: string;
   timezone?: string;
@@ -203,21 +212,39 @@ export async function POST(request: NextRequest) {
     const userTimezone = data.timezone || 'UTC';
     const localTimestamp = formatTimestampInTimezone(submittedAtStr, userTimezone);
 
-    // Save form data to "contact" sheet (initially with empty tracking ID, column L)
+    // Score the lead from the qualification answers.
+    const score = scoreLead(data as unknown as Record<string, string>);
+    const scoreCell = (v: number, m: number, tier: string) => `${v}/${m} (${tier})`;
+
+    // Save form data to "contact" sheet. Column order (A..W); the Contact
+    // Tracking ID is the last column (W) and is filled in after append.
     const values = [
       [
-        localTimestamp,
-        data.fullName,
-        data.email,
-        data.phone,
-        data.company,
-        data.website,
-        data.businessType,
-        data.challenge,
-        data.message,
-        data.receiveMessages ? 'Yes' : 'No',
-        userTimezone,
-        '', // L: Contact Tracking ID (will be updated after creating tracking entry)
+        localTimestamp,                                                   // A
+        data.fullName,                                                    // B
+        data.email,                                                       // C
+        data.phone,                                                       // D
+        data.company,                                                     // E
+        data.website,                                                     // F
+        data.businessType,                                                // G
+        data.monthlyBudget || '',                                         // H
+        labelFor('role', data.role),                                      // I
+        labelFor('dogsPerWeek', data.dogsPerWeek),                        // J
+        labelFor('clientSource', data.clientSource),                      // K
+        labelFor('costKnowledge', data.costKnowledge),                    // L
+        labelFor('frustration', data.frustration),                        // M
+        labelFor('triedBefore', data.triedBefore),                        // N
+        data.tenMoreClients || '',                                        // O
+        labelFor('startTiming', data.startTiming),                        // P
+        data.receiveMessages ? 'Yes' : 'No',                              // Q
+        userTimezone,                                                     // R
+        scoreCell(score.icp, score.max.icp, score.tiers.icp),             // S: ICP match
+        scoreCell(score.pay, score.max.pay, score.tiers.pay),             // T: Ability to pay
+        scoreCell(score.readiness, score.max.readiness, score.tiers.readiness), // U: Readiness
+        score.total,                                                      // V: Total score
+        scoreCell(score.sophistication.score, score.sophistication.max, score.sophistication.tier), // W: Marketing sophistication
+        score.fitRisk.label,                                              // X: Expectation-fit risk
+        '', // Y: Contact Tracking ID (updated after creating tracking entry)
       ],
     ];
 
@@ -298,7 +325,7 @@ export async function POST(request: NextRequest) {
             fullName: data.fullName,
             email: data.email,
             company: data.company,
-            challenge: data.challenge,
+            challenge: labelFor('frustration', data.frustration),
           },
           undefined,
           data.timezone
@@ -311,7 +338,7 @@ export async function POST(request: NextRequest) {
           try {
             await sheets.spreadsheets.values.update({
               spreadsheetId: process.env.GOOGLE_SHEET_ID,
-              range: `contact!L${contactSheetRowIndex}`,
+              range: `contact!Y${contactSheetRowIndex}`,
               valueInputOption: 'RAW',
               requestBody: {
                 values: [[contactId]],

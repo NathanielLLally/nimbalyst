@@ -6,6 +6,7 @@ import { AnimatePresence } from 'motion/react';
 import { ChevronRight, ChevronLeft, Mail, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { sanitizeE164Input, isPlausibleE164 } from '@/lib/phone-input';
+import { leadQuestions } from '@/lib/lead-scoring';
 
 interface FormData {
   fullName: string;
@@ -14,15 +15,39 @@ interface FormData {
   company: string;
   website: string;
   businessType: string;
-  challenge: string;
-  message: string;
+  monthlyBudget: string;
+  // Lead qualification answers (ids match lead-scoring.ts questions).
+  role: string;
+  dogsPerWeek: string;
+  clientSource: string;
+  costKnowledge: string;
+  frustration: string;
+  triedBefore: string;
+  tenMoreClients: string;
+  startTiming: string;
   receiveMessages: boolean;
   timezone?: string;
   submittedAt?: string;
 }
 
+// Business types and their estimated monthly ad budget range. Selecting a type
+// auto-populates formData.monthlyBudget so it travels with the submission.
+const businessTypes: { value: string; label: string; monthlyBudget: string }[] = [
+  { value: 'vet-clinic', label: 'General Vet Clinic', monthlyBudget: '$1,250–$4,200' },
+  { value: 'daycare-boarding', label: 'Dog Daycare/Boarding', monthlyBudget: '$830–$2,100' },
+  { value: 'dog-training', label: 'Dog Training', monthlyBudget: '$830–$2,100' },
+  { value: 'mobile-vet', label: 'Mobile Vet', monthlyBudget: '$830–$2,100' },
+  { value: 'multi-van-grooming', label: 'Multi-Van Mobile Grooming', monthlyBudget: '$830–$1,650' },
+  { value: 'pet-waste-removal', label: 'Pet Waste Removal', monthlyBudget: '$330–$2,700' },
+  { value: 'pet-cremation', label: 'Pet Cremation/Aftercare', monthlyBudget: '$625–$1,650' },
+  { value: 'grooming-salon', label: 'Grooming Salon', monthlyBudget: '$420–$1,000' },
+  { value: 'solo-mobile-grooming', label: 'Solo Mobile Grooming', monthlyBudget: '$500–$830' },
+  { value: 'aquarium-maintenance', label: 'Aquarium Maintenance', monthlyBudget: '$250–$670' },
+  { value: 'other', label: 'Other', monthlyBudget: 'N/A' },
+];
+
 // Field to focus when a page is entered via Next (button, or Enter in the page's last field).
-const firstFieldByStep = ['fullName', 'company', 'message'];
+const firstFieldByStep = ['fullName', 'company', 'tenMoreClients'];
 
 const steps = [
   { title: 'About You', description: 'Tell us about yourself' },
@@ -119,8 +144,15 @@ export function MultiStepContactForm() {
     company: '',
     website: '',
     businessType: '',
-    challenge: '',
-    message: '',
+    monthlyBudget: '',
+    role: '',
+    dogsPerWeek: '',
+    clientSource: '',
+    costKnowledge: '',
+    frustration: '',
+    triedBefore: '',
+    tenMoreClients: '',
+    startTiming: '',
     receiveMessages: false,
     timezone: '',
     submittedAt: '',
@@ -157,6 +189,10 @@ export function MultiStepContactForm() {
     const { name, value, type } = e.target as any;
     if (type === 'checkbox') {
       setFormData((prev) => ({ ...prev, [name]: (e.target as HTMLInputElement).checked }));
+    } else if (name === 'businessType') {
+      // Auto-populate the estimated monthly budget for the chosen business type.
+      const monthlyBudget = businessTypes.find((b) => b.value === value)?.monthlyBudget ?? '';
+      setFormData((prev) => ({ ...prev, businessType: value, monthlyBudget }));
     } else {
       setFormData((prev) => ({ ...prev, [name]: value }));
     }
@@ -185,11 +221,24 @@ export function MultiStepContactForm() {
   const isStepComplete = () => {
     switch (currentStep) {
       case 0:
-        return formData.fullName && formData.email && isPlausibleE164(formData.phone);
+        return formData.fullName && formData.email && isPlausibleE164(formData.phone) && formData.role;
       case 1:
-        return formData.company && formData.website && formData.businessType && formData.challenge;
+        return (
+          formData.company &&
+          formData.website &&
+          formData.businessType &&
+          formData.dogsPerWeek &&
+          formData.clientSource &&
+          formData.costKnowledge
+        );
       case 2:
-        return formData.message && formData.receiveMessages;
+        return (
+          formData.frustration &&
+          formData.triedBefore &&
+          formData.tenMoreClients &&
+          formData.startTiming &&
+          formData.receiveMessages
+        );
       default:
         return false;
     }
@@ -225,6 +274,46 @@ export function MultiStepContactForm() {
     } else {
       handleNext();
     }
+  };
+
+  // Render a lead-qualification question (radio group) from lead-scoring.ts.
+  const renderRadioQuestion = (id: string) => {
+    const q = leadQuestions.find((x) => x.id === id);
+    if (!q?.options) return null;
+    const selected = formData[id as keyof FormData];
+    return (
+      <div className="flex flex-col gap-2">
+        <label className="neon-text text-xs font-semibold tracking-widest uppercase text-white">
+          {q.label}
+        </label>
+        <div className="flex flex-col gap-2">
+          {q.options.map((o) => {
+            const checked = selected === o.value;
+            return (
+              <label
+                key={o.value}
+                className={`flex items-center gap-3 rounded-xl border px-4 py-2.5 text-base sm:text-sm cursor-pointer transition-colors ${
+                  checked
+                    ? 'border-primary bg-primary/10 text-white'
+                    : 'border-zinc-700 bg-[#00000066] text-zinc-100 hover:border-zinc-500'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name={id}
+                  value={o.value}
+                  checked={checked}
+                  onChange={handleInputChange}
+                  required
+                  className="w-4 h-4 shrink-0 accent-primary"
+                />
+                {o.label}
+              </label>
+            );
+          })}
+        </div>
+      </div>
+    );
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -335,8 +424,15 @@ export function MultiStepContactForm() {
       company: '',
       website: '',
       businessType: '',
-      challenge: '',
-      message: '',
+      monthlyBudget: '',
+      role: '',
+      dogsPerWeek: '',
+      clientSource: '',
+      costKnowledge: '',
+      frustration: '',
+      triedBefore: '',
+      tenMoreClients: '',
+      startTiming: '',
       receiveMessages: false,
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       submittedAt: new Date().toISOString(),
@@ -443,6 +539,7 @@ export function MultiStepContactForm() {
                     className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-base sm:text-sm text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
                   />
                 </div>
+                <div className="sm:col-span-2">{renderRadioQuestion('role')}</div>
               </div>
             )}
 
@@ -492,53 +589,42 @@ export function MultiStepContactForm() {
                     className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-base sm:text-sm text-zinc-100 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
                   >
                     <option value="">Select your business type</option>
-                    <option value="grooming">Grooming Salon</option>
-                    <option value="daycare">Pet Daycare</option>
-                    <option value="veterinary">Veterinary Clinic</option>
-                    <option value="training">Dog Training</option>
-                    <option value="other">Other</option>
+                    {businessTypes.map((b) => (
+                      <option key={b.value} value={b.value}>
+                        {b.label}
+                      </option>
+                    ))}
                   </select>
                 </div>
-                <div className="flex flex-col gap-2">
-                  <label className="neon-text text-xs font-semibold tracking-widest uppercase text-white">
-                    Main Challenge
-                  </label>
-                  <select
-                    name="challenge"
-                    value={formData.challenge}
-                    onChange={handleInputChange}
-                    onKeyDown={handleFieldKeyDown}
-                    required
-                    className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-base sm:text-sm text-zinc-100 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
-                  >
-                    <option value="">Select your main challenge</option>
-                    <option value="leads">Getting more leads</option>
-                    <option value="website">Need a website</option>
-                    <option value="seo">Want to rank higher in search</option>
-                    <option value="booking">Improve booking system</option>
-                    <option value="all">Looking for a full solution</option>
-                  </select>
-                </div>
+                {renderRadioQuestion('dogsPerWeek')}
+                {renderRadioQuestion('clientSource')}
+                {renderRadioQuestion('costKnowledge')}
               </div>
             )}
 
             {/* Step 3: Message */}
             {currentStep === 2 && (
               <div className="flex flex-col gap-4">
+                {renderRadioQuestion('frustration')}
+                {renderRadioQuestion('triedBefore')}
+
                 <div className="flex flex-col gap-2">
                   <label className="neon-text text-xs font-semibold tracking-widest uppercase text-white">
-                    What are your current challenges?
+                    What would you do with 10 more clients a month?
                   </label>
-                  <textarea
-                    name="message"
-                    placeholder="We could use more clients"
-                    rows={5}
-                    value={formData.message}
+                  <input
+                    type="text"
+                    name="tenMoreClients"
+                    placeholder="e.g. hire another groomer and open Sundays"
+                    value={formData.tenMoreClients}
                     onChange={handleInputChange}
+                    onKeyDown={handleFieldKeyDown}
                     required
-                    className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-3 text-base sm:text-sm text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 resize-none transition-all duration-200"
+                    className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-base sm:text-sm text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
                   />
                 </div>
+
+                {renderRadioQuestion('startTiming')}
 
                 {/* Checkbox */}
                 <div className="flex items-start gap-3 pt-2">
