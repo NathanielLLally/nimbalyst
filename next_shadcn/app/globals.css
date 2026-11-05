@@ -168,22 +168,20 @@ body::before {
   filter: drop-shadow(0 0 2px #00d4ff) drop-shadow(0 0 6px #00d4ff) drop-shadow(0 0 12px #00d4ff);
 }
 
-/* On mobile, pin the contact form to the full (dynamic) viewport so focusing a
-   field doesn't shift the page around. Placed after @tailwind utilities so it
-   overrides the element's utility classes (position/size/overflow/padding).
-   Only while the form is "active" — the #contact section is the navigation
-   target, or a field inside the form has focus — so it isn't a permanent
-   full-screen takeover. */
+/* On mobile, once the user has touched any field the form stays pinned to the
+   viewport (below the fixed navbar) until submit or the navbar is used. Driven
+   by the .is-active class the form toggles in state — NOT :focus-within, which
+   drops when a Select opens its portal or focus otherwise leaves the form.
+   Placed after @tailwind utilities so it overrides the element's utilities. */
 @media (max-width: 768px) {
-  #contact:target .form-container,
-  .form-container:focus-within {
+  .form-container.is-active {
     position: fixed;
-    top: 0;
+    top: 85px; /* sit below the fixed navbar so it stays visible and usable */
     left: 0;
     width: 100vw;
     height: 100vh;
-    height: 100dvh; /* Dynamic viewport height to account for mobile browser bars */
-    z-index: 9999;
+    height: calc(100dvh - 85px); /* dynamic viewport height minus the navbar */
+    z-index: 40; /* under the navbar (z-50) so its menu overlays the form */
     overflow-y: auto;
     overscroll-behavior: contain; /* don't chain scroll to the page behind */
     box-sizing: border-box;
@@ -192,8 +190,7 @@ body::before {
 
   /* While the form is active, lock background page scroll so the user only
      interacts with the fullscreen form (scrolling stays inside it). */
-  body:has(#contact:target .form-container),
-  body:has(.form-container:focus-within) {
+  body:has(.form-container.is-active) {
     overflow: hidden;
   }
 }

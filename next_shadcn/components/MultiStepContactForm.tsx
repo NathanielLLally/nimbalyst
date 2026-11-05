@@ -54,14 +54,13 @@ const businessTypes: { value: string; label: string; monthlyBudget: string }[] =
 ];
 
 // Field to focus when a page is entered via Next (button, or Enter in the page's last field).
-const firstFieldByStep = ['businessType', 'clientSource', 'frustration', 'triedBefore', 'startTiming', 'fullName'];
+const firstFieldByStep = ['businessType', 'clientSource', 'frustration', 'role', 'fullName'];
 
 const steps = [
   { title: 'Your Business', description: 'Tell us about your business' },
   { title: 'Getting Clients', description: 'How you find clients today' },
   { title: 'Your Goals', description: 'What you want to change' },
-  { title: 'Your Experience', description: 'What you have tried so far' },
-  { title: 'Timing', description: 'When you want to start' },
+  { title: 'About You', description: 'Your role, timing, and experience' },
   { title: 'Your Details', description: 'Where to reach you' },
 ];
 
@@ -175,11 +174,26 @@ export function MultiStepContactForm() {
       submittedAt: new Date().toISOString(),
     }));
   }, []);
+
+  // Using the navbar (any hash/route change) exits the fullscreen form.
+  useEffect(() => {
+    const deactivate = () => setFormActive(false);
+    window.addEventListener('hashchange', deactivate);
+    window.addEventListener('popstate', deactivate);
+    return () => {
+      window.removeEventListener('hashchange', deactivate);
+      window.removeEventListener('popstate', deactivate);
+    };
+  }, []);
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [emailError, setEmailError] = useState<EmailValidationError | null>(null);
   const [phoneError, setPhoneError] = useState<string | null>(null);
+  // Once any field is touched, the form goes (and stays) fullscreen on mobile
+  // until submit or the navbar is used. Pure CSS :focus-within can't persist
+  // this (focus leaves when a Select opens its portal), so it's state-driven.
+  const [formActive, setFormActive] = useState(false);
   const submitting = useRef(false);
   // Bumped on every submit and on any email/phone edit. A submit only applies
   // its result if its captured seq still matches, so a slow in-flight request
@@ -244,15 +258,12 @@ export function MultiStepContactForm() {
       case 2:
         return formData.frustration && formData.tenMoreClients;
       case 3:
-        return formData.triedBefore;
+        return formData.role && formData.startTiming && formData.triedBefore;
       case 4:
-        return formData.startTiming;
-      case 5:
         return (
           formData.fullName &&
           formData.email &&
           isPlausibleE164(formData.phone) &&
-          formData.role &&
           formData.receiveMessages
         );
       default:
@@ -303,7 +314,7 @@ export function MultiStepContactForm() {
           {q.label}
         </label>
         <Select value={selected} onValueChange={(v) => handleSelectChange(id, v)}>
-          <SelectTrigger className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-base sm:text-sm text-zinc-100 focus:border-primary focus:ring-2 focus:ring-primary/10">
+          <SelectTrigger className="w-full bg-black/90 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-base sm:text-sm text-zinc-100 focus:border-primary focus:ring-2 focus:ring-primary/10">
             <SelectValue placeholder="Select an option" />
           </SelectTrigger>
           <SelectContent>
@@ -393,6 +404,7 @@ export function MultiStepContactForm() {
 
       console.log('✅ Form submitted successfully');
       setSubmitted(true);
+      setFormActive(false); // exit fullscreen on success
       setTimeout(() => {
         setSubmitted(false);
         resetForm();
@@ -444,7 +456,13 @@ export function MultiStepContactForm() {
   };
 
   return (
-    <div className="form-container relative rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-background p-6 sm:p-8 flex flex-col gap-8 overflow-hidden">
+    <div
+      className={`form-container relative rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-background p-6 sm:p-8 flex flex-col gap-8 overflow-hidden ${
+        formActive ? 'is-active' : ''
+      }`}
+      onFocusCapture={() => setFormActive(true)}
+      onPointerDown={() => setFormActive(true)}
+    >
       <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 opacity-60 pointer-events-none">
         <Image
           src="/dog_shake.png"
@@ -500,7 +518,7 @@ export function MultiStepContactForm() {
                     value={formData.businessType}
                     onValueChange={(v) => handleSelectChange('businessType', v)}
                   >
-                    <SelectTrigger className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-base sm:text-sm text-zinc-100 focus:border-primary focus:ring-2 focus:ring-primary/10">
+                    <SelectTrigger className="w-full bg-black/90 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-base sm:text-sm text-zinc-100 focus:border-primary focus:ring-2 focus:ring-primary/10">
                       <SelectValue placeholder="Select your business type" />
                     </SelectTrigger>
                     <SelectContent>
@@ -579,22 +597,17 @@ export function MultiStepContactForm() {
               </div>
             )}
 
-            {/* Step 4: Your Experience */}
+            {/* Step 4: About You (role, timing, experience) */}
             {currentStep === 3 && (
               <div className="grid grid-cols-1 gap-4">
+                {renderSelectQuestion('role')}
+                {renderSelectQuestion('startTiming')}
                 {renderSelectQuestion('triedBefore')}
               </div>
             )}
 
-            {/* Step 5: Timing */}
+            {/* Step 5: Your Details */}
             {currentStep === 4 && (
-              <div className="grid grid-cols-1 gap-4">
-                {renderSelectQuestion('startTiming')}
-              </div>
-            )}
-
-            {/* Step 6: Your Details */}
-            {currentStep === 5 && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-2 sm:col-span-1">
                   <label className="neon-text text-xs font-semibold tracking-widest uppercase text-white">
@@ -645,8 +658,6 @@ export function MultiStepContactForm() {
                     className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-base sm:text-sm text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
                   />
                 </div>
-                <div className="sm:col-span-2">{renderSelectQuestion('role')}</div>
-
                 {/* A2P consent checkbox */}
                 <div className="flex items-start gap-3 pt-2 sm:col-span-2">
                   <input
@@ -668,7 +679,7 @@ export function MultiStepContactForm() {
                 hidden (display:none) off the last step — never unmounted — so
                 the rendered widget's DOM node survives step navigation and its
                 widget id stays valid for grecaptcha.execute() at submit time. */}
-            <div className={`flex justify-center pt-4 ${currentStep === 5 ? '' : 'hidden'}`}>
+            <div className={`flex justify-center pt-4 ${currentStep === 4 ? '' : 'hidden'}`}>
               <div ref={handleContainerRef} />
             </div>
 
