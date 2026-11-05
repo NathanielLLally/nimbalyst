@@ -47,12 +47,13 @@ const businessTypes: { value: string; label: string; monthlyBudget: string }[] =
 ];
 
 // Field to focus when a page is entered via Next (button, or Enter in the page's last field).
-const firstFieldByStep = ['fullName', 'company', 'tenMoreClients'];
+const firstFieldByStep = ['businessType', 'clientSource', 'triedBefore', 'fullName'];
 
 const steps = [
-  { title: 'About You', description: 'Tell us about yourself' },
-  { title: 'Your Business', description: 'What do you need help with?' },
-  { title: 'Message', description: 'Share your goals' },
+  { title: 'Your Business', description: 'Tell us about your business' },
+  { title: 'Getting Clients', description: 'How you find clients today' },
+  { title: 'Your Goals', description: 'What you want to change' },
+  { title: 'Your Details', description: 'Where to reach you' },
 ];
 
 // Rich email-validation error: which half of the address is at fault drives
@@ -221,21 +222,17 @@ export function MultiStepContactForm() {
   const isStepComplete = () => {
     switch (currentStep) {
       case 0:
-        return formData.fullName && formData.email && isPlausibleE164(formData.phone) && formData.role;
+        return formData.businessType && formData.company && formData.website && formData.dogsPerWeek;
       case 1:
-        return (
-          formData.company &&
-          formData.website &&
-          formData.businessType &&
-          formData.dogsPerWeek &&
-          formData.clientSource &&
-          formData.costKnowledge
-        );
+        return formData.clientSource && formData.costKnowledge && formData.frustration;
       case 2:
+        return formData.triedBefore && formData.tenMoreClients;
+      case 3:
         return (
-          formData.frustration &&
-          formData.triedBefore &&
-          formData.tenMoreClients &&
+          formData.fullName &&
+          formData.email &&
+          isPlausibleE164(formData.phone) &&
+          formData.role &&
           formData.startTiming &&
           formData.receiveMessages
         );
@@ -382,8 +379,8 @@ export function MultiStepContactForm() {
             const twilioOutput = pv.twilio !== undefined ? JSON.stringify(pv.twilio, null, 2) : pv.detail;
             setPhoneError(twilioOutput ? String(twilioOutput) : null);
           }
-          // Both fields live on step 0 — send the user back so they can fix them.
-          setCurrentStep(0);
+          // Email/phone live on the last step — keep the user there to fix them.
+          setCurrentStep(steps.length - 1);
           return;
         }
         throw new Error(body.error || 'Failed to submit form');
@@ -487,8 +484,99 @@ export function MultiStepContactForm() {
             {/* Spacer between the timezone line and the first field (first page only) */}
             {currentStep === 0 && <div aria-hidden="true" className="h-4" />}
 
-            {/* Step 1: Personal Info */}
+            {/* Step 1: Your Business */}
             {currentStep === 0 && (
+              <div className="grid grid-cols-1 gap-4">
+                <div className="flex flex-col gap-2">
+                  <label className="neon-text text-xs font-semibold tracking-widest uppercase text-white">
+                    Business Type
+                  </label>
+                  <select
+                    name="businessType"
+                    value={formData.businessType}
+                    onChange={handleInputChange}
+                    onKeyDown={handleFieldKeyDown}
+                    required
+                    className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-base sm:text-sm text-zinc-100 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
+                  >
+                    <option value="">Select your business type</option>
+                    {businessTypes.map((b) => (
+                      <option key={b.value} value={b.value}>
+                        {b.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label className="neon-text text-xs font-semibold tracking-widest uppercase text-white">
+                    Company Name
+                  </label>
+                  <input
+                    type="text"
+                    name="company"
+                    autoComplete="organization"
+                    placeholder="Your Pet Business"
+                    value={formData.company}
+                    onChange={handleInputChange}
+                    onKeyDown={handleFieldKeyDown}
+                    required
+                    className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-base sm:text-sm text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label className="neon-text text-xs font-semibold tracking-widest uppercase text-white">
+                    Website
+                  </label>
+                  <input
+                    type="url"
+                    name="website"
+                    autoComplete="url"
+                    placeholder="https://example.com"
+                    value={formData.website}
+                    onChange={handleInputChange}
+                    onKeyDown={handleFieldKeyDown}
+                    required
+                    className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-base sm:text-sm text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
+                  />
+                </div>
+                {renderRadioQuestion('dogsPerWeek')}
+              </div>
+            )}
+
+            {/* Step 2: Getting Clients */}
+            {currentStep === 1 && (
+              <div className="grid grid-cols-1 gap-4">
+                {renderRadioQuestion('clientSource')}
+                {renderRadioQuestion('costKnowledge')}
+                {renderRadioQuestion('frustration')}
+              </div>
+            )}
+
+            {/* Step 3: Your Goals */}
+            {currentStep === 2 && (
+              <div className="flex flex-col gap-4">
+                {renderRadioQuestion('triedBefore')}
+
+                <div className="flex flex-col gap-2">
+                  <label className="neon-text text-xs font-semibold tracking-widest uppercase text-white">
+                    What would you do with 10 more clients a month?
+                  </label>
+                  <input
+                    type="text"
+                    name="tenMoreClients"
+                    placeholder="e.g. hire another groomer and open Sundays"
+                    value={formData.tenMoreClients}
+                    onChange={handleInputChange}
+                    onKeyDown={handleFieldKeyDown}
+                    required
+                    className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-base sm:text-sm text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Step 4: Your Details */}
+            {currentStep === 3 && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-2 sm:col-span-1">
                   <label className="neon-text text-xs font-semibold tracking-widest uppercase text-white">
@@ -540,94 +628,10 @@ export function MultiStepContactForm() {
                   />
                 </div>
                 <div className="sm:col-span-2">{renderRadioQuestion('role')}</div>
-              </div>
-            )}
+                <div className="sm:col-span-2">{renderRadioQuestion('startTiming')}</div>
 
-            {/* Step 2: Business Info */}
-            {currentStep === 1 && (
-              <div className="grid grid-cols-1 gap-4">
-                <div className="flex flex-col gap-2">
-                  <label className="neon-text text-xs font-semibold tracking-widest uppercase text-white">
-                    Company Name
-                  </label>
-                  <input
-                    type="text"
-                    name="company"
-                    autoComplete="organization"
-                    placeholder="Your Pet Business"
-                    value={formData.company}
-                    onChange={handleInputChange}
-                    required
-                    className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-base sm:text-sm text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
-                  />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <label className="neon-text text-xs font-semibold tracking-widest uppercase text-white">
-                    Website
-                  </label>
-                  <input
-                    type="url"
-                    name="website"
-                    autoComplete="url"
-                    placeholder="https://example.com"
-                    value={formData.website}
-                    onChange={handleInputChange}
-                    required
-                    className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-base sm:text-sm text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
-                  />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <label className="neon-text text-xs font-semibold tracking-widest uppercase text-white">
-                    Business Type
-                  </label>
-                  <select
-                    name="businessType"
-                    value={formData.businessType}
-                    onChange={handleInputChange}
-                    onKeyDown={handleFieldKeyDown}
-                    required
-                    className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-base sm:text-sm text-zinc-100 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
-                  >
-                    <option value="">Select your business type</option>
-                    {businessTypes.map((b) => (
-                      <option key={b.value} value={b.value}>
-                        {b.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                {renderRadioQuestion('dogsPerWeek')}
-                {renderRadioQuestion('clientSource')}
-                {renderRadioQuestion('costKnowledge')}
-              </div>
-            )}
-
-            {/* Step 3: Message */}
-            {currentStep === 2 && (
-              <div className="flex flex-col gap-4">
-                {renderRadioQuestion('frustration')}
-                {renderRadioQuestion('triedBefore')}
-
-                <div className="flex flex-col gap-2">
-                  <label className="neon-text text-xs font-semibold tracking-widest uppercase text-white">
-                    What would you do with 10 more clients a month?
-                  </label>
-                  <input
-                    type="text"
-                    name="tenMoreClients"
-                    placeholder="e.g. hire another groomer and open Sundays"
-                    value={formData.tenMoreClients}
-                    onChange={handleInputChange}
-                    onKeyDown={handleFieldKeyDown}
-                    required
-                    className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-base sm:text-sm text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
-                  />
-                </div>
-
-                {renderRadioQuestion('startTiming')}
-
-                {/* Checkbox */}
-                <div className="flex items-start gap-3 pt-2">
+                {/* A2P consent checkbox */}
+                <div className="flex items-start gap-3 pt-2 sm:col-span-2">
                   <input
                     type="checkbox"
                     name="receiveMessages"
@@ -647,7 +651,7 @@ export function MultiStepContactForm() {
                 hidden (display:none) off the last step — never unmounted — so
                 the rendered widget's DOM node survives step navigation and its
                 widget id stays valid for grecaptcha.execute() at submit time. */}
-            <div className={`flex justify-center pt-4 ${currentStep === 2 ? '' : 'hidden'}`}>
+            <div className={`flex justify-center pt-4 ${currentStep === 3 ? '' : 'hidden'}`}>
               <div ref={handleContainerRef} />
             </div>
 
