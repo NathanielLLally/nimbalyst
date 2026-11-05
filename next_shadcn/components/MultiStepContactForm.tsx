@@ -5,6 +5,13 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { AnimatePresence } from 'motion/react';
 import { ChevronRight, ChevronLeft, Mail, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { sanitizeE164Input, isPlausibleE164 } from '@/lib/phone-input';
 import { leadQuestions } from '@/lib/lead-scoring';
 
@@ -192,10 +199,6 @@ export function MultiStepContactForm() {
     const { name, value, type } = e.target as any;
     if (type === 'checkbox') {
       setFormData((prev) => ({ ...prev, [name]: (e.target as HTMLInputElement).checked }));
-    } else if (name === 'businessType') {
-      // Auto-populate the estimated monthly budget for the chosen business type.
-      const monthlyBudget = businessTypes.find((b) => b.value === value)?.monthlyBudget ?? '';
-      setFormData((prev) => ({ ...prev, businessType: value, monthlyBudget }));
     } else {
       setFormData((prev) => ({ ...prev, [name]: value }));
     }
@@ -208,6 +211,17 @@ export function MultiStepContactForm() {
       setError(null);
       setPhoneError(null);
       cancelPendingSubmit();
+    }
+  };
+
+  // shadcn <Select> reports the chosen value directly (not a DOM event).
+  const handleSelectChange = (name: string, value: string) => {
+    if (name === 'businessType') {
+      // Auto-populate the estimated monthly budget for the chosen business type.
+      const monthlyBudget = businessTypes.find((b) => b.value === value)?.monthlyBudget ?? '';
+      setFormData((prev) => ({ ...prev, businessType: value, monthlyBudget }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
     }
   };
 
@@ -278,42 +292,28 @@ export function MultiStepContactForm() {
     }
   };
 
-  // Render a lead-qualification question (radio group) from lead-scoring.ts.
-  const renderRadioQuestion = (id: string) => {
+  // Render a lead-qualification question from lead-scoring.ts as a shadcn Select.
+  const renderSelectQuestion = (id: string) => {
     const q = leadQuestions.find((x) => x.id === id);
     if (!q?.options) return null;
-    const selected = formData[id as keyof FormData];
+    const selected = formData[id as keyof FormData] as string;
     return (
       <div className="flex flex-col gap-2">
         <label className="neon-text text-xs font-semibold tracking-widest uppercase text-white">
           {q.label}
         </label>
-        <div className="flex flex-col gap-2">
-          {q.options.map((o) => {
-            const checked = selected === o.value;
-            return (
-              <label
-                key={o.value}
-                className={`flex items-center gap-3 rounded-xl border px-4 py-2.5 text-base sm:text-sm cursor-pointer transition-colors ${
-                  checked
-                    ? 'border-primary bg-primary/10 text-white'
-                    : 'border-zinc-700 bg-[#00000066] text-zinc-100 hover:border-zinc-500'
-                }`}
-              >
-                <input
-                  type="radio"
-                  name={id}
-                  value={o.value}
-                  checked={checked}
-                  onChange={handleInputChange}
-                  required
-                  className="w-4 h-4 shrink-0 accent-primary"
-                />
+        <Select value={selected} onValueChange={(v) => handleSelectChange(id, v)}>
+          <SelectTrigger className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-base sm:text-sm text-zinc-100 focus:border-primary focus:ring-2 focus:ring-primary/10">
+            <SelectValue placeholder="Select an option" />
+          </SelectTrigger>
+          <SelectContent>
+            {q.options.map((o) => (
+              <SelectItem key={o.value} value={o.value}>
                 {o.label}
-              </label>
-            );
-          })}
-        </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
     );
   };
@@ -496,21 +496,21 @@ export function MultiStepContactForm() {
                   <label className="neon-text text-xs font-semibold tracking-widest uppercase text-white">
                     Business Type
                   </label>
-                  <select
-                    name="businessType"
+                  <Select
                     value={formData.businessType}
-                    onChange={handleInputChange}
-                    onKeyDown={handleFieldKeyDown}
-                    required
-                    className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-base sm:text-sm text-zinc-100 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
+                    onValueChange={(v) => handleSelectChange('businessType', v)}
                   >
-                    <option value="">Select your business type</option>
-                    {businessTypes.map((b) => (
-                      <option key={b.value} value={b.value}>
-                        {b.label}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-base sm:text-sm text-zinc-100 focus:border-primary focus:ring-2 focus:ring-primary/10">
+                      <SelectValue placeholder="Select your business type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {businessTypes.map((b) => (
+                        <SelectItem key={b.value} value={b.value}>
+                          {b.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="flex flex-col gap-2">
                   <label className="neon-text text-xs font-semibold tracking-widest uppercase text-white">
@@ -544,22 +544,22 @@ export function MultiStepContactForm() {
                     className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-base sm:text-sm text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
                   />
                 </div>
-                {renderRadioQuestion('dogsPerWeek')}
+                {renderSelectQuestion('dogsPerWeek')}
               </div>
             )}
 
             {/* Step 2: Getting Clients */}
             {currentStep === 1 && (
               <div className="grid grid-cols-1 gap-4">
-                {renderRadioQuestion('clientSource')}
-                {renderRadioQuestion('costKnowledge')}
+                {renderSelectQuestion('clientSource')}
+                {renderSelectQuestion('costKnowledge')}
               </div>
             )}
 
             {/* Step 3: Your Goals */}
             {currentStep === 2 && (
               <div className="flex flex-col gap-4">
-                {renderRadioQuestion('frustration')}
+                {renderSelectQuestion('frustration')}
 
                 <div className="flex flex-col gap-2">
                   <label className="neon-text text-xs font-semibold tracking-widest uppercase text-white">
@@ -582,14 +582,14 @@ export function MultiStepContactForm() {
             {/* Step 4: Your Experience */}
             {currentStep === 3 && (
               <div className="grid grid-cols-1 gap-4">
-                {renderRadioQuestion('triedBefore')}
+                {renderSelectQuestion('triedBefore')}
               </div>
             )}
 
             {/* Step 5: Timing */}
             {currentStep === 4 && (
               <div className="grid grid-cols-1 gap-4">
-                {renderRadioQuestion('startTiming')}
+                {renderSelectQuestion('startTiming')}
               </div>
             )}
 
@@ -645,7 +645,7 @@ export function MultiStepContactForm() {
                     className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-base sm:text-sm text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
                   />
                 </div>
-                <div className="sm:col-span-2">{renderRadioQuestion('role')}</div>
+                <div className="sm:col-span-2">{renderSelectQuestion('role')}</div>
 
                 {/* A2P consent checkbox */}
                 <div className="flex items-start gap-3 pt-2 sm:col-span-2">
