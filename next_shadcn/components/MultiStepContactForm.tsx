@@ -47,12 +47,14 @@ const businessTypes: { value: string; label: string; monthlyBudget: string }[] =
 ];
 
 // Field to focus when a page is entered via Next (button, or Enter in the page's last field).
-const firstFieldByStep = ['businessType', 'clientSource', 'triedBefore', 'fullName'];
+const firstFieldByStep = ['businessType', 'clientSource', 'frustration', 'triedBefore', 'startTiming', 'fullName'];
 
 const steps = [
   { title: 'Your Business', description: 'Tell us about your business' },
   { title: 'Getting Clients', description: 'How you find clients today' },
   { title: 'Your Goals', description: 'What you want to change' },
+  { title: 'Your Experience', description: 'What you have tried so far' },
+  { title: 'Timing', description: 'When you want to start' },
   { title: 'Your Details', description: 'Where to reach you' },
 ];
 
@@ -224,16 +226,19 @@ export function MultiStepContactForm() {
       case 0:
         return formData.businessType && formData.company && formData.website && formData.dogsPerWeek;
       case 1:
-        return formData.clientSource && formData.costKnowledge && formData.frustration;
+        return formData.clientSource && formData.costKnowledge;
       case 2:
-        return formData.triedBefore && formData.tenMoreClients;
+        return formData.frustration && formData.tenMoreClients;
       case 3:
+        return formData.triedBefore;
+      case 4:
+        return formData.startTiming;
+      case 5:
         return (
           formData.fullName &&
           formData.email &&
           isPlausibleE164(formData.phone) &&
           formData.role &&
-          formData.startTiming &&
           formData.receiveMessages
         );
       default:
@@ -548,14 +553,13 @@ export function MultiStepContactForm() {
               <div className="grid grid-cols-1 gap-4">
                 {renderRadioQuestion('clientSource')}
                 {renderRadioQuestion('costKnowledge')}
-                {renderRadioQuestion('frustration')}
               </div>
             )}
 
             {/* Step 3: Your Goals */}
             {currentStep === 2 && (
               <div className="flex flex-col gap-4">
-                {renderRadioQuestion('triedBefore')}
+                {renderRadioQuestion('frustration')}
 
                 <div className="flex flex-col gap-2">
                   <label className="neon-text text-xs font-semibold tracking-widest uppercase text-white">
@@ -575,8 +579,22 @@ export function MultiStepContactForm() {
               </div>
             )}
 
-            {/* Step 4: Your Details */}
+            {/* Step 4: Your Experience */}
             {currentStep === 3 && (
+              <div className="grid grid-cols-1 gap-4">
+                {renderRadioQuestion('triedBefore')}
+              </div>
+            )}
+
+            {/* Step 5: Timing */}
+            {currentStep === 4 && (
+              <div className="grid grid-cols-1 gap-4">
+                {renderRadioQuestion('startTiming')}
+              </div>
+            )}
+
+            {/* Step 6: Your Details */}
+            {currentStep === 5 && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-2 sm:col-span-1">
                   <label className="neon-text text-xs font-semibold tracking-widest uppercase text-white">
@@ -628,7 +646,6 @@ export function MultiStepContactForm() {
                   />
                 </div>
                 <div className="sm:col-span-2">{renderRadioQuestion('role')}</div>
-                <div className="sm:col-span-2">{renderRadioQuestion('startTiming')}</div>
 
                 {/* A2P consent checkbox */}
                 <div className="flex items-start gap-3 pt-2 sm:col-span-2">
@@ -651,7 +668,7 @@ export function MultiStepContactForm() {
                 hidden (display:none) off the last step — never unmounted — so
                 the rendered widget's DOM node survives step navigation and its
                 widget id stays valid for grecaptcha.execute() at submit time. */}
-            <div className={`flex justify-center pt-4 ${currentStep === 3 ? '' : 'hidden'}`}>
+            <div className={`flex justify-center pt-4 ${currentStep === 5 ? '' : 'hidden'}`}>
               <div ref={handleContainerRef} />
             </div>
 
