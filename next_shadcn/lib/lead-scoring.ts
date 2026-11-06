@@ -35,6 +35,7 @@ export const leadQuestions: LeadQuestion[] = [
       { value: 'owner-dogs', label: 'Owner working with dogs', score: { icp: 3, pay: 1, readiness: 2 } },
       { value: 'owner-staff', label: 'Owner managing staff', score: { icp: 3, pay: 3, readiness: 2 } },
       { value: 'manager', label: 'Manager', score: { icp: 1, pay: 2, readiness: 1 } },
+      { value: 'other', label: 'Other…', score: {} },
     ],
   },
   {
@@ -59,6 +60,7 @@ export const leadQuestions: LeadQuestion[] = [
       { value: 'social', label: 'Social', score: { icp: 1, readiness: 2 } },
       { value: 'paid-ads', label: 'Paid ads', score: { pay: 2, readiness: 3 } },
       { value: 'not-sure', label: 'Not sure', score: {} },
+      { value: 'other', label: 'Other…', score: {} },
     ],
   },
   {
@@ -74,7 +76,15 @@ export const leadQuestions: LeadQuestion[] = [
   {
     id: 'frustration',
     label: 'What frustrates you most about getting clients?',
-    kind: 'text',
+    kind: 'radio',
+    options: [
+      { value: 'price-shoppers', label: 'Price shoppers', score: { readiness: 1 } },
+      { value: 'no-shows', label: 'No-shows', score: { readiness: 1 } },
+      { value: 'seasonal-dips', label: 'Seasonal dips', score: { readiness: 2 } },
+      { value: 'inconsistent-leads', label: 'Inconsistent leads', score: { icp: 2, readiness: 3 } },
+      { value: 'too-little-time', label: 'Too little time', score: { icp: 1, readiness: 2 } },
+      { value: 'other', label: 'Other…', score: {} },
+    ],
   },
   {
     id: 'triedBefore',
@@ -86,12 +96,20 @@ export const leadQuestions: LeadQuestion[] = [
       { value: 'seo', label: 'SEO', score: { pay: 1, readiness: 2 } },
       { value: 'lead-marketplace', label: 'Lead marketplace', score: { pay: 2, readiness: 3 } },
       { value: 'nothing-yet', label: 'Nothing yet', score: { icp: 1, readiness: 1 } },
+      { value: 'other', label: 'Other…', score: {} },
     ],
   },
   {
     id: 'tenMoreClients',
     label: 'What would you do with 10 more clients a month?',
-    kind: 'text',
+    kind: 'radio',
+    options: [
+      { value: 'hire-help', label: 'Hire help', score: {} },
+      { value: 'add-services', label: 'Add services', score: {} },
+      { value: 'open-location', label: 'Open a location', score: {} },
+      { value: 'pay-myself-more', label: 'Pay myself more', score: {} },
+      { value: 'other', label: 'Other…', score: {} },
+    ],
   },
   {
     id: 'startTiming',
@@ -179,8 +197,13 @@ export function scoreLead(answers: Record<string, string | undefined | null>): L
   const sophTier: SophisticationTier =
     sophPct >= 0.66 ? 'Pro' : sophPct >= 0.33 ? 'Intermediate' : 'Novice';
 
-  // Fit risk scanned from the free-text frustration.
-  const atRisk = AT_RISK_FRUSTRATION_RE.test(answers.frustration ?? '');
+  // Fit risk: a price-shoppers/no-shows choice, or an "Other" write-in that
+  // mentions them. (More leads won't fix those frustrations.)
+  const frustration = answers.frustration ?? '';
+  const atRisk =
+    frustration === 'price-shoppers' ||
+    frustration === 'no-shows' ||
+    (frustration === 'other' && AT_RISK_FRUSTRATION_RE.test(answers.frustrationOther ?? ''));
 
   return {
     icp: sum.icp,
@@ -207,4 +230,17 @@ export function labelFor(questionId: string, value: string | undefined | null): 
   const q = leadQuestions.find((x) => x.id === questionId);
   if (!q?.options) return value;
   return q.options.find((o) => o.value === value)?.label ?? value;
+}
+
+/**
+ * Display value for an answer that may be a custom "Other" write-in: if the
+ * selected value is "other", show the typed text; otherwise the option label.
+ */
+export function resolveAnswer(
+  questionId: string,
+  value: string | undefined | null,
+  otherValue: string | undefined | null
+): string {
+  if (value === 'other') return (otherValue ?? '').trim() || 'Other';
+  return labelFor(questionId, value);
 }

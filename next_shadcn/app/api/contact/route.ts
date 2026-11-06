@@ -7,7 +7,7 @@ import { google } from 'googleapis';
 import { onFormSubmit } from '@/lib/vapi-contact-tracker';
 import { sendEmail } from '#lib/contact-email-sender';
 import { formatContactSubmissionEmail } from '#lib/format-contact-submission-email';
-import { scoreLead, labelFor } from '@/lib/lead-scoring';
+import { scoreLead, labelFor, resolveAnswer } from '@/lib/lead-scoring';
 
 const execFileAsync = promisify(execFile);
 
@@ -30,6 +30,11 @@ interface ContactFormData {
   triedBefore: string;
   tenMoreClients: string;
   startTiming: string;
+  roleOther: string;
+  clientSourceOther: string;
+  frustrationOther: string;
+  triedBeforeOther: string;
+  tenMoreClientsOther: string;
   receiveMessages: boolean;
   recaptchaToken: string;
   timezone?: string;
@@ -228,13 +233,13 @@ export async function POST(request: NextRequest) {
         data.website,                                                     // F
         data.businessType,                                                // G
         data.monthlyBudget || '',                                         // H
-        labelFor('role', data.role),                                      // I
+        resolveAnswer('role', data.role, data.roleOther),                 // I
         labelFor('dogsPerWeek', data.dogsPerWeek),                        // J
-        labelFor('clientSource', data.clientSource),                      // K
+        resolveAnswer('clientSource', data.clientSource, data.clientSourceOther), // K
         labelFor('costKnowledge', data.costKnowledge),                    // L
-        labelFor('frustration', data.frustration),                        // M
-        labelFor('triedBefore', data.triedBefore),                        // N
-        data.tenMoreClients || '',                                        // O
+        resolveAnswer('frustration', data.frustration, data.frustrationOther), // M
+        resolveAnswer('triedBefore', data.triedBefore, data.triedBeforeOther), // N
+        resolveAnswer('tenMoreClients', data.tenMoreClients, data.tenMoreClientsOther), // O
         labelFor('startTiming', data.startTiming),                        // P
         data.receiveMessages ? 'Yes' : 'No',                              // Q
         userTimezone,                                                     // R

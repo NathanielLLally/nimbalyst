@@ -32,6 +32,12 @@ interface FormData {
   triedBefore: string;
   tenMoreClients: string;
   startTiming: string;
+  // Custom "Other…" write-ins, used when the matching answer is "other".
+  roleOther: string;
+  clientSourceOther: string;
+  frustrationOther: string;
+  triedBeforeOther: string;
+  tenMoreClientsOther: string;
   receiveMessages: boolean;
   timezone?: string;
   submittedAt?: string;
@@ -161,6 +167,11 @@ export function MultiStepContactForm() {
     triedBefore: '',
     tenMoreClients: '',
     startTiming: '',
+    roleOther: '',
+    clientSourceOther: '',
+    frustrationOther: '',
+    triedBeforeOther: '',
+    tenMoreClientsOther: '',
     receiveMessages: false,
     timezone: '',
     submittedAt: '',
@@ -247,15 +258,24 @@ export function MultiStepContactForm() {
     cancelPendingSubmit();
   };
 
+  // A question is answered when a value is selected — and, if that value is the
+  // "Other…" option, the custom write-in (`<id>Other`) is non-empty.
+  const isAnswered = (id: string) => {
+    const value = formData[id as keyof FormData] as string;
+    if (!value) return false;
+    if (value === 'other') return Boolean((formData[`${id}Other` as keyof FormData] as string)?.trim());
+    return true;
+  };
+
   // Check if current step is complete
   const isStepComplete = () => {
     switch (currentStep) {
       case 0:
-        return formData.businessType && formData.company && formData.website && formData.dogsPerWeek;
+        return formData.businessType && formData.company && formData.website && isAnswered('dogsPerWeek');
       case 1:
-        return formData.role && formData.clientSource && formData.costKnowledge && formData.triedBefore;
+        return isAnswered('role') && isAnswered('clientSource') && isAnswered('costKnowledge') && isAnswered('triedBefore');
       case 2:
-        return formData.frustration && formData.tenMoreClients && formData.startTiming;
+        return isAnswered('frustration') && isAnswered('tenMoreClients') && isAnswered('startTiming');
       case 3:
         return (
           formData.fullName &&
@@ -322,6 +342,19 @@ export function MultiStepContactForm() {
             ))}
           </SelectContent>
         </Select>
+        {/* Custom write-in, shown only when "Other…" is selected. */}
+        {selected === 'other' && (
+          <input
+            type="text"
+            name={`${id}Other`}
+            placeholder="Please specify"
+            value={formData[`${id}Other` as keyof FormData] as string}
+            onChange={handleInputChange}
+            onKeyDown={handleFieldKeyDown}
+            required
+            className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-base sm:text-sm text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
+          />
+        )}
       </div>
     );
   };
@@ -444,6 +477,11 @@ export function MultiStepContactForm() {
       triedBefore: '',
       tenMoreClients: '',
       startTiming: '',
+      roleOther: '',
+      clientSourceOther: '',
+      frustrationOther: '',
+      triedBeforeOther: '',
+      tenMoreClientsOther: '',
       receiveMessages: false,
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       submittedAt: new Date().toISOString(),
@@ -576,38 +614,8 @@ export function MultiStepContactForm() {
             {/* Step 3: Your Goals */}
             {currentStep === 2 && (
               <div className="flex flex-col gap-4">
-                <div className="flex flex-col gap-2">
-                  <label className="neon-text text-xs font-semibold tracking-widest uppercase text-white">
-                    What frustrates you most about getting clients?
-                  </label>
-                  <input
-                    type="text"
-                    name="frustration"
-                    placeholder="Tell us in your own words"
-                    value={formData.frustration}
-                    onChange={handleInputChange}
-                    onKeyDown={handleFieldKeyDown}
-                    required
-                    className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-base sm:text-sm text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
-                  />
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  <label className="neon-text text-xs font-semibold tracking-widest uppercase text-white">
-                    What would you do with 10 more clients a month?
-                  </label>
-                  <input
-                    type="text"
-                    name="tenMoreClients"
-                    placeholder="e.g. hire another groomer and open Sundays"
-                    value={formData.tenMoreClients}
-                    onChange={handleInputChange}
-                    onKeyDown={handleFieldKeyDown}
-                    required
-                    className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-base sm:text-sm text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
-                  />
-                </div>
-
+                {renderSelectQuestion('frustration')}
+                {renderSelectQuestion('tenMoreClients')}
                 {renderSelectQuestion('startTiming')}
               </div>
             )}

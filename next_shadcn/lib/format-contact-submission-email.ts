@@ -5,7 +5,7 @@
  * it with form data to create a complete audit trail.
  */
 
-import { scoreLead, labelFor } from './lead-scoring';
+import { scoreLead, labelFor, resolveAnswer } from './lead-scoring';
 
 interface ContactFormData {
   fullName: string;
@@ -23,6 +23,11 @@ interface ContactFormData {
   triedBefore: string;
   tenMoreClients: string;
   startTiming: string;
+  roleOther: string;
+  clientSourceOther: string;
+  frustrationOther: string;
+  triedBeforeOther: string;
+  tenMoreClientsOther: string;
   receiveMessages: boolean;
   timezone?: string;
   submittedAt?: string;
@@ -151,13 +156,13 @@ export function formatContactSubmissionEmail(
   // Lead Qualification Section
   sections.push('LEAD QUALIFICATION');
   sections.push('-'.repeat(60));
-  sections.push(`Role:                 ${labelFor('role', formData.role)}`);
+  sections.push(`Role:                 ${resolveAnswer('role', formData.role, formData.roleOther)}`);
   sections.push(`Dogs/Week:            ${labelFor('dogsPerWeek', formData.dogsPerWeek)}`);
-  sections.push(`New Clients From:     ${labelFor('clientSource', formData.clientSource)}`);
+  sections.push(`New Clients From:     ${resolveAnswer('clientSource', formData.clientSource, formData.clientSourceOther)}`);
   sections.push(`Cost/Client Known:    ${labelFor('costKnowledge', formData.costKnowledge)}`);
-  sections.push(`Biggest Frustration:  ${labelFor('frustration', formData.frustration)}`);
-  sections.push(`Already Tried:        ${labelFor('triedBefore', formData.triedBefore)}`);
-  sections.push(`10 More Clients:      ${formData.tenMoreClients}`);
+  sections.push(`Biggest Frustration:  ${resolveAnswer('frustration', formData.frustration, formData.frustrationOther)}`);
+  sections.push(`Already Tried:        ${resolveAnswer('triedBefore', formData.triedBefore, formData.triedBeforeOther)}`);
+  sections.push(`10 More Clients:      ${resolveAnswer('tenMoreClients', formData.tenMoreClients, formData.tenMoreClientsOther)}`);
   sections.push(`Wants To Start:       ${labelFor('startTiming', formData.startTiming)}`);
   sections.push('');
 

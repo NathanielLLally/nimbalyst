@@ -8,24 +8,29 @@ describe('scoreLead', () => {
       dogsPerWeek: '100-plus',
       clientSource: 'paid-ads',
       costKnowledge: 'exact',
+      frustration: 'inconsistent-leads',
       triedBefore: 'fb-google-ads',
       startTiming: 'now',
     });
 
-    expect(score.icp).toBe(6);
+    expect(score.icp).toBe(8);
     expect(score.pay).toBe(14);
-    expect(score.readiness).toBe(15);
-    expect(score.total).toBe(35);
+    expect(score.readiness).toBe(18);
+    expect(score.total).toBe(40);
     expect(score.tiers).toEqual({ icp: 'Strong', pay: 'Strong', readiness: 'Strong' });
     // exact cost + ran ads + paid-ads source = fully sophisticated buyer.
     expect(score.sophistication).toEqual({ score: 6, max: 6, tier: 'Pro' });
+    // "inconsistent leads" is exactly what lead-gen fixes — not a fit risk.
     expect(score.fitRisk.atRisk).toBe(false);
   });
 
-  it('flags expectation-fit risk from the free-text frustration', () => {
-    expect(scoreLead({ frustration: 'too many price shoppers' }).fitRisk.atRisk).toBe(true);
-    expect(scoreLead({ frustration: 'clients are no-shows' }).fitRisk.atRisk).toBe(true);
-    expect(scoreLead({ frustration: 'I just need more leads' }).fitRisk.atRisk).toBe(false);
+  it('flags expectation-fit risk from the chosen frustration or an Other write-in', () => {
+    expect(scoreLead({ frustration: 'price-shoppers' }).fitRisk.atRisk).toBe(true);
+    expect(scoreLead({ frustration: 'no-shows' }).fitRisk.atRisk).toBe(true);
+    expect(scoreLead({ frustration: 'inconsistent-leads' }).fitRisk.atRisk).toBe(false);
+    // "Other" write-in is keyword-scanned.
+    expect(scoreLead({ frustration: 'other', frustrationOther: 'too many price shoppers' }).fitRisk.atRisk).toBe(true);
+    expect(scoreLead({ frustration: 'other', frustrationOther: 'I just need more volume' }).fitRisk.atRisk).toBe(false);
   });
 
   it('rates a novice buyer low on sophistication', () => {

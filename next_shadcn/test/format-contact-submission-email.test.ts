@@ -17,8 +17,13 @@ function makeFormData(overrides: Record<string, unknown> = {}) {
     costKnowledge: 'exact',
     frustration: 'inconsistent-leads',
     triedBefore: 'fb-google-ads',
-    tenMoreClients: 'Hire another groomer and open Sundays',
+    tenMoreClients: 'hire-help',
     startTiming: 'now',
+    roleOther: '',
+    clientSourceOther: '',
+    frustrationOther: '',
+    triedBeforeOther: '',
+    tenMoreClientsOther: '',
     receiveMessages: true,
     timezone: 'America/New_York',
     submittedAt: '2026-09-21T20:48:00Z',
@@ -56,7 +61,16 @@ describe('formatContactSubmissionEmail', () => {
 
     expect(body).toContain('Owner working with dogs');
     expect(body).toContain('Inconsistent leads');
-    expect(body).toContain('Hire another groomer and open Sundays');
+    expect(body).toContain('Hire help');
+  });
+
+  it('shows the custom write-in when an answer is "Other"', async () => {
+    const body = formatContactSubmissionEmail(
+      makeFormData({ triedBefore: 'other', triedBeforeOther: 'Billboards downtown' }),
+      mockRequest
+    );
+
+    expect(body).toContain('Billboards downtown');
   });
 
   it('includes the computed lead score section', async () => {
