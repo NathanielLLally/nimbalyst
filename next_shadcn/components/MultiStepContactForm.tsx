@@ -680,7 +680,7 @@ export function MultiStepContactForm() {
                     id="receiveMessages"
                     checked={formData.receiveMessages}
                     onChange={handleInputChange}
-                    className="w-8 h-8 shrink-0 cursor-pointer rounded border-zinc-300 text-primary focus:ring-primary/20"
+                    className="w-4 h-4 shrink-0 cursor-pointer rounded border-zinc-300 text-primary focus:ring-primary/20"
                   />
                   <label htmlFor="receiveMessages" className="text-xs text-white cursor-pointer">
                     Check this box to receive messages from our sales team. Message frequency varies, and data rates may apply.
