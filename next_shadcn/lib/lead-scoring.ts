@@ -74,14 +74,7 @@ export const leadQuestions: LeadQuestion[] = [
   {
     id: 'frustration',
     label: 'What frustrates you most about getting clients?',
-    kind: 'radio',
-    options: [
-      { value: 'price-shoppers', label: 'Price shoppers', score: { readiness: 1 } },
-      { value: 'no-shows', label: 'No-shows', score: { readiness: 1 } },
-      { value: 'seasonal-dips', label: 'Seasonal dips', score: { readiness: 2 } },
-      { value: 'inconsistent-leads', label: 'Inconsistent leads', score: { icp: 2, readiness: 3 } },
-      { value: 'too-little-time', label: 'Too little time', score: { icp: 1, readiness: 2 } },
-    ],
+    kind: 'text',
   },
   {
     id: 'triedBefore',
@@ -131,7 +124,8 @@ const SOPHISTICATION_POINTS: Record<string, Record<string, number>> = {
 
 // Frustrations that more leads won't fix — buying leads risks disappointing them
 // (expectation/fit mismatch), so flag for sales even if otherwise qualified.
-const AT_RISK_FRUSTRATIONS = ['price-shoppers', 'no-shows'];
+// Keyword-scanned from the free-text frustration answer.
+const AT_RISK_FRUSTRATION_RE = /price[-\s]*shop|no[-\s]*show/i;
 
 export interface LeadScore {
   icp: number;
@@ -185,8 +179,8 @@ export function scoreLead(answers: Record<string, string | undefined | null>): L
   const sophTier: SophisticationTier =
     sophPct >= 0.66 ? 'Pro' : sophPct >= 0.33 ? 'Intermediate' : 'Novice';
 
-  // Fit risk from the stated frustration.
-  const atRisk = AT_RISK_FRUSTRATIONS.includes(answers.frustration ?? '');
+  // Fit risk scanned from the free-text frustration.
+  const atRisk = AT_RISK_FRUSTRATION_RE.test(answers.frustration ?? '');
 
   return {
     icp: sum.icp,

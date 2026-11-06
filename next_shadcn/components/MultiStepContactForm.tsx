@@ -54,13 +54,12 @@ const businessTypes: { value: string; label: string; monthlyBudget: string }[] =
 ];
 
 // Field to focus when a page is entered via Next (button, or Enter in the page's last field).
-const firstFieldByStep = ['businessType', 'clientSource', 'frustration', 'role', 'fullName'];
+const firstFieldByStep = ['businessType', 'role', 'frustration', 'fullName'];
 
 const steps = [
   { title: 'Your Business', description: 'Tell us about your business' },
   { title: 'Getting Clients', description: 'How you find clients today' },
   { title: 'Your Goals', description: 'What you want to change' },
-  { title: 'About You', description: 'Your role, timing, and experience' },
   { title: 'Your Details', description: 'Where to reach you' },
 ];
 
@@ -254,12 +253,10 @@ export function MultiStepContactForm() {
       case 0:
         return formData.businessType && formData.company && formData.website && formData.dogsPerWeek;
       case 1:
-        return formData.clientSource && formData.costKnowledge;
+        return formData.role && formData.clientSource && formData.costKnowledge && formData.triedBefore;
       case 2:
-        return formData.frustration && formData.tenMoreClients;
+        return formData.frustration && formData.tenMoreClients && formData.startTiming;
       case 3:
-        return formData.role && formData.startTiming && formData.triedBefore;
-      case 4:
         return (
           formData.fullName &&
           formData.email &&
@@ -317,7 +314,7 @@ export function MultiStepContactForm() {
           <SelectTrigger className="w-full bg-black/90 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-base sm:text-sm text-zinc-100 focus:border-primary focus:ring-2 focus:ring-primary/10">
             <SelectValue placeholder="Select an option" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="bg-background border-zinc-700 text-zinc-100">
             {q.options.map((o) => (
               <SelectItem key={o.value} value={o.value}>
                 {o.label}
@@ -521,7 +518,7 @@ export function MultiStepContactForm() {
                     <SelectTrigger className="w-full bg-black/90 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-base sm:text-sm text-zinc-100 focus:border-primary focus:ring-2 focus:ring-primary/10">
                       <SelectValue placeholder="Select your business type" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-background border-zinc-700 text-zinc-100">
                       {businessTypes.map((b) => (
                         <SelectItem key={b.value} value={b.value}>
                           {b.label}
@@ -569,15 +566,31 @@ export function MultiStepContactForm() {
             {/* Step 2: Getting Clients */}
             {currentStep === 1 && (
               <div className="grid grid-cols-1 gap-4">
+                {renderSelectQuestion('role')}
                 {renderSelectQuestion('clientSource')}
                 {renderSelectQuestion('costKnowledge')}
+                {renderSelectQuestion('triedBefore')}
               </div>
             )}
 
             {/* Step 3: Your Goals */}
             {currentStep === 2 && (
               <div className="flex flex-col gap-4">
-                {renderSelectQuestion('frustration')}
+                <div className="flex flex-col gap-2">
+                  <label className="neon-text text-xs font-semibold tracking-widest uppercase text-white">
+                    What frustrates you most about getting clients?
+                  </label>
+                  <input
+                    type="text"
+                    name="frustration"
+                    placeholder="Tell us in your own words"
+                    value={formData.frustration}
+                    onChange={handleInputChange}
+                    onKeyDown={handleFieldKeyDown}
+                    required
+                    className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-base sm:text-sm text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
+                  />
+                </div>
 
                 <div className="flex flex-col gap-2">
                   <label className="neon-text text-xs font-semibold tracking-widest uppercase text-white">
@@ -594,20 +607,13 @@ export function MultiStepContactForm() {
                     className="w-full bg-[#00000066] border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-base sm:text-sm text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
                   />
                 </div>
-              </div>
-            )}
 
-            {/* Step 4: About You (role, timing, experience) */}
-            {currentStep === 3 && (
-              <div className="grid grid-cols-1 gap-4">
-                {renderSelectQuestion('role')}
                 {renderSelectQuestion('startTiming')}
-                {renderSelectQuestion('triedBefore')}
               </div>
             )}
 
-            {/* Step 5: Your Details */}
-            {currentStep === 4 && (
+            {/* Step 4: Your Details */}
+            {currentStep === 3 && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-2 sm:col-span-1">
                   <label className="neon-text text-xs font-semibold tracking-widest uppercase text-white">
@@ -679,7 +685,7 @@ export function MultiStepContactForm() {
                 hidden (display:none) off the last step — never unmounted — so
                 the rendered widget's DOM node survives step navigation and its
                 widget id stays valid for grecaptcha.execute() at submit time. */}
-            <div className={`flex justify-center pt-4 ${currentStep === 4 ? '' : 'hidden'}`}>
+            <div className={`flex justify-center pt-4 ${currentStep === 3 ? '' : 'hidden'}`}>
               <div ref={handleContainerRef} />
             </div>
 
