@@ -508,7 +508,7 @@ export function MultiStepContactForm() {
       </div>
       <div className="relative z-10 text-white" style={{ textShadow: '0 2px 0 rgba(0, 0, 0, 1)' }}>
       {/* Progress indicator */}
-      <div className="flex gap-2">
+      <div className="flex gap-2 mb-6">
         {steps.map((_, i) => (
           <div
             key={i}
