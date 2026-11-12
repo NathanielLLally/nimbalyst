@@ -47,8 +47,8 @@ function answerSelects() {
 }
 const next = () => fireEvent.click(screen.getByRole('button', { name: /next/i }));
 
-async function submitSuccessfully() {
-  render(<MultiStepContactForm />);
+async function submitSuccessfully(onSubmittedChange?: (submitted: boolean) => void) {
+  render(<MultiStepContactForm onSubmittedChange={onSubmittedChange} />);
   answerSelects();
   type('Your Pet Business', 'Paws');
   type('https://example.com', 'https://paws.example');
@@ -86,5 +86,16 @@ describe('MultiStepContactForm mobile fullscreen', () => {
     fireEvent.focus(within(card).getByRole('link'));
     // Then the form stays in normal flow, so it can grow with the calendar embed
     expect(container().classList.contains('is-active')).toBe(false);
+  });
+});
+
+describe('MultiStepContactForm submitted callback', () => {
+  it('should_report_a_successful_submission_to_the_parent', async () => {
+    // Given a parent listening for the submitted state
+    const onSubmittedChange = vi.fn();
+    // When the form is submitted successfully
+    await submitSuccessfully(onSubmittedChange);
+    // Then the parent is told
+    expect(onSubmittedChange).toHaveBeenLastCalledWith(true);
   });
 });

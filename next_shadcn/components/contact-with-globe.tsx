@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import { useState } from 'react';
 import { motion } from 'motion/react';
 import { cn } from '@/lib/utils';
 import { ArrowRight, Mail, Phone, Headphones } from 'lucide-react';
@@ -40,6 +41,11 @@ export default function ContactWithGlobe({
   id,
   className,
 }: ContactWithGlobeProps) {
+  // After a successful submit, above the mobile breakpoint the thank-you view
+  // spans the full grid width in the first row, covering the "Connect with our
+  // team" column (hidden underneath, in the same cell). Mobile keeps the stack.
+  const [submitted, setSubmitted] = useState(false);
+
   return (
     <section
       id={id}
@@ -89,7 +95,7 @@ export default function ContactWithGlobe({
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: false }}
             transition={{ duration: 1.0, delay: 0.2, ease: smoothEase }}
-            className="flex flex-col gap-6"
+            className={cn('flex flex-col gap-6', submitted && 'md:col-start-1 md:row-start-1 md:invisible')}
           >
             <div className="flex flex-col gap-1">
               <h3 className="text-xl font-semibold text-zinc-900 dark:text-white">
@@ -137,8 +143,9 @@ export default function ContactWithGlobe({
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: false }}
             transition={{ duration: 1.0, delay: 0.35, ease: smoothEase }}
+            className={cn(submitted && 'md:col-span-full md:col-start-1 md:row-start-1')}
           >
-            <MultiStepContactForm />
+            <MultiStepContactForm onSubmittedChange={setSubmitted} />
           </motion.div>
         </div>
       </div>

@@ -91,7 +91,12 @@ function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
   });
 }
 
-export function MultiStepContactForm() {
+interface MultiStepContactFormProps {
+  /** Told when the form switches to/from the thank-you view, so the page can re-lay itself out. */
+  onSubmittedChange?: (submitted: boolean) => void;
+}
+
+export function MultiStepContactForm({ onSubmittedChange }: MultiStepContactFormProps = {}) {
   const recaptchaContainerRef = useRef<HTMLDivElement>(null);
   const recaptchaWidgetId = useRef<number | null>(null);
   const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
@@ -436,6 +441,7 @@ export function MultiStepContactForm() {
       console.log('✅ Form submitted successfully');
       // Stay on the thank-you view (articles + booking calendar) — no auto-reset.
       setSubmitted(true);
+      onSubmittedChange?.(true);
       setFormActive(false); // exit fullscreen on success
     } catch (err) {
       if (isStale()) return;
