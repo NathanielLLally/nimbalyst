@@ -10,7 +10,7 @@ describe('ContactThankYou article cards', () => {
     // Given the thank-you view
     render(<ContactThankYou />);
     // Then there is one article card per configured article
-    expect(screen.getAllByRole('article')).toHaveLength(3);
+    expect(screen.getAllByRole('article')).toHaveLength(2);
   });
 
   it('should_link_each_card_to_its_article_url_in_a_new_tab', () => {
@@ -24,11 +24,10 @@ describe('ContactThankYou article cards', () => {
     );
   });
 
-  it('should_include_the_three_requested_articles', () => {
+  it('should_include_the_two_requested_articles', () => {
     expect(THANK_YOU_ARTICLES.map((a) => a.url)).toEqual([
       'https://www.mortech.com/hs-fs/hub/25649/file-13535879-pdf/docs/mit_study.pdf',
       'https://ainora.lt/blog/lead-response-time-statistics-every-study-2026',
-      'https://recapio.com/digest/how-to-build-a-confirmation-page-that-makes-people-show-up-ready-to-buy-by-jeremy-haynes',
     ]);
   });
 });

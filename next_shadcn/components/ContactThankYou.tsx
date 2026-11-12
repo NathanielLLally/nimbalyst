@@ -1,4 +1,4 @@
-import { CheckCircle, ExternalLink, FileText, BarChart3, ClipboardCheck } from 'lucide-react';
+import { CheckCircle, ExternalLink, FileText, BarChart3 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 
@@ -26,14 +26,6 @@ export const THANK_YOU_ARTICLES: ThankYouArticle[] = [
     summary:
       'A roundup of the major lead response time studies and what they mean for how fast a business should follow up.',
     icon: BarChart3,
-  },
-  {
-    url: 'https://recapio.com/digest/how-to-build-a-confirmation-page-that-makes-people-show-up-ready-to-buy-by-jeremy-haynes',
-    source: 'Recapio · Jeremy Haynes',
-    title: 'Confirmation Pages That Make People Show Up Ready to Buy',
-    summary:
-      'Why the page after the form matters, and how to use it to turn a new inquiry into a booked, prepared prospect.',
-    icon: ClipboardCheck,
   },
 ];
 
