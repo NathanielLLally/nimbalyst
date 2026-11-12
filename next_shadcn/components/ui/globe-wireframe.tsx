@@ -536,7 +536,7 @@ export default function GlobeWireframe({
       .attr('stroke', defaultStrokeColor)
       .attr('stroke-width', finalStrokeWidth)
       .attr('opacity', finalOpacity)
-      // eslint-disable-next-line react-hooks/unsupported-syntax
+       
       .style('visibility', function (this: SVGPathElement) {
         const pathData = d3.select(this).attr('d');
         return pathData && pathData.length > 0 && !pathData.includes('NaN')

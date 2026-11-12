@@ -1,0 +1,311 @@
+
+> hello-nimbalyst@0.1.0 lint /space/git/nimbalyst/next_shadcn
+> eslint . --quiet
+
+
+/space/git/nimbalyst/next_shadcn/add-header-row.js
+  7:1   error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  8:20  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+/space/git/nimbalyst/next_shadcn/app/api/contact-track/route.ts
+  49:73  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/space/git/nimbalyst/next_shadcn/app/api/vapi-tools/route.ts
+   88:36  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  114:34  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  132:50  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  197:91  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  293:61  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  295:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  317:9   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  317:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  344:41  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/space/git/nimbalyst/next_shadcn/app/api/vapi-webhook/route.ts
+   73:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   74:35  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   95:18  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  384:62  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/space/git/nimbalyst/next_shadcn/app/components/VapiExample.tsx
+  16:21  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  16:32  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  18:21  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  18:30  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+
+/space/git/nimbalyst/next_shadcn/app/google-charts-demo/page.tsx
+  107:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/space/git/nimbalyst/next_shadcn/app/hooks/useVapi.tsx
+  36:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  58:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/space/git/nimbalyst/next_shadcn/app/page.tsx
+  77:16   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  83:112  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+/space/git/nimbalyst/next_shadcn/app/privacy/page.tsx
+   40:41   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+   40:45   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+   40:47   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+   40:51   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+   40:53   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+   40:58   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+   40:63   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+   40:71   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  103:217  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  103:230  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+
+/space/git/nimbalyst/next_shadcn/attach-availability-tool.js
+  8:1  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+/space/git/nimbalyst/next_shadcn/attach-book-meeting-tool.js
+  8:1  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+/space/git/nimbalyst/next_shadcn/attach-tool-to-assistant.js
+  8:1  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+/space/git/nimbalyst/next_shadcn/components/BusinessModelForm.tsx
+  92:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/space/git/nimbalyst/next_shadcn/components/FAQ.tsx
+  65:49  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                                                        react/no-unescaped-entities
+  98:11  error  Do not use an `<a>` element to navigate to `/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages  @next/next/no-html-link-for-pages
+
+/space/git/nimbalyst/next_shadcn/components/GoogleChart.tsx
+   21:28  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   @typescript-eslint/no-explicit-any
+   64:27  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   @typescript-eslint/no-explicit-any
+   72:33  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   @typescript-eslint/no-explicit-any
+   74:39  error  Error: Cannot access variable before it is declared
+
+`drawChart` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+/space/git/nimbalyst/next_shadcn/components/GoogleChart.tsx:74:39
+  72 |       const google = (window as any).google;
+  73 |       google.charts.load('current', { packages: ['corechart', 'table'] });
+> 74 |       google.charts.setOnLoadCallback(drawChart);
+     |                                       ^^^^^^^^^ `drawChart` accessed before it is declared
+  75 |     };
+  76 |
+  77 |     script.onerror = () => {
+
+/space/git/nimbalyst/next_shadcn/components/GoogleChart.tsx:114:3
+  112 |   };
+  113 |
+> 114 |   const drawChart = async () => {
+      |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 115 |     try {
+      | ^^^^^^^^^
+> 116 |       if (!containerRef.current) throw new Error('Container element not found');
+      …
+      | ^^^^^^^^^
+> 154 |     }
+      | ^^^^^^^^^
+> 155 |   };
+      | ^^^^^ `drawChart` is declared here
+  156 |
+  157 |   const loadFromGoogleSheets = (): Promise<any> => {
+  158 |     return new Promise((resolve, reject) => {  react-hooks/immutability
+   95:33  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   @typescript-eslint/no-explicit-any
+   98:25  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   @typescript-eslint/no-explicit-any
+  118:33  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   @typescript-eslint/no-explicit-any
+  133:42  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   @typescript-eslint/no-explicit-any
+  157:44  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   @typescript-eslint/no-explicit-any
+  159:33  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   @typescript-eslint/no-explicit-any
+  161:32  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   @typescript-eslint/no-explicit-any
+  177:31  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   @typescript-eslint/no-explicit-any
+  178:31  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   @typescript-eslint/no-explicit-any
+
+/space/git/nimbalyst/next_shadcn/components/MergedHero.tsx
+  84:11  error  Do not use an `<a>` element to navigate to `/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages  @next/next/no-html-link-for-pages
+
+/space/git/nimbalyst/next_shadcn/components/MultiStepContactForm.tsx
+   60:35  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+   78:18  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+   89:18  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+   98:38  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  130:5   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/space/git/nimbalyst/next_shadcn/components/MultiStepContactForm.tsx:130:5
+  128 |
+  129 |   useEffect(() => {
+> 130 |     setFormData((prev) => ({
+      |     ^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  131 |       ...prev,
+  132 |       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+  133 |       submittedAt: new Date().toISOString(),  react-hooks/set-state-in-effect
+  157:47  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  248:37  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  657:17  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          react/no-unescaped-entities
+
+/space/git/nimbalyst/next_shadcn/components/Services.tsx
+  286:17  error  Do not use an `<a>` element to navigate to `/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages  @next/next/no-html-link-for-pages
+
+/space/git/nimbalyst/next_shadcn/components/bento-card.tsx
+  28:9  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/space/git/nimbalyst/next_shadcn/components/blog-sections-02.tsx
+  47:13  error  Missing "key" prop for element in iterator  react/jsx-key
+
+/space/git/nimbalyst/next_shadcn/components/contact-with-globe.tsx
+  99:12  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+/space/git/nimbalyst/next_shadcn/create-book-meeting-tool.js
+  8:1  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+/space/git/nimbalyst/next_shadcn/create-check-availability-tool.js
+  8:1  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+/space/git/nimbalyst/next_shadcn/dist/lib/googleSheetUtils.js
+  17:22  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+/space/git/nimbalyst/next_shadcn/dist/lib/vapi-contact-tracker.js
+  56:33  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  57:29  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  58:20  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  59:23  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+/space/git/nimbalyst/next_shadcn/dist/worker/contact-runner.js
+  16:32  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+/space/git/nimbalyst/next_shadcn/lib/contact-email-sender.ts
+  136:22  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  150:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  203:17  error  A `require()` style import is forbidden   @typescript-eslint/no-require-imports
+  204:27  error  A `require()` style import is forbidden   @typescript-eslint/no-require-imports
+
+/space/git/nimbalyst/next_shadcn/lib/contact-sms-booking.ts
+   63:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  111:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  168:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/space/git/nimbalyst/next_shadcn/lib/format-contact-submission-email.ts
+  43:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  45:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/space/git/nimbalyst/next_shadcn/lib/googleChartHelpers.ts
+  20:57  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  91:12  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  91:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/space/git/nimbalyst/next_shadcn/lib/googleSheetUtils.ts
+   72:57  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  155:12  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  155:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/space/git/nimbalyst/next_shadcn/lib/vapi-contact-tracker.ts
+   401:41  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   549:20  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   615:75  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   766:12  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   804:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   859:15  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   941:15  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  1003:10  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  1030:10  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  1073:12  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  1108:12  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/space/git/nimbalyst/next_shadcn/test/contact-email-sender.test.ts
+   55:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  129:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  136:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/space/git/nimbalyst/next_shadcn/test/contact-route-dispatch.test.ts
+  43:9  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/space/git/nimbalyst/next_shadcn/test/format-contact-submission-email.test.ts
+  5:20  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/space/git/nimbalyst/next_shadcn/test/google-sheet-grid.test.ts
+   4:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   4:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   5:32  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   5:50  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  29:59  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/space/git/nimbalyst/next_shadcn/test/multi-step-contact-form.test.tsx
+  11:14  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/space/git/nimbalyst/next_shadcn/test/run-integration-tests.js
+   8:19  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+   9:14  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  10:12  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+/space/git/nimbalyst/next_shadcn/test/test-contact-form.js
+  8:1  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+/space/git/nimbalyst/next_shadcn/test/test-contact-sms-booking.js
+  13:1   error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  14:16  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+/space/git/nimbalyst/next_shadcn/test/test-google-sheets.js
+  8:1   error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  9:20  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+/space/git/nimbalyst/next_shadcn/test/test-vapi-contact-tracker.js
+   9:1   error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  10:16  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  11:16  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+/space/git/nimbalyst/next_shadcn/test/test-vapi-tools.js
+  11:1  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+/space/git/nimbalyst/next_shadcn/test/vapi-attempt-count.test.ts
+   4:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   4:56  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  21:14  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  29:62  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  31:36  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  31:61  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  32:31  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/space/git/nimbalyst/next_shadcn/test/vapi-contact-call.test.ts
+  19:14  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/space/git/nimbalyst/next_shadcn/test/vapi-meeting-sms.test.ts
+   4:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   4:56  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  23:14  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  37:27  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  49:16  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  50:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/space/git/nimbalyst/next_shadcn/test/vapi-retry-policy.test.ts
+  19:14  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  27:62  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  29:31  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  30:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/space/git/nimbalyst/next_shadcn/test/vapi-tools-route.test.ts
+    4:36  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+    4:54  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+    5:37  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+    5:55  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   28:9   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  497:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  550:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  559:13  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  590:13  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  660:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/space/git/nimbalyst/next_shadcn/test/vapi-webhook-call-details.test.ts
+   4:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   4:56  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  68:9   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  72:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  75:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  81:64  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/space/git/nimbalyst/next_shadcn/update-assistant-prompt.js
+  8:1  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+✖ 159 problems (159 errors, 0 warnings)
+
+ ELIFECYCLE  Command failed with exit code 1.

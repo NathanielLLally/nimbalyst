@@ -3,8 +3,9 @@
 import Image from 'next/image';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { AnimatePresence } from 'motion/react';
-import { ChevronRight, ChevronLeft, Mail, CheckCircle } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ContactThankYou } from '@/components/ContactThankYou';
 import { sanitizeE164Input, isPlausibleE164 } from '@/lib/phone-input';
 
 interface FormData {
@@ -301,11 +302,8 @@ export function MultiStepContactForm() {
       }
 
       console.log('✅ Form submitted successfully');
+      // Stay on the thank-you view (articles + booking calendar) — no auto-reset.
       setSubmitted(true);
-      setTimeout(() => {
-        setSubmitted(false);
-        resetForm();
-      }, 3000);
     } catch (err) {
       if (isStale()) return;
       // AbortSignal.timeout rejects with a TimeoutError/AbortError DOMException.
@@ -324,25 +322,6 @@ export function MultiStepContactForm() {
       setLoading(false);
       submitting.current = false;
     }
-  };
-
-  const resetForm = () => {
-    setCurrentStep(0);
-    setFormData({
-      fullName: '',
-      email: '',
-      phone: '',
-      company: '',
-      website: '',
-      businessType: '',
-      challenge: '',
-      message: '',
-      receiveMessages: false,
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      submittedAt: new Date().toISOString(),
-    });
-    // Reset reCAPTCHA widget ID (resetForm only runs client-side, so Intl is safe here) so it can be re-rendered on the next form submission
-    recaptchaWidgetId.current = null;
   };
 
   return (
@@ -644,19 +623,7 @@ export function MultiStepContactForm() {
             </div>
           </form>
         ) : (
-          <div
-            className="flex flex-col items-center justify-center gap-4 py-12"
-          >
-            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-              <CheckCircle className="w-8 h-8 text-primary" />
-            </div>
-            <h3 className="text-xl font-semibold text-zinc-900 dark:text-white">
-              Thank you!
-            </h3>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400 text-center max-w-xs">
-              We'll get back to you within 24 hours with a personalized strategy.
-            </p>
-          </div>
+          <ContactThankYou />
         )}
       </AnimatePresence>
       </div>

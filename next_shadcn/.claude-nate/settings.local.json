@@ -1,0 +1,47 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s http://localhost:3001)",
+      "Bash(apt-cache policy *)",
+      "Bash(cat)",
+      "Bash(chmod +x /tmp/screenshot.sh)",
+      "Bash(timeout 15 /tmp/screenshot.sh)",
+      "Read(//tmp/**)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(chmod +x /tmp/test-visual.sh)",
+      "Bash(timeout 20 /tmp/test-visual.sh)",
+      "Bash(timeout 5 node /tmp/check-transform.js)",
+      "Bash(export DISPLAY=:100)",
+      "Bash(pkill Xvfb)",
+      "Bash(true)",
+      "Bash(Xvfb :100 -screen 0 1200x1600x24)",
+      "Bash(sleep 2)",
+      "Bash(pkill firefox *)",
+      "Bash(timeout 10 firefox --screenshot /tmp/actual-site.png http://localhost:3001)",
+      "Bash(awk '{print $2}')",
+      "Bash(xargs kill -9)",
+      "Bash(curl -s http://localhost:3000)",
+      "Bash(curl -s http://localhost:3000/privacy)",
+      "Bash(npm run *)",
+      "Bash(ssh *)",
+      "Bash(npx tsc *)",
+      "Bash(NODE_OPTIONS=\"--max-old-space-size=4096\" npm run build)",
+      "Bash(node *)",
+      "Bash(BASE_URL=http://localhost:3000 node *)",
+      "Bash(BASE_URL=https://happytailspawcare.com node *)",
+      "Bash(curl -X POST http://localhost:3000/api/vapi-process)",
+      "Bash(pkill *)",
+      "Bash(git commit -m 'fix: enforce MAX_ATTEMPTS limit in retry loop *)",
+      "Bash(grep -E \"\\\\.\\(ts|tsx|js\\)$\")",
+      "Bash(grep -E \"\\\\.\\(sh|js|ts\\)$\")",
+      "Bash(grep -E \"\\\\.\\(ts|js\\)$\")",
+      "Bash(grep -E \"\\\\.\\(tsx|ts|jsx|js\\)$\")",
+      "Bash(chmod +x *)"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "shadcn"
+  ]
+}
