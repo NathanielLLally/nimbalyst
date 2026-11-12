@@ -1,7 +1,20 @@
 // @vitest-environment jsdom
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import { render, screen, cleanup, within } from '@testing-library/react';
-import { ContactThankYou, THANK_YOU_ARTICLES, CAL_BOOKING_URL } from '@/components/ContactThankYou';
+import { ContactThankYou, THANK_YOU_ARTICLES, CAL_LINK, CAL_CONFIG } from '@/components/ContactThankYou';
+
+// The real embed injects a script from cal.com; stand it in with a marker that
+// exposes the props it was given.
+vi.mock('@calcom/embed-react', () => ({
+  default: (props: { calLink: string; config?: Record<string, string>; style?: Record<string, string> }) => (
+    <div
+      data-testid="cal-embed"
+      data-cal-link={props.calLink}
+      data-config={JSON.stringify(props.config ?? {})}
+      data-style={JSON.stringify(props.style ?? {})}
+    />
+  ),
+}));
 
 afterEach(cleanup);
 
@@ -33,20 +46,38 @@ describe('ContactThankYou article cards', () => {
 });
 
 describe('ContactThankYou booking embed', () => {
-  it('should_embed_the_cal_com_leads_calendar_after_the_articles', () => {
+  it('should_render_the_cal_com_inline_embed_after_the_articles', () => {
     // Given the thank-you view
-    const { container } = render(<ContactThankYou />);
-    const iframe = screen.getByTitle(/book a call/i);
+    render(<ContactThankYou />);
+    const embed = screen.getByTestId('cal-embed');
     const lastCard = screen.getAllByRole('article').at(-1)!;
-    // Then the calendar iframe points at the leads booking page and sits below the cards
-    expect([
-      iframe.getAttribute('src'),
-      Boolean(lastCard.compareDocumentPosition(iframe) & Node.DOCUMENT_POSITION_FOLLOWING),
-      container.contains(iframe),
-    ]).toEqual([CAL_BOOKING_URL, true, true]);
+    // Then the inline embed sits below the cards
+    expect(Boolean(lastCard.compareDocumentPosition(embed) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
   });
 
-  it('should_use_the_requested_cal_com_url', () => {
-    expect(CAL_BOOKING_URL).toBe('https://cal.com/happy-tails-paw-care/leads?overlayCalendar=true');
+  it('should_point_the_embed_at_the_leads_booking_page_with_overlay_calendar', () => {
+    render(<ContactThankYou />);
+    const embed = screen.getByTestId('cal-embed');
+    expect([embed.dataset.calLink, JSON.parse(embed.dataset.config!)]).toEqual([
+      'happy-tails-paw-care/leads',
+      { overlayCalendar: 'true' },
+    ]);
+  });
+
+  it('should_not_give_the_embed_a_fixed_height_so_it_grows_with_its_content', () => {
+    // A fixed height is what forced scrolling inside the calendar; the inline
+    // embed resizes its own iframe to the content when left unconstrained.
+    render(<ContactThankYou />);
+    const style = JSON.parse(screen.getByTestId('cal-embed').dataset.style!);
+    expect(style.height).toBeUndefined();
+  });
+
+  it('should_not_render_a_fixed_height_iframe_of_its_own', () => {
+    const { container } = render(<ContactThankYou />);
+    expect(container.querySelector('iframe')).toBeNull();
+  });
+
+  it('should_keep_the_requested_cal_com_link_and_options', () => {
+    expect([CAL_LINK, CAL_CONFIG]).toEqual(['happy-tails-paw-care/leads', { overlayCalendar: 'true' }]);
   });
 });

@@ -462,8 +462,9 @@ export function MultiStepContactForm() {
       className={`form-container relative rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-background p-6 sm:p-8 flex flex-col gap-8 overflow-hidden ${
         formActive ? 'is-active' : ''
       }`}
-      onFocusCapture={() => setFormActive(true)}
-      onPointerDown={() => setFormActive(true)}
+      // After submit, stay in normal flow so the form can grow with the Cal.com embed.
+      onFocusCapture={() => !submitted && setFormActive(true)}
+      onPointerDown={() => !submitted && setFormActive(true)}
     >
       <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 opacity-60 pointer-events-none">
         <Image

@@ -1,3 +1,6 @@
+'use client';
+
+import Cal from '@calcom/embed-react';
 import { CheckCircle, ExternalLink, FileText, BarChart3 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -29,7 +32,11 @@ export const THANK_YOU_ARTICLES: ThankYouArticle[] = [
   },
 ];
 
-export const CAL_BOOKING_URL = 'https://cal.com/happy-tails-paw-care/leads?overlayCalendar=true';
+// https://cal.com/happy-tails-paw-care/leads?overlayCalendar=true, as an inline
+// embed: unlike a plain iframe, it resizes itself to the calendar's content, so
+// the form grows to fit and nothing scrolls inside the booking widget.
+export const CAL_LINK = 'happy-tails-paw-care/leads';
+export const CAL_CONFIG = { overlayCalendar: 'true' };
 
 export function ContactThankYou() {
   return (
@@ -79,11 +86,11 @@ export function ContactThankYou() {
 
       <div className="flex flex-col gap-3">
         <h4 className="text-lg font-semibold text-white text-center">Book your strategy call</h4>
-        <iframe
-          src={CAL_BOOKING_URL}
-          title="Book a call with Happy Tails Paw Care"
-          className="w-full h-[700px] rounded-lg border border-zinc-200 dark:border-zinc-800 bg-background"
-          loading="lazy"
+        <Cal
+          namespace="leads"
+          calLink={CAL_LINK}
+          config={CAL_CONFIG}
+          style={{ width: '100%', overflow: 'visible' }}
         />
       </div>
     </div>
