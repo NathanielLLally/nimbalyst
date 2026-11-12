@@ -181,8 +181,9 @@ export default function Home() {
               <div className="flex flex-col gap-2">
                 {[
                   { label: "Privacy Policy", href: "/privacy" },
-                  { label: "Contact", href: "#contact" },
-                  { label: "Services", href: "#services" },
+                  { label: "Terms of Service", href: "/tos" },
+                  { label: "Contact", href: "/#contact" },
+                  { label: "Services", href: "/#services" },
                 ].map((l) => (
                   <Link
                     key={l.label}

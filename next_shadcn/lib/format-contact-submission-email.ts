@@ -5,6 +5,8 @@
  * it with form data to create a complete audit trail.
  */
 
+import { scoreLead, labelFor, resolveAnswer } from './lead-scoring';
+
 interface ContactFormData {
   fullName: string;
   email: string;
@@ -12,8 +14,20 @@ interface ContactFormData {
   company: string;
   website: string;
   businessType: string;
-  challenge: string;
-  message: string;
+  monthlyBudget: string;
+  role: string;
+  dogsPerWeek: string;
+  clientSource: string;
+  costKnowledge: string;
+  frustration: string;
+  triedBefore: string;
+  tenMoreClients: string;
+  startTiming: string;
+  roleOther: string;
+  clientSourceOther: string;
+  frustrationOther: string;
+  triedBeforeOther: string;
+  tenMoreClientsOther: string;
   receiveMessages: boolean;
   timezone?: string;
   submittedAt?: string;
@@ -135,9 +149,33 @@ export function formatContactSubmissionEmail(
   sections.push(`Company:          ${formData.company}`);
   sections.push(`Website:          ${formData.website}`);
   sections.push(`Business Type:    ${formData.businessType}`);
-  sections.push(`Challenge:        ${formData.challenge}`);
-  sections.push(`Message:          ${formData.message}`);
+  sections.push(`Monthly Budget:   ${formData.monthlyBudget}`);
   sections.push(`Receive Messages: ${formData.receiveMessages ? 'Yes' : 'No'}`);
+  sections.push('');
+
+  // Lead Qualification Section
+  sections.push('LEAD QUALIFICATION');
+  sections.push('-'.repeat(60));
+  sections.push(`Role:                 ${resolveAnswer('role', formData.role, formData.roleOther)}`);
+  sections.push(`Dogs/Week:            ${labelFor('dogsPerWeek', formData.dogsPerWeek)}`);
+  sections.push(`New Clients From:     ${resolveAnswer('clientSource', formData.clientSource, formData.clientSourceOther)}`);
+  sections.push(`Cost/Client Known:    ${labelFor('costKnowledge', formData.costKnowledge)}`);
+  sections.push(`Biggest Frustration:  ${resolveAnswer('frustration', formData.frustration, formData.frustrationOther)}`);
+  sections.push(`Already Tried:        ${resolveAnswer('triedBefore', formData.triedBefore, formData.triedBeforeOther)}`);
+  sections.push(`10 More Clients:      ${resolveAnswer('tenMoreClients', formData.tenMoreClients, formData.tenMoreClientsOther)}`);
+  sections.push(`Wants To Start:       ${labelFor('startTiming', formData.startTiming)}`);
+  sections.push('');
+
+  // Lead Score Section
+  const score = scoreLead(formData as unknown as Record<string, string>);
+  sections.push('LEAD SCORE');
+  sections.push('-'.repeat(60));
+  sections.push(`ICP Match:        ${score.icp}/${score.max.icp} (${score.tiers.icp})`);
+  sections.push(`Ability To Pay:   ${score.pay}/${score.max.pay} (${score.tiers.pay})`);
+  sections.push(`Readiness:        ${score.readiness}/${score.max.readiness} (${score.tiers.readiness})`);
+  sections.push(`Total:            ${score.total}/${score.max.icp + score.max.pay + score.max.readiness}`);
+  sections.push(`Sophistication:   ${score.sophistication.score}/${score.sophistication.max} (${score.sophistication.tier})`);
+  sections.push(`Fit Risk:         ${score.fitRisk.label}`);
   sections.push('');
 
   // Timestamp Section
