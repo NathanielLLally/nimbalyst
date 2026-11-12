@@ -1,0 +1,2 @@
+# Claude Code worktrees (local only; deploy.sh runs `git add -A` on the whole repo)
+.claude/worktrees/

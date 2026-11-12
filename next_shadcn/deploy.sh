@@ -36,9 +36,9 @@ echo ""
 # Step 1: Commit and push local changes
 echo -e "${YELLOW}Step 1: Committing and pushing local changes...${NC}"
 cd "$TOP" || exit 1
-git add -A
-git commit -m "$(date "+%Y-%m-%d %H:%M")" || echo "No changes to commit"
-git push
+# shellcheck source=scripts/deploy-git-sync.sh
+source "$TOP/scripts/deploy-git-sync.sh"
+local_sync "$TOP"
 echo -e "${GREEN}✅ Local changes pushed${NC}"
 echo ""
 
@@ -56,23 +56,23 @@ echo ""
 echo -e "${YELLOW}Step 4: Running build and deployment...${NC}"
 echo "Pulling latest code..."
 echo "Building application..."
-if [ "$IS_DEPLOY_HOST" = footrue ]; then
+if [ "$IS_DEPLOY_HOST" = true ]; then
   sudo -u "$REMOTE_USER" SSH_AUTH_SOCK=$SSH_AUTH_SOCK bash -c "
+    $(declare -f server_sync)
     set -e
-    cd '$REMOTE_PATH'
-    git pull
+    server_sync '$REMOTE_PATH'
     npm install
     npm run build
     npm run build:worker
   "
 else
-  ssh -p 2222 "${REMOTE_USER}@${REMOTE_HOST}" << 'REMOTE_SCRIPT'
+  # server_sync comes from scripts/deploy-git-sync.sh, sent ahead of the script body.
+  { declare -f server_sync; cat << 'REMOTE_SCRIPT'; } | ssh -p 2222 "${REMOTE_USER}@${REMOTE_HOST}"
   set -e
 
   TOP="/home/devel/src/git/nimbalyst/next_shadcn"
 
-  cd "$TOP"
-  git pull
+  server_sync "$TOP"
 
   # Install dependencies before building: a pull that adds a package (e.g. a new
   # @types/* devDependency) otherwise fails the build with a missing-module or
