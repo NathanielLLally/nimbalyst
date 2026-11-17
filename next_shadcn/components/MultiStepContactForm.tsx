@@ -513,9 +513,6 @@ export function MultiStepContactForm({ onSubmittedChange }: MultiStepContactForm
               </p>
             </div>
 
-            {/* Spacer between the timezone line and the first field (first page only) */}
-            {currentStep === 0 && <div aria-hidden="true" className="h-4" />}
-
             {/* Step 1: Your Business */}
             {currentStep === 0 && (
               <div className="grid grid-cols-1 gap-4">
